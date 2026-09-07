@@ -55,6 +55,8 @@
   <% if (parseFloat(order.discount) > 0) { %><div class="row"><span>Rabatt <%= order.discount_code || '' %></span><span>-<%= parseFloat(order.discount).toFixed(2) %></span></div><% } %>
   <div class="row"><span>Lieferung</span><span><%= parseFloat(order.delivery_fee).toFixed(2) %></span></div>
   <div class="row total"><span>GESAMT</span><span><%= parseFloat(order.total).toFixed(2) %> €</span></div>
+  <% if (parseFloat(order.vat7 || 0) > 0) { %><div class="row"><span>Darin 7% MwSt</span><span><%= parseFloat(order.vat7).toFixed(2) %></span></div><% } %>
+  <% if (parseFloat(order.vat19 || 0) > 0) { %><div class="row"><span>Darin 19% MwSt</span><span><%= parseFloat(order.vat19).toFixed(2) %></span></div><% } %>
   <hr>
   <div>Zahlung: <%= order.payment_method === 'bar' ? 'Bar' : (order.payment_method === 'karte' ? 'Karte' : 'Online') %></div>
   <% if (order.notes) { %><div>Hinweis: <%= order.notes %></div><% } %>

@@ -17,6 +17,8 @@
   <div class="row"><span>Bestellungen (ohne Storno)</span><strong><%= validCount %></strong></div>
   <div class="row"><span>Storniert</span><strong><%= orders.length - validCount %></strong></div>
   <div class="row total"><span>Umsatz gesamt</span><strong><%= revenue.toFixed(2) %> €</strong></div>
+  <% if ((vat7Sum || 0) > 0) { %><div class="row"><span>Darin 7% MwSt</span><strong><%= vat7Sum.toFixed(2) %> €</strong></div><% } %>
+  <% if ((vat19Sum || 0) > 0) { %><div class="row"><span>Darin 19% MwSt</span><strong><%= vat19Sum.toFixed(2) %> €</strong></div><% } %>
   <hr>
   <h3>Nach Zahlungsart</h3>
   <table class="admin-table">

@@ -442,8 +442,10 @@ async function loadTagesbericht(datum) {
       itemsSum[key].total += (parseFloat(it.price) || 0) * (parseInt(it.qty) || 0);
     });
   });
+  const vat7Sum = valid.reduce((s, o) => s + (parseFloat(o.vat7) || 0), 0);
+  const vat19Sum = valid.reduce((s, o) => s + (parseFloat(o.vat19) || 0), 0);
   return {
-    datum, orders, validCount: valid.length, revenue, pay,
+    datum, orders, validCount: valid.length, revenue, pay, vat7Sum, vat19Sum,
     itemsSum: Object.values(itemsSum).sort((a, b) => b.qty - a.qty)
   };
 }

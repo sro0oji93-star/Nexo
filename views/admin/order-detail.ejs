@@ -84,6 +84,8 @@
     <% } %>
     <div class="total-row"><span>Liefergebühr</span><span><%= parseFloat(order.delivery_fee).toFixed(2) %> €</span></div>
     <div class="total-row total"><span>Gesamt</span><span><%= parseFloat(order.total).toFixed(2) %> €</span></div>
+    <% if (parseFloat(order.vat7 || 0) > 0) { %><div class="total-row"><span>Darin 7% MwSt</span><span><%= parseFloat(order.vat7).toFixed(2) %> €</span></div><% } %>
+    <% if (parseFloat(order.vat19 || 0) > 0) { %><div class="total-row"><span>Darin 19% MwSt</span><span><%= parseFloat(order.vat19).toFixed(2) %> €</span></div><% } %>
   </div>
 
   <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap">

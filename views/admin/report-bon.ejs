@@ -29,6 +29,8 @@
   <div class="row"><span>Bestellungen</span><span><%= validCount %></span></div>
   <div class="row"><span>Storniert</span><span><%= orders.length - validCount %></span></div>
   <div class="row total"><span>UMSATZ</span><span><%= revenue.toFixed(2) %> €</span></div>
+  <% if ((vat7Sum || 0) > 0) { %><div class="row"><span>7% MwSt</span><span><%= vat7Sum.toFixed(2) %></span></div><% } %>
+  <% if ((vat19Sum || 0) > 0) { %><div class="row"><span>19% MwSt</span><span><%= vat19Sum.toFixed(2) %></span></div><% } %>
   <hr>
   <% Object.keys(pay).forEach(function(k) { %>
   <div class="row"><span><%= k %></span><span><%= pay[k].toFixed(2) %></span></div>

@@ -30,6 +30,12 @@
           <span>Gesamtbetrag</span>
           <strong><%= parseFloat(order.total).toFixed(2) %> €</strong>
         </div>
+        <% if (parseFloat(order.vat7 || 0) > 0 || parseFloat(order.vat19 || 0) > 0) { %>
+        <div class="confirmation-row">
+          <span>Inkl. MwSt</span>
+          <strong><% if (parseFloat(order.vat7 || 0) > 0) { %>7%: <%= parseFloat(order.vat7).toFixed(2) %> €<% } %><% if (parseFloat(order.vat7 || 0) > 0 && parseFloat(order.vat19 || 0) > 0) { %> · <% } %><% if (parseFloat(order.vat19 || 0) > 0) { %>19%: <%= parseFloat(order.vat19).toFixed(2) %> €<% } %></strong>
+        </div>
+        <% } %>
         <div class="confirmation-row">
           <span>Bestellart</span>
           <strong><%= order.order_type === 'abholung' ? 'Abholung' : 'Lieferung' %></strong>
@@ -60,6 +66,7 @@
         <a href="/" class="btn btn-primary">Zur Startseite</a>
         <a href="/speisekarte" class="btn btn-outline">Weiter bestellen</a>
       </div>
+      <%- include('partials/vat-note') %>
     </div>
   </div>
 </section>

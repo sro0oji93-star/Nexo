@@ -119,6 +119,7 @@ router.post('/', async (req, res) => {
     }
 
     let calculatedSubtotal = 0;
+    let gross7 = 0, gross19 = 0; // MwSt-Bruttobasen je Steuersatz
     const nowBerlinMin = berlinMinutes();
     let hasPickupOnlyDeal = false;
     // Saucenliste für Gratis-Sauce (Rings, Pizza Brötchen) – einmal laden
@@ -316,6 +317,9 @@ router.post('/', async (req, res) => {
       item.price = realPrice;
       item.qty = qty;
       calculatedSubtotal += realPrice * qty;
+      // MwSt-Basis je Satz sammeln (Getränke 19 %, alles andere inkl. Milkshakes 7 %)
+      if (product.catslug === 'getraenke') gross19 += realPrice * qty;
+      else gross7 += realPrice * qty;
     }
     
     const settings = res.locals.settings;
@@ -350,14 +354,25 @@ router.post('/', async (req, res) => {
     }
     
     const calculatedTotal = Math.max(0, calculatedSubtotal + calculatedDelivery - calculatedDiscount);
-    
+
+    // MwSt je Satz aus Bruttototalen (Liefergebühr folgt 7 %, Rabatt anteilig je Satz)
+    gross7 += calculatedDelivery;
+    const grossAll = gross7 + gross19;
+    let base7 = gross7, base19 = gross19;
+    if (calculatedDiscount > 0 && grossAll > 0) {
+      base7 = Math.max(0, gross7 - calculatedDiscount * gross7 / grossAll);
+      base19 = Math.max(0, gross19 - calculatedDiscount * gross19 / grossAll);
+    }
+    const vat7 = Math.round((base7 - base7 / 1.07) * 100) / 100;
+    const vat19 = Math.round((base19 - base19 / 1.19) * 100) / 100;
+
     const orderNumber = 'FEIN-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
-    
-    await db.run(`INSERT INTO orders (order_number, customer_name, customer_email, customer_phone, delivery_address, delivery_city, delivery_zip, notes, items, subtotal, delivery_fee, discount, discount_code, total, payment_method, payment_status, order_status, order_type)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
+
+    await db.run(`INSERT INTO orders (order_number, customer_name, customer_email, customer_phone, delivery_address, delivery_city, delivery_zip, notes, items, subtotal, delivery_fee, discount, discount_code, total, payment_method, payment_status, order_status, order_type, vat7, vat19)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)`,
       [orderNumber, name, email, phone, address, city, zip, notes,
       JSON.stringify(parsedItems), calculatedSubtotal, calculatedDelivery, calculatedDiscount, validCode, calculatedTotal,
-      payment, payment === 'online' ? 'ausstehend' : 'bar', 'neu', type]
+      payment, payment === 'online' ? 'ausstehend' : 'bar', 'neu', type, vat7, vat19]
     );
     
     if (validCode) {

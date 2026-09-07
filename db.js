@@ -197,6 +197,8 @@ async function initialize() {
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS order_type TEXT DEFAULT 'lieferung';
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS printed INTEGER DEFAULT 0;
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS printed_at TIMESTAMP;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS vat7 NUMERIC(10,2) DEFAULT 0;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS vat19 NUMERIC(10,2) DEFAULT 0;
   `);
 
   const hash = bcrypt.hashSync('admin123', 10);
