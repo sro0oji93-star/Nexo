@@ -196,7 +196,7 @@
 </style>
 <script>
 (function() {
-  var all = <%- JSON.stringify((products || []).filter(function(p) { return p.is_available && p.image; }).map(function(p) { var min = p.price; try { if (p.sizes) { var sz = JSON.parse(p.sizes); min = Math.min.apply(null, sz.map(function(s) { return s.price; })); } } catch (e) {} return { name: p.name, slug: p.slug, image: p.image, price: min, feat: !!p.is_featured }; })) %>;
+  var all = <%- JSON.stringify((products || []).filter(function(p) { return p.is_available && p.image; }).map(function(p) { var min = parseFloat(p.price) || 0; try { if (p.sizes) { var sz = JSON.parse(p.sizes); min = Math.min.apply(null, sz.map(function(s) { return s.price; })); } } catch (e) {} if (!(min > 0)) return null; var multi = false; try { multi = !!p.sizes && JSON.parse(p.sizes).length > 1; } catch (e) {} return { name: p.name, slug: p.slug, image: p.image, price: min, multi: multi, feat: !!p.is_featured }; }).filter(function(x) { return !!x; })) %>;
   all.sort(function(a, b) { return (b.feat - a.feat); });
   if (!all.length) return;
   var PER = 4, page = 0;
@@ -211,7 +211,7 @@
       var slice = [];
       for (var i = 0; i < PER; i++) slice.push(all[(page * PER + i) % all.length]);
       grid.innerHTML = slice.map(function(p) {
-        return '<div class="spot-card"><a href="/speisekarte/produkt/' + esc(p.slug) + '"><img loading="lazy" src="' + esc(p.image) + '" alt="' + esc(p.name) + '"></a><h4>' + esc(p.name) + '</h4><div class="spot-price">ab ' + Number(p.price).toFixed(2).replace('.', ',') + ' €</div><a class="spot-btn" href="/speisekarte/produkt/' + esc(p.slug) + '">Jetzt bestellen</a></div>';
+        return '<div class="spot-card"><a href="/speisekarte/produkt/' + esc(p.slug) + '"><img loading="lazy" src="' + esc(p.image) + '" alt="' + esc(p.name) + '"></a><h4>' + esc(p.name) + '</h4><div class="spot-price">' + (p.multi ? 'ab ' : '') + Number(p.price).toFixed(2).replace('.', ',') + ' €</div><a class="spot-btn" href="/speisekarte/produkt/' + esc(p.slug) + '">Jetzt bestellen</a></div>';
       }).join('');
       grid.style.opacity = '1';
       dots.innerHTML = '';
