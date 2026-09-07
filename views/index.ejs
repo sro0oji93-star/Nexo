@@ -15,6 +15,10 @@
             <% if (slide.line2) { %><span class="hero-title-gold" style="font-size:clamp(38px,5.5vw,80px);display:inline-block"><%= slide.line2 %></span><br><% } %>
             <% if (slide.line3) { %><span class="hero-title-gold" style="font-size:clamp(26px,3.5vw,52px);display:inline-block"><%= slide.line3 %></span><% } %>
           </div>
+          <% var heroAddSlug = null; if (slide.button_link && slide.button_link.indexOf('?add=') !== -1) { heroAddSlug = slide.button_link.split('?add=')[1].split('&')[0]; } %>
+          <% var isNightDeal = heroAddSlug === 'deal-night-abholung'; %>
+          <% var isMittagDeal = heroAddSlug === 'nexo-mittag-deal' || (slide.line1 && slide.line1.indexOf('Mittag') !== -1); %>
+          <% if (!isMittagDeal) { %>
           <div style="margin-top:20px;display:flex;gap:36px;flex-wrap:wrap;align-items:flex-start">
             <% if (slide.price1) { %>
             <span class="hero-price-gold" style="font-family:'Josefin Sans',sans-serif;font-size:clamp(30px,4vw,64px);font-weight:700;font-style:italic;color:#d4af37;text-shadow:3px 3px 0 var(--primary),4px 4px 0 var(--primary);line-height:1"><%= slide.price1 %><% if (slide.price1_cents) { %><span style="font-size:clamp(16px,2vw,36px)"><%= slide.price1_cents %></span><% } %> <span style="display:block;width:fit-content;margin-top:10px;font-size:clamp(10px,0.9vw,13px);font-weight:700;letter-spacing:3px;color:var(--secondary,#f5d67b);border:1px solid var(--primary,#d4af37);border-radius:20px;padding:4px 14px;background:rgba(0,0,0,.45);white-space:nowrap"><%= slide.price1_tag || 'ABHOLUNG' %></span></span>
@@ -23,10 +27,8 @@
             <span class="hero-price-gold" style="font-family:'Josefin Sans',sans-serif;font-size:clamp(30px,4vw,64px);font-weight:700;font-style:italic;color:#d4af37;text-shadow:3px 3px 0 var(--primary),4px 4px 0 var(--primary);line-height:1"><%= slide.price2 %><% if (slide.price2_cents) { %><span style="font-size:clamp(16px,2vw,36px)"><%= slide.price2_cents %></span><% } %> <span style="display:block;width:fit-content;margin-top:10px;font-size:clamp(10px,0.9vw,13px);font-weight:700;letter-spacing:3px;color:var(--secondary,#f5d67b);border:1px solid var(--primary,#d4af37);border-radius:20px;padding:4px 14px;background:rgba(0,0,0,.45);white-space:nowrap"><%= slide.price2_tag || 'LIEFERUNG' %></span></span>
             <% } %>
           </div>
+          <% } %>
           <p style="margin-top:15px;font-size:16px;color:rgba(255,255,255,.85);max-width:80%"><%= slide.description || '' %></p>
-          <% var heroAddSlug = null; if (slide.button_link && slide.button_link.indexOf('?add=') !== -1) { heroAddSlug = slide.button_link.split('?add=')[1].split('&')[0]; } %>
-          <% var isNightDeal = heroAddSlug === 'deal-night-abholung'; %>
-          <% var isMittagDeal = heroAddSlug === 'nexo-mittag-deal'; %>
           <% var telHref = 'tel:' + String((typeof settings !== 'undefined' && settings.phone) ? settings.phone : '041314006817').replace(/[^+\d]/g, ''); %>
           <% var heroDealList = (typeof heroDeals !== 'undefined' && heroDeals) ? heroDeals : products; %>
           <% var heroDeal = heroAddSlug ? heroDealList.find(function(x) { return x.slug === heroAddSlug; }) : null; %>
@@ -55,9 +57,9 @@
         <div style="flex:1;min-width:350px;max-width:700px;position:relative;min-height:550px;display:flex;align-items:center;justify-content:center">
           <div style="position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center">
             <img src="<%= slide.main_image || '/images/revolution/75ec1-big1.png' %>" alt="" style="max-width:100%;max-height:550px;object-fit:contain;animation:gentleFloat 3.5s ease-in-out infinite">
-            <% if (slide.drink_tl) { %><img src="<%= slide.drink_tl %>" alt="" style="position:absolute;top:20%;left:-2%;width:22%;animation:revFloat 3.5s ease-in-out infinite"><% } %>
-            <% if (slide.drink_tr) { %><img src="<%= slide.drink_tr %>" alt="" style="position:absolute;top:24%;right:-3%;width:20%;animation:revFloat 3.5s ease-in-out infinite 0.3s"><% } %>
-            <% if (slide.drink_br) { %><img src="<%= slide.drink_br %>" alt="" style="position:absolute;bottom:2%;right:0;width:20%;animation:revFloat 3.5s ease-in-out infinite 0.6s"><% } %>
+            <% if (slide.drink_tl) { %><img src="<%= slide.drink_tl %>" alt="" style="position:absolute;top:32%;left:-2%;width:22%;animation:revFloat 3.5s ease-in-out infinite"><% } %>
+            <% if (slide.drink_tr) { %><img src="<%= slide.drink_tr %>" alt="" style="position:absolute;top:36%;right:-3%;width:20%;animation:revFloat 3.5s ease-in-out infinite 0.3s"><% } %>
+            <% if (slide.drink_br) { %><img src="<%= slide.drink_br %>" alt="" style="position:absolute;bottom:-4%;right:0;width:20%;animation:revFloat 3.5s ease-in-out infinite 0.6s"><% } %>
           </div>
         </div>
       </div>
