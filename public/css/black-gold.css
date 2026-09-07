@@ -239,3 +239,16 @@
 #mad-page-wrapper .shopping-cart {
   background: var(--primary, #d4af37) !important;
 }
+
+/* Yummi-Theme setzt automatisch '$' vor Preise – entfernen (Templates enthalten bereits €) */
+.mad-product .mad-product-price:not(.onsale):before,
+.mad-product .mad-product-price span:before,
+table .mad-product-price:before,
+.mad-total-item .mad-product-price:before,
+.shopping-cart .subtotal span:before,
+.mad-dollar:before,
+.mad-pt-price-num:before,
+.mad-spec-price::before,
+.mad-menu-item .mad-menu-price:before {
+  content: none !important;
+}
