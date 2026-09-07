@@ -421,6 +421,42 @@ router.post('/einstellungen/hero-slides/loeschen/:id', auth, async (req, res) =>
   req.session.save(() => res.redirect('/admin/einstellungen'));
 });
 
+// Tagesbericht (druckbar, A4): Umsatz, Zahlungsarten, Artikel, Bestellungen
+router.get('/tagesbericht', auth, async (req, res) => {
+  const datum = typeof req.query.datum === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(req.query.datum)
+    ? req.query.datum
+    : new Date().toISOString().slice(0, 10);
+  const orders = await db.all('SELECT * FROM orders WHERE COALESCE(is_deleted,0) = 0 AND created_at::date = $1 ORDER BY created_at', [datum]);
+  const valid = orders.filter(o => o.order_status !== 'storniert');
+  const revenue = valid.reduce((s, o) => s + parseFloat(o.total || 0), 0);
+  const pay = {};
+  valid.forEach(o => {
+    const k = o.payment_method === 'bar' ? 'Bar' : (o.payment_method === 'karte' ? 'Karte' : 'Online');
+    pay[k] = (pay[k] || 0) + parseFloat(o.total || 0);
+  });
+  const itemsSum = {};
+  valid.forEach(o => {
+    let items = [];
+    try { items = JSON.parse(o.items); } catch (e) {}
+    items.forEach(it => {
+      const key = it.name + (it.size && it.size.label ? ' (' + it.size.label + ')' : '');
+      if (!itemsSum[key]) itemsSum[key] = { name: key, qty: 0, total: 0 };
+      itemsSum[key].qty += parseInt(it.qty) || 0;
+      itemsSum[key].total += (parseFloat(it.price) || 0) * (parseInt(it.qty) || 0);
+    });
+  });
+  res.render('admin/report', {
+    title: 'Tagesbericht – Admin',
+    datum,
+    orders,
+    validCount: valid.length,
+    revenue,
+    pay,
+    itemsSum: Object.values(itemsSum).sort((a, b) => b.qty - a.qty),
+    settings: res.locals.settings
+  });
+});
+
 // Backup-Download (JSON): Bestellungen, Produkte, Kategorien, Rabatte, Einstellungen
 router.get('/backup', auth, async (req, res) => {
   try {

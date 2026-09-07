@@ -1,0 +1,71 @@
+<%- include('layout') %>
+<div class="section-header-row no-print">
+  <h2><i class="fas fa-file-alt"></i> Tagesbericht</h2>
+  <form method="GET" action="/admin/tagesbericht" style="display:flex;gap:8px;align-items:center">
+    <input type="date" name="datum" value="<%= datum %>" onchange="this.form.submit()" style="padding:8px 12px;border-radius:8px;border:1px solid #e8e4de;font-size:13px">
+    <button type="button" class="btn btn-sm btn-primary" onclick="window.print()"><i class="fas fa-print"></i> Drucken / PDF</button>
+  </form>
+</div>
+
+<div class="report-print">
+  <div class="center">
+    <h2 style="margin:0"><%= (typeof settings !== 'undefined' && settings.site_name) ? settings.site_name : '' %> – Tagesbericht</h2>
+    <p><%= new Date(datum + 'T12:00:00').toLocaleDateString('de-DE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) %></p>
+  </div>
+  <hr>
+  <div class="row"><span>Bestellungen (ohne Storno)</span><strong><%= validCount %></strong></div>
+  <div class="row"><span>Storniert</span><strong><%= orders.length - validCount %></strong></div>
+  <div class="row total"><span>Umsatz gesamt</span><strong><%= revenue.toFixed(2) %> €</strong></div>
+  <hr>
+  <h3>Nach Zahlungsart</h3>
+  <table class="admin-table">
+    <thead><tr><th>Zahlungsart</th><th>Umsatz</th></tr></thead>
+    <tbody>
+      <% Object.keys(pay).forEach(function(k) { %>
+      <tr><td><%= k %></td><td><%= pay[k].toFixed(2) %> €</td></tr>
+      <% }); %>
+      <% if (!Object.keys(pay).length) { %><tr><td colspan="2" class="empty-state">Keine Umsätze</td></tr><% } %>
+    </tbody>
+  </table>
+  <h3>Verkaufte Artikel</h3>
+  <table class="admin-table">
+    <thead><tr><th>Artikel</th><th>Menge</th><th>Umsatz</th></tr></thead>
+    <tbody>
+      <% itemsSum.forEach(function(i) { %>
+      <tr><td><%= i.name %></td><td><%= i.qty %></td><td><%= i.total.toFixed(2) %> €</td></tr>
+      <% }); %>
+      <% if (!itemsSum.length) { %><tr><td colspan="3" class="empty-state">Keine Artikel</td></tr><% } %>
+    </tbody>
+  </table>
+  <h3>Bestellungen im Detail</h3>
+  <table class="admin-table">
+    <thead><tr><th>Nr.</th><th>Uhrzeit</th><th>Kunde</th><th>Typ</th><th>Zahlung</th><th>Status</th><th>Betrag</th></tr></thead>
+    <tbody>
+      <% orders.forEach(function(o) { %>
+      <tr>
+        <td><%= o.order_number %></td>
+        <td><%= new Date(o.created_at).toLocaleTimeString('de-DE', {hour:'2-digit', minute:'2-digit'}) %></td>
+        <td><%= o.customer_name %></td>
+        <td><%= o.order_type === 'abholung' ? 'Abholung' : 'Lieferung' %></td>
+        <td><%= o.payment_method === 'bar' ? 'Bar' : (o.payment_method === 'karte' ? 'Karte' : 'Online') %></td>
+        <td><%= o.order_status %></td>
+        <td><%= parseFloat(o.total).toFixed(2) %> €</td>
+      </tr>
+      <% }); %>
+      <% if (!orders.length) { %><tr><td colspan="7" class="empty-state">Keine Bestellungen an diesem Tag</td></tr><% } %>
+    </tbody>
+  </table>
+</div>
+
+<style>
+  .report-print .center { text-align: center; }
+  .report-print .row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 15px; }
+  .report-print .row.total { font-size: 19px; font-weight: bold; border-top: 2px solid #000; margin-top: 6px; padding-top: 8px; }
+  .report-print h3 { margin: 18px 0 8px; }
+  @media print {
+    .admin-sidebar, .admin-header, .no-print { display: none !important; }
+    .admin-main { margin: 0 !important; }
+    @page { size: A4; margin: 12mm; }
+  }
+</style>
+<%- include('footer') %>
