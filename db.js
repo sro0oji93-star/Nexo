@@ -205,6 +205,17 @@ async function initialize() {
     ['admin', hash, 'Admin']
   );
 
+  // Notfall-Reset per ENV (für Free-Plan ohne Shell-Zugang):
+  // In Render unter Environment ADMIN_RESET_PASSWORD setzen -> nach Deploy ist das Passwort aktiv -> danach Variable wieder löschen.
+  const resetUser = process.env.ADMIN_RESET_USER || 'admin';
+  const resetPass = process.env.ADMIN_RESET_PASSWORD;
+  if (resetPass && resetPass.length >= 6) {
+    const resetHash = bcrypt.hashSync(resetPass, 10);
+    const upd = await query('UPDATE admins SET password = $1 WHERE username = $2', [resetHash, resetUser]);
+    if (upd.rowCount > 0) console.log('Admin-Passwort per ENV zurückgesetzt für: ' + resetUser);
+    else console.log('ADMIN_RESET_PASSWORD ignoriert: Benutzer "' + resetUser + '" nicht gefunden.');
+  }
+
   const catCount = (await get('SELECT COUNT(*) as count FROM categories')).count;
   if (catCount === 0) {
     const categories = [
