@@ -63,8 +63,20 @@
   if (!box || box.dataset.dealInit) return;
   box.dataset.dealInit = '1';
   function paint() {
-    // Basis-Häkchen + Zusammenfassung
+    // Entweder Pizza ODER Baguette: inaktiver Zweig wird zugeklappt + abgedimmt
     var basis = box.querySelector('input[data-deal-basis]:checked');
+    var isPizza = !basis || basis.value.indexOf('Pizza') === 0;
+    var all = box.querySelectorAll(':scope > details');
+    var belaegeBox = all[1], baguetteBox = all[2];
+    if (belaegeBox) {
+      belaegeBox.style.opacity = isPizza ? '1' : '0.45';
+      if (!isPizza) belaegeBox.removeAttribute('open');
+    }
+    if (baguetteBox) {
+      baguetteBox.style.opacity = isPizza ? '0.45' : '1';
+      if (isPizza) baguetteBox.removeAttribute('open');
+    }
+    // Basis-Häkchen + Zusammenfassung
     box.querySelectorAll('.deal-basis-box').forEach(function(d) {
       var r = d.querySelector('input[data-deal-basis]');
       var cur = d.querySelector('.deal-current');
