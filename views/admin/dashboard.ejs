@@ -66,7 +66,7 @@
           <td><a href="/admin/bestellungen/<%= o.id %>"><%= o.order_number %></a></td>
           <td><%= o.customer_name %></td>
           <td><%= parseFloat(o.total).toFixed(2) %> €</td>
-          <td><span class="status-badge status-<%= o.order_status %>"><%= o.order_status === 'neu' ? 'Neu' : (o.order_status === 'in_bearbeitung' ? 'In Bearbeitung' : (o.order_status === 'unterwegs' ? 'Unterwegs' : (o.order_status === 'geliefert' ? 'Geliefert' : 'Storniert'))) %></span></td>
+          <td><span class="status-badge status-<%= o.order_status %>"><%= o.order_status === 'neu' ? 'Neu' : (o.order_status === 'in_bearbeitung' ? 'In Bearbeitung' : (o.order_status === 'unterwegs' ? 'Unterwegs' : (o.order_status === 'geliefert' ? 'Geliefert' : (o.order_status === 'wartet_auf_zahlung' ? 'Wartet auf Zahlung' : 'Storniert')))) %></span></td>
           <td><%= new Date(o.created_at).toLocaleDateString('de-DE') %></td>
         </tr>
 <% }); %>

@@ -369,17 +369,34 @@ router.post('/', async (req, res) => {
 
     const orderNumber = 'FEIN-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
 
-    await db.run(`INSERT INTO orders (order_number, customer_name, customer_email, customer_phone, delivery_address, delivery_city, delivery_zip, notes, items, subtotal, delivery_fee, discount, discount_code, total, payment_method, payment_status, order_status, order_type, vat7, vat19)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)`,
+    // Online-Zahlung: Bestellung parken (kein Druck/Ton), erst Webhook gibt sie frei
+    const isOnline = payment === 'online';
+    const ins = await db.run(`INSERT INTO orders (order_number, customer_name, customer_email, customer_phone, delivery_address, delivery_city, delivery_zip, notes, items, subtotal, delivery_fee, discount, discount_code, total, payment_method, payment_status, order_status, order_type, vat7, vat19)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) RETURNING id`,
       [orderNumber, name, email, phone, address, city, zip, notes,
       JSON.stringify(parsedItems), calculatedSubtotal, calculatedDelivery, calculatedDiscount, validCode, calculatedTotal,
-      payment, payment === 'online' ? 'ausstehend' : 'bar', 'neu', type, vat7, vat19]
+      payment, isOnline ? 'ausstehend' : 'bar', isOnline ? 'wartet_auf_zahlung' : 'neu', type, vat7, vat19]
     );
-    
+    const orderId = ins.rows && ins.rows[0] ? ins.rows[0].id : null;
+
     if (validCode) {
       await db.run('UPDATE discounts SET used_count = used_count + 1 WHERE code = $1', [validCode]);
     }
-    
+
+    if (isOnline) {
+      try {
+        const { createCheckoutSession } = require('./stripe');
+        const session = await createCheckoutSession(
+          { id: orderId, order_number: orderNumber, total: calculatedTotal, customer_email: email, items: parsedItems }, req
+        );
+        return res.json({ success: true, orderNumber, stripeUrl: session.url, message: 'Weiter zur Zahlung' });
+      } catch (err) {
+        console.error('Stripe-Session Fehler:', err.message);
+        if (orderId) await db.run("UPDATE orders SET order_status = 'storniert' WHERE id = $1", [orderId]);
+        return res.status(500).json({ success: false, message: 'Online-Zahlung derzeit nicht möglich – bitte Barzahlung wählen.' });
+      }
+    }
+
     res.json({ success: true, orderNumber, message: 'Bestellung erfolgreich aufgegeben!' });
   } catch (err) {
     console.error(err);

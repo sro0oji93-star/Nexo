@@ -20,6 +20,10 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' }
 }));
 
+// Stripe-Webhook braucht den rohen Body (vor express.json registrieren!)
+const { webhookHandler } = require('./routes/stripe');
+app.post('/bestellung/stripe-webhook', express.raw({ type: 'application/json' }), webhookHandler);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));

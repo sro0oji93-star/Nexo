@@ -77,6 +77,7 @@ a:hover{color:var(--red-dark)}
 .status-unterwegs{background:rgba(66,153,225,.1);color:#4299e1}
 .status-geliefert,.status-verfuegbar{background:rgba(45,138,78,.1);color:#2d8a4e}
 .status-storniert,.status-ausverkauft{background:rgba(220,53,53,.1);color:#dc3545}
+.status-wartet_auf_zahlung{background:rgba(107,114,128,.15);color:#4b5563}
 .badge{display:inline-block;padding:2px 8px;border-radius:50px;background:var(--bg4);font-size:11px;color:var(--text-muted)}
 .badge-cat{background:rgba(184,0,31,.06);color:var(--red)}
 .badge-payment{background:rgba(66,153,225,.08);color:#4299e1}

@@ -859,6 +859,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (result.success) {
           localStorage.removeItem('feinCart');
           localStorage.removeItem('feinDiscount');
+          if (result.stripeUrl) { window.location.href = result.stripeUrl; return; }
           window.location.href = '/bestellung/bestellung/' + result.orderNumber;
         } else {
           alert(result.message || 'Fehler bei der Bestellung');

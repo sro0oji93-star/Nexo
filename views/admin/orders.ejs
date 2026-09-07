@@ -42,6 +42,7 @@
         <td>
           <form method="POST" action="/admin/bestellungen/status/<%= o.id %>" class="status-form"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <select name="status" onchange="this.form.submit()">
+              <option value="wartet_auf_zahlung" <%= o.order_status === 'wartet_auf_zahlung' ? 'selected' : '' %>>Wartet auf Zahlung</option>
               <option value="neu" <%= o.order_status === 'neu' ? 'selected' : '' %>>Neu</option>
               <option value="in_bearbeitung" <%= o.order_status === 'in_bearbeitung' ? 'selected' : '' %>>In Bearbeitung</option>
               <option value="unterwegs" <%= o.order_status === 'unterwegs' ? 'selected' : '' %>>Unterwegs</option>
