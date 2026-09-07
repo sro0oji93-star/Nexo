@@ -173,51 +173,6 @@
 
 </div>
 
-<!-- All Products -->
-<div class="mad-section">
-  <div class="container">
-    <div class="mad-products mad-grid mad-grid--cols-4">
-      <% products.forEach(function(p) { %>
-      <div class="mad-grid-item">
-        <div class="mad-product">
-          <figure class="mad-product-image">
-            <% if (p.image) { %>
-            <a href="/speisekarte/produkt/<%= p.slug %>"><img loading="lazy" src="<%= p.image %>" alt="<%= p.name %>" onerror="this.style.display='none';this.parentElement.innerHTML='<i class=&quot;fas fa-utensils&quot; style=&quot;font-size:48px;color:#ccc&quot;></i>'"></a>
-            <% } else { %>
-            <a href="/speisekarte/produkt/<%= p.slug %>" style="display:flex;align-items:center;justify-content:center;height:200px;background:#f8f5f0"><i class="fas fa-utensils" style="font-size:48px;color:#ccc"></i></a>
-            <% } %>
-          </figure>
-          <div class="mad-product-description">
-            <h4 class="mad-product-title"><a href="/speisekarte/produkt/<%= p.slug %>" class="mad-link"><%= p.name %></a><% if (p.is_featured) { %> <span style="display:inline-block;font-size:10px;font-weight:700;color:#0a0a0a;background:linear-gradient(135deg,#f5d67b,#d4af37);border-radius:50px;padding:2px 8px;vertical-align:middle;white-space:nowrap">⭐ Empfohlen</span><% } %></h4>
-            <p><%= p.description ? p.description.substring(0, 80) + (p.description.length > 80 ? '...' : '') : '' %></p>
-          </div>
-          <div class="mad-product-calc">
-            <% if (!p.is_available) { %>
-            <span style="display:inline-block;padding:8px 18px;border-radius:50px;background:rgba(220,53,53,.1);color:#dc3545;font-size:12px;font-weight:700">Ausverkauft</span>
-            <% } else { %>
-            <% if (p.sizes) { var sz = JSON.parse(p.sizes); var minP = Math.min.apply(null, sz.map(function(s){return s.price})); %>
-            <span class="mad-product-price">ab <%= minP.toFixed(2) %> €</span>
-            <button class="btn btn-style-3 btn-small add-to-cart" data-id="<%= p.id %>" data-name="<%= p.name %>" data-has-sizes="1">In den Warenkorb</button>
-            <% } else { %>
-            <span class="mad-product-price"><%= p.price.toFixed(2) %> €</span>
-            <% if (['box-1', 'box-2', 'box-3', 'mix-milkshake'].indexOf(p.slug) !== -1) { %>
-            <a href="/speisekarte/produkt/<%= p.slug %>" class="btn btn-style-3 btn-small">Auswählen</a>
-            <% } else { %>
-            <button class="btn btn-style-3 btn-small add-to-cart" data-id="<%= p.id %>" data-name="<%= p.name %>" data-price="<%= p.price %>">In den Warenkorb</button>
-            <% } %>
-            <% } %>
-            <% } %>
-          </div>
-        </div>
-      </div>
-      <% }); %>
-    </div>
-    <div class="align-center">
-      <a href="/speisekarte" class="btn btn-style-2 btn-big">Alle ansehen</a>
-    </div>
-  </div>
-</div>
-
 <!-- Half-Section: Create Your Own -->
 <div class="mad-section no-pd mad-section--stretched-content-no-px">
   <div class="mad-half-section">
@@ -277,12 +232,6 @@
 <div class="mad-section no-pd mad-section--stretched-content-no-px">
   <div class="mad-instafeed">
     <div class="mad-grid item-col-5 no-gutters">
-      <div class="mad-col">
-        <img loading="lazy" src="/images/264x264_img1.jpg" alt="">
-      </div>
-      <div class="mad-col">
-        <img loading="lazy" src="/images/264x264_img2.jpg" alt="">
-      </div>
       <div class="mad-col">
         <img loading="lazy" src="/images/448x288_img3.jpg" alt="" style="width:100%;height:100%;object-fit:cover">
       </div>
