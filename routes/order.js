@@ -89,7 +89,8 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { name, email, phone, address, city, zip, notes, payment, items, discount_code, orderType } = req.body;
+    const { name, email, phone, address, city, zip, notes, items, discount_code, orderType } = req.body;
+    const payment = req.body.payment === 'online' ? 'online' : 'bar';
 
     if (!isValidPhone(phone)) {
       return res.status(400).json({ success: false, message: 'Bitte geben Sie eine gültige Telefonnummer an (z. B. 0151 23456789).' });
