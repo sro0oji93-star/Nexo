@@ -129,8 +129,18 @@ router.post('/', async (req, res) => {
     // Schoko-Liste Dessert (Crêpes, Mini Pancakes/Waffel) – fest, inkl. je 2 Pflicht
     const CHOCO_LIST = ['Nutella', 'Weiße Schokolade', 'Pistaziencreme', 'Puderzucker'];
     // Listen für NEXO Box-Konfiguration – einmal laden
-    const { validateBox, BOX_SLUGS } = require('../boxen');
+    const { validateBox, BOX_SLUGS, validateDeal, DEAL_SLUG } = require('../boxen');
     const { TOPPINGS } = require('../extras');
+    // Croque-Sorten für Mittag-Deal-Prüfung – einmal laden
+    const needDealLists = parsedItems.some(it => it && it.deal);
+    let dealLists = null;
+    if (needDealLists) {
+      dealLists = {
+        croques: (await db.all(
+          "SELECT name FROM products WHERE category_id = (SELECT id FROM categories WHERE slug = 'croque') AND is_available = 1 ORDER BY sort_order"
+        )).map(r => r.name)
+      };
+    }
     const needBoxLists = parsedItems.some(it => it && it.box);
     let boxLists = null;
     if (needBoxLists) {
@@ -178,6 +188,26 @@ router.post('/', async (req, res) => {
         delete item.sauces;
       } else if (item.box) {
         return res.status(400).json({ success: false, message: 'Ungültige Box für: ' + item.name });
+      } else if (item.deal && item.deal.slug === DEAL_SLUG) {
+        // Mittag Deal: Konfiguration serverseitig prüfen (alles inklusive, Preis fix)
+        const found = await db.get('SELECT id, price FROM products WHERE id = $1 AND slug = $2', [item.id, item.deal.slug]);
+        if (!found) {
+          return res.status(400).json({ success: false, message: 'Produkt nicht gefunden: ' + item.name });
+        }
+        const check = validateDeal(item.deal.choices, dealLists);
+        if (!check.ok) {
+          return res.status(400).json({ success: false, message: check.error + ' (' + item.name + ')' });
+        }
+        realPrice = parseFloat(found.price);
+        item.extras = check.lines;
+        delete item.deal;
+        delete item.size;
+        delete item.menue;
+        delete item.sauce;
+        delete item.sauces;
+        delete item.chocos;
+      } else if (item.deal) {
+        return res.status(400).json({ success: false, message: 'Ungültiger Deal für: ' + item.name });
       } else if (item.size && product.sizes) {
         const sizes = JSON.parse(product.sizes);
         const matchedSize = sizes.find(s => s.label === item.size.label && parseFloat(s.price) === parseFloat(item.size.price));

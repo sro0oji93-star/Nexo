@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { TOPPINGS, FISH_TOPPINGS, EXTRA_PRICES, KAESERAND } = require('../extras');
-const { resolveGroups } = require('../boxen');
+const { resolveGroups, dealToppingsNoFish, DEAL_BASIS, DEAL_DRINKS, DEAL_MAX_TOPPINGS } = require('../boxen');
 const pizzaExtras = { toppings: TOPPINGS, fish: FISH_TOPPINGS, prices: EXTRA_PRICES, kaeserand: KAESERAND };
 
 // Speisekarte immer frisch laden (kein Browser-Cache), damit Ausverkauft sofort wirkt
@@ -26,6 +26,14 @@ function attachBoxGroups(products, lists) {
   }
 }
 
+// Listen für Mittag-Deal-Konfiguration (Toppings ohne Fisch + Croque-Sorten aus DB)
+async function loadDealLists() {
+  const croques = (await db.all(
+    "SELECT name FROM products WHERE category_id = (SELECT id FROM categories WHERE slug = 'croque') AND is_available = 1 ORDER BY sort_order"
+  )).map(r => r.name);
+  return { basis: DEAL_BASIS, toppings: dealToppingsNoFish(), croques, drinks: DEAL_DRINKS, maxToppings: DEAL_MAX_TOPPINGS };
+}
+
 router.get('/', async (req, res) => {
   const categories = await db.all('SELECT * FROM categories WHERE active = 1 ORDER BY sort_order');
   // Hero-Deals (nur über Hero-Button bestellbar) nicht in der Speisekarte zeigen
@@ -39,7 +47,8 @@ router.get('/', async (req, res) => {
     products,
     settings,
     activeCategory: null,
-    pizzaExtras
+    pizzaExtras,
+    dealLists: await loadDealLists()
   });
 });
 
@@ -58,7 +67,8 @@ router.get('/kategorie/:slug', async (req, res) => {
     products,
     activeCategory: category.slug,
     settings,
-    pizzaExtras
+    pizzaExtras,
+    dealLists: await loadDealLists()
   });
 });
 
@@ -77,6 +87,7 @@ router.get('/produkt/:slug', async (req, res) => {
     settings,
     activeMenu: 'speisekarte',
     pizzaExtras,
+    dealLists: await loadDealLists(),
     isPizza: product.category_slug === 'pizza'
   });
 });

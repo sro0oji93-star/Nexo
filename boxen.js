@@ -1,6 +1,44 @@
 // NEXO Box-Konfiguration: Auswahlgruppen pro Box (alle inklusive, ohne Aufpreis).
 // Listen (sauces/snacks/pastas) kommen aus der DB, toppings aus extras.js.
-const { TOPPINGS } = require('./extras');
+const { TOPPINGS, FISH_TOPPINGS } = require('./extras');
+
+// Mittag Deal (nexo-mittag-deal): Pizza 26cm ODER Baguette (Croque) + max. 3 Beläge (ohne Fisch) + 0,33l Getränk, alles inklusive.
+const DEAL_SLUG = 'nexo-mittag-deal';
+const DEAL_BASIS = ['Pizza Ø 26 cm', 'Baguette (Croque)'];
+const DEAL_DRINKS = ['Coca-Cola', 'Fanta', 'Sprite', 'Mezzo Mix', 'Coca-Cola Zero'];
+const DEAL_MAX_TOPPINGS = 3;
+
+function dealToppingsNoFish() {
+  const fish = new Set(FISH_TOPPINGS);
+  return TOPPINGS.filter(t => !fish.has(t));
+}
+
+// choices: { basis, belaege[], croque, drink }. lists: { croques[] } (DB-Namen).
+// Gibt { ok, error, lines } zurück. lines: [{ name, price: 0 }] für Küche/Bon.
+function validateDeal(choices, lists) {
+  if (!choices || typeof choices !== 'object') return { ok: false, error: 'Bitte Deal konfigurieren' };
+  const basis = choices.basis;
+  if (!DEAL_BASIS.includes(basis)) return { ok: false, error: 'Bitte Basis wählen (Pizza oder Baguette)' };
+  const lines = [{ name: 'Basis: ' + basis, price: 0 }];
+  if (basis === DEAL_BASIS[0]) {
+    const allowed = dealToppingsNoFish();
+    const arr = Array.isArray(choices.belaege) ? [...new Set(choices.belaege)] : [];
+    if (arr.some(v => !allowed.includes(v))) return { ok: false, error: 'Ungültiger Belag' };
+    if (arr.length > DEAL_MAX_TOPPINGS) return { ok: false, error: 'Maximal ' + DEAL_MAX_TOPPINGS + ' Beläge' };
+    if (arr.length) lines.push({ name: 'Beläge: ' + arr.join(', '), price: 0 });
+  } else {
+    const croques = (lists && lists.croques) || [];
+    if (typeof choices.croque !== 'string' || !croques.includes(choices.croque)) {
+      return { ok: false, error: 'Bitte Croque-Sorte wählen' };
+    }
+    lines.push({ name: 'Croque: ' + choices.croque, price: 0 });
+  }
+  if (typeof choices.drink !== 'string' || !DEAL_DRINKS.includes(choices.drink)) {
+    return { ok: false, error: 'Bitte Getränk 0,33 l wählen' };
+  }
+  lines.push({ name: 'Getränk 0,33 l: ' + choices.drink, price: 0 });
+  return { ok: true, lines };
+}
 
 const BURGER_OPTS = ['Cheeseburger', 'Chickenburger'];
 
@@ -76,4 +114,4 @@ function validateBox(boxSlug, box, lists) {
   return { ok: true, lines };
 }
 
-module.exports = { BOX_DEFS, BOX_SLUGS, BURGER_OPTS, resolveGroups, validateBox };
+module.exports = { BOX_DEFS, BOX_SLUGS, BURGER_OPTS, resolveGroups, validateBox, DEAL_SLUG, DEAL_BASIS, DEAL_DRINKS, DEAL_MAX_TOPPINGS, dealToppingsNoFish, validateDeal };

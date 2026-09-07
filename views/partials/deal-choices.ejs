@@ -1,0 +1,60 @@
+<% /* Mittag-Deal-Konfiguration – Locals: productId, dealLists { basis, toppings, croques, drinks, maxToppings }.
+     Basis-Umschalter: Pizza -> Beläge (max 3, ohne Fisch) | Baguette -> Croque-Sorte. Getränk immer Pflicht. */ %>
+<% if (typeof dealLists !== 'undefined' && dealLists) { %>
+<div class="box-choices deal-choices" data-deal-for="<%= productId %>" style="margin-top:10px;border:1px dashed #e5c8ce;border-radius:10px;padding:10px 12px;background:#fffdf7">
+  <details open>
+    <summary style="cursor:pointer;font-weight:700;font-size:13px;color:#232223">Deal konfigurieren <span style="font-weight:400;color:#7a7879;font-size:12px">– Basis, Beilagen &amp; Getränk wählen (inklusive)</span></summary>
+    <div style="margin-top:8px;font-weight:700;font-size:13px">Basis:</div>
+    <% dealLists.basis.forEach(function(b, bi) { %>
+      <label style="display:block;padding:6px 8px;font-size:13px;cursor:pointer">
+        <input type="radio" name="deal_<%= productId %>_basis" value="<%= b %>" data-deal-basis style="accent-color:#16a34a" <%= bi === 0 ? 'checked' : '' %>> <%= b %>
+      </label>
+    <% }); %>
+    <div data-deal-pane="pizza" style="margin-top:8px">
+      <div style="font-weight:700;font-size:13px">Beläge <span style="font-weight:400;color:#7a7879;font-size:12px">– bis zu <%= dealLists.maxToppings %> wählen (ohne Fisch, inklusive)</span></div>
+      <% dealLists.toppings.forEach(function(t) { %>
+        <label style="display:inline-block;padding:4px 8px;font-size:13px;cursor:pointer">
+          <input type="checkbox" value="<%= t %>" data-deal-topping data-max="<%= dealLists.maxToppings %>" style="width:16px;height:16px;accent-color:#16a34a"> <%= t %>
+        </label>
+      <% }); %>
+    </div>
+    <div data-deal-pane="baguette" style="margin-top:8px;display:none">
+      <div style="font-weight:700;font-size:13px">Croque-Sorte:</div>
+      <% dealLists.croques.forEach(function(c, ci) { %>
+        <label style="display:block;padding:6px 8px;font-size:13px;cursor:pointer">
+          <input type="radio" name="deal_<%= productId %>_croque" value="<%= c %>" data-deal-croque style="accent-color:#16a34a" <%= ci === 0 ? 'checked' : '' %>> <%= c %>
+        </label>
+      <% }); %>
+    </div>
+    <div style="margin-top:8px;font-weight:700;font-size:13px">Getränk 0,33 l:</div>
+    <% dealLists.drinks.forEach(function(dr, di) { %>
+      <label style="display:block;padding:6px 8px;font-size:13px;cursor:pointer">
+        <input type="radio" name="deal_<%= productId %>_drink" value="<%= dr %>" data-deal-drink style="accent-color:#16a34a" <%= di === 0 ? 'checked' : '' %>> <%= dr %> (0,33 l)
+      </label>
+    <% }); %>
+  </details>
+</div>
+<script>
+(function() {
+  var box = document.querySelector('.deal-choices[data-deal-for="<%= productId %>"]');
+  if (!box || box.dataset.dealInit) return;
+  box.dataset.dealInit = '1';
+  function paint() {
+    var basis = box.querySelector('input[data-deal-basis]:checked');
+    var isPizza = !basis || basis.value.indexOf('Pizza') === 0;
+    box.querySelector('[data-deal-pane="pizza"]').style.display = isPizza ? '' : 'none';
+    box.querySelector('[data-deal-pane="baguette"]').style.display = isPizza ? 'none' : '';
+  }
+  box.addEventListener('change', function(e) {
+    if (e.target && e.target.hasAttribute('data-deal-basis')) paint();
+    // Max-Limit für Beläge live begrenzen
+    if (e.target && e.target.hasAttribute('data-deal-topping')) {
+      var max = parseInt(e.target.getAttribute('data-max')) || 3;
+      var checked = box.querySelectorAll('input[data-deal-topping]:checked');
+      if (checked.length > max) { e.target.checked = false; }
+    }
+  });
+  paint();
+})();
+</script>
+<% } %>
