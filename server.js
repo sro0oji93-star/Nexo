@@ -3,6 +3,25 @@ const express = require('express');
 const session = require('express-session');
 const path = require('path');
 const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+
+// Brute-Force-Schutz: max. 5 Login-Versuche / 15 Min. je IP
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: 'Zu viele Versuche – bitte in 15 Minuten erneut versuchen.'
+});
+
+// Spam-Schutz: max. 30 Bestellungen / Stunde je IP
+const orderLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => res.status(429).json({ success: false, message: 'Zu viele Bestellungen – bitte später erneut versuchen.' })
+});
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -96,8 +115,10 @@ app.use((req, res, next) => {
 app.use('/', indexRoutes);
 app.use('/speisekarte', menuRoutes);
 app.use('/warenkorb', cartRoutes);
+app.post('/bestellung', orderLimiter);
 app.use('/bestellung', orderRoutes);
 app.use('/kontakt', contactRoutes);
+app.use('/admin/login', (req, res, next) => (req.method === 'POST' ? loginLimiter(req, res, next) : next()));
 app.use('/admin', adminRoutes);
 app.use('/eigentuemer', ownerRoutes);
 
