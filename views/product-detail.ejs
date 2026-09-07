@@ -200,7 +200,11 @@ window.PIZZA_EXTRA_PRICES = <%- JSON.stringify(pizzaExtras.prices) %>;
   function updateDetailPrice() {
     var priceEl = document.getElementById('detailPrice');
     if (!priceEl) return;
-    var radio = document.querySelector('input[name="detailSize"]:checked');
+    // Nur echte Größenwahl (.size-picker-detail) neu berechnen – Sauce-/Menü-Radios
+    // (Burger/Croque/Salat) dürfen den Serverpreis NICHT überschreiben (sonst 0,00 €)
+    var picker = document.querySelector('.size-picker-detail');
+    if (!picker) return;
+    var radio = picker.querySelector('input[name="detailSize"]:checked');
     var total = radio ? parseFloat(radio.value) || 0 : 0;
     document.querySelectorAll('[data-extras-for] input[type="checkbox"]:checked').forEach(function(cb) {
       total += parseFloat(cb.getAttribute('data-extra-price')) || 0;
@@ -208,7 +212,7 @@ window.PIZZA_EXTRA_PRICES = <%- JSON.stringify(pizzaExtras.prices) %>;
     priceEl.textContent = total.toFixed(2) + ' €';
   }
   document.addEventListener('change', function(e) {
-    if (e.target && e.target.matches && e.target.matches('[data-extras-for] input[type="checkbox"], input[name="detailSize"]')) {
+    if (e.target && e.target.matches && e.target.matches('[data-extras-for] input[type="checkbox"], .size-picker-detail input[name="detailSize"]')) {
       updateDetailPrice();
     }
   });
