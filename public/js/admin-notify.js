@@ -9,6 +9,7 @@
   var ringing = false;
   var printQueue = [];
   var printing = false;
+  var BON_COPIES = 2; // jede neue Bestellung 2x drucken
 
   function lastId() { return parseInt(localStorage.getItem(LS_LAST) || '0', 10) || 0; }
   function setLastId(v) { localStorage.setItem(LS_LAST, String(v)); }
@@ -81,6 +82,7 @@
     f.src = '/admin/bestellungen/' + order.id + '/bon';
     // Aufräumen erst nach Druckdialog (afterprint) – sonst wird der Druck abgebrochen
     var fallback = setTimeout(finish, 60000);
+    var copiesLeft = BON_COPIES;
     f.onload = function () {
       try {
         var w = f.contentWindow;
@@ -91,8 +93,12 @@
             fetch('/admin/api/bestellungen/' + order.id + '/gedruckt', { method: 'POST', credentials: 'same-origin' }).catch(function(){});
           }, 600);
         };
-        // afterprint -> Dialog geschlossen -> aufräumen
-        try { w.onafterprint = function () { clearTimeout(fallback); finish(); }; } catch (e) {}
+        // afterprint -> 2. Kopie drucken, danach aufräumen
+        try { w.onafterprint = function () {
+          clearTimeout(fallback);
+          if (--copiesLeft > 0) { fallback = setTimeout(finish, 60000); go(); }
+          else finish();
+        }; } catch (e) {}
         if (doc.readyState === 'complete') go();
         else { w.onload = go; setTimeout(go, 1500); }
       } catch (e) { console.warn('print err', e); clearTimeout(fallback); finish(); }
@@ -107,6 +113,11 @@
       if (!r.ok) return;
       var j = await r.json();
       if (!j.success) return;
+      // Erster Poll überhaupt: nur Zeiger initialisieren, NIEMALS alte Bestellungen drucken
+      if (!localStorage.getItem(LS_LAST)) {
+        setLastId(j.max_id || 0);
+        return;
+      }
       if (j.orders && j.orders.length) {
         j.orders.forEach(function (o) {
           ringLoop(o);
@@ -118,9 +129,7 @@
         var ids = j.orders.map(function (o) { return o.id; });
         setTimeout(function () { refreshLists(ids); }, 6000);
       } else if (j.max_id && j.max_id > lastId()) {
-        // Beim ersten Laden: Zeiger initialisieren ohne alte Bestellungen zu drucken
-        if (!localStorage.getItem(LS_LAST)) setLastId(j.max_id);
-        else if (j.max_id > lastId()) setLastId(j.max_id);
+        setLastId(j.max_id);
       }
     } catch (e) { /* offline -> still weitermachen */ }
   }

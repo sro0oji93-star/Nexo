@@ -23,7 +23,11 @@
 </head>
 <body>
   <div class="center">
-    <div class="big"><%= (typeof settings !== 'undefined' && settings.site_name) ? settings.site_name : 'Restaurant' %></div>
+    <% if (typeof settings !== 'undefined' && settings.logo_url) { %>
+      <img src="<%= settings.logo_url %>" style="max-width:55mm;max-height:22mm;filter:brightness(0);" alt="Logo">
+    <% } else { %>
+      <div class="big"><%= (typeof settings !== 'undefined' && settings.site_name) ? settings.site_name : 'Restaurant' %></div>
+    <% } %>
     <% if (typeof settings !== 'undefined' && settings.address) { %><div><%= settings.address %></div><% } %>
     <% if (typeof settings !== 'undefined' && settings.phone) { %><div>Tel: <%= settings.phone %></div><% } %>
   </div>

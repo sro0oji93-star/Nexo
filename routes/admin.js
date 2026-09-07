@@ -190,7 +190,7 @@ router.get('/api/neue-bestellungen', auth, async (req, res) => {
   try {
     const lastId = parseInt(req.query.last_id, 10) || 0;
     const rows = await db.all(
-      "SELECT * FROM orders WHERE id > $1 AND order_status = 'neu' AND COALESCE(is_deleted,0) = 0 ORDER BY id ASC LIMIT 20",
+      "SELECT * FROM orders WHERE id > $1 AND order_status = 'neu' AND COALESCE(is_deleted,0) = 0 AND COALESCE(printed,0) = 0 ORDER BY id ASC LIMIT 20",
       [lastId]
     );
     const orders = rows.map(o => {
