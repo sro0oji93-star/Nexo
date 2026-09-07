@@ -421,6 +421,27 @@ router.post('/einstellungen/hero-slides/loeschen/:id', auth, async (req, res) =>
   req.session.save(() => res.redirect('/admin/einstellungen'));
 });
 
+// Backup-Download (JSON): Bestellungen, Produkte, Kategorien, Rabatte, Einstellungen
+router.get('/backup', auth, async (req, res) => {
+  try {
+    const data = {
+      exportedAt: new Date().toISOString(),
+      orders: await db.all('SELECT * FROM orders ORDER BY id'),
+      products: await db.all('SELECT * FROM products ORDER BY id'),
+      categories: await db.all('SELECT * FROM categories ORDER BY id'),
+      discounts: await db.all('SELECT * FROM discounts ORDER BY id'),
+      settings: await db.all('SELECT * FROM settings')
+    };
+    const stamp = new Date().toISOString().slice(0, 10);
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="nexo-backup-' + stamp + '.json"');
+    res.send(JSON.stringify(data, null, 2));
+  } catch (err) {
+    console.error('backup error:', err);
+    res.status(500).send('Backup fehlgeschlagen');
+  }
+});
+
 router.get('/passwort', auth, (req, res) => {
   res.render('admin/password', { title: 'Passwort ändern – Admin', message: null, error: null });
 });
