@@ -30,7 +30,7 @@
           <% } %>
           <% if (isMittagDeal && slide.price1) { %>
           <div style="margin-top:20px">
-            <span class="hero-price-gold" style="font-family:'Josefin Sans',sans-serif;font-size:clamp(30px,4vw,64px);font-weight:700;font-style:italic;color:#d4af37;text-shadow:3px 3px 0 var(--primary),4px 4px 0 var(--primary);line-height:1"><%= slide.price1 %><% if (slide.price1_cents) { %><span style="font-size:clamp(16px,2vw,36px)"><%= slide.price1_cents %></span><% } %> <span style="display:block;width:fit-content;margin-top:10px;font-size:clamp(10px,0.9vw,13px);font-weight:700;letter-spacing:3px;color:var(--secondary,#f5d67b);border:1px solid var(--primary,#d4af37);border-radius:20px;padding:4px 14px;background:rgba(0,0,0,.45);white-space:nowrap"><%= slide.price1_tag || 'MITTAGS-DEAL' %></span></span>
+            <span class="hero-price-gold" style="font-family:'Josefin Sans',sans-serif;font-size:clamp(30px,4vw,64px);font-weight:700;font-style:italic;color:#d4af37;text-shadow:3px 3px 0 var(--primary),4px 4px 0 var(--primary);line-height:1"><%= slide.price1 %><% if (slide.price1_cents) { %><span style="font-size:clamp(16px,2vw,36px)"><%= slide.price1_cents %></span><% } %></span>
           </div>
           <% } %>
           <p style="margin-top:15px;font-size:16px;color:rgba(255,255,255,.85);max-width:80%"><%= slide.description || '' %></p>
@@ -88,8 +88,8 @@
   .hero-slide-items .mad-hero-title span { font-size:clamp(24px,7vw,42px) !important; }
   .hero-slide-items .mad-hero-title span:nth-child(3) { font-size:clamp(32px,9vw,55px) !important; }
   .hero-slide-items .mad-hero-title br + span { font-size:clamp(20px,5vw,36px) !important; }
-  .hero-slide-items div[style*="flex:1;min-width:350px"] { min-width:auto !important;min-height:auto !important;max-width:300px !important; }
-  .hero-slide-items img[style*="max-width:100%"] { max-height:300px !important; }
+  .hero-slide-items div[style*="flex:1;min-width:350px"] { min-width:auto !important;min-height:auto !important;max-width:440px !important;width:100% !important; }
+  .hero-slide-items img[style*="max-width:100%"] { max-height:380px !important; }
   .hero-slide-items img[style*="position:absolute"] { width:22% !important; }
   .hero-slide-items img[style*="right:-2%"] { width:18% !important; }
   .hero-slide-items img[style*="bottom:-2%"] { width:16% !important; }
