@@ -421,11 +421,8 @@ router.post('/einstellungen/hero-slides/loeschen/:id', auth, async (req, res) =>
   req.session.save(() => res.redirect('/admin/einstellungen'));
 });
 
-// Tagesbericht (druckbar, A4): Umsatz, Zahlungsarten, Artikel, Bestellungen
-router.get('/tagesbericht', auth, async (req, res) => {
-  const datum = typeof req.query.datum === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(req.query.datum)
-    ? req.query.datum
-    : new Date().toISOString().slice(0, 10);
+// Tagesbericht-Daten laden (für A4-Seite + Thermo-Bon)
+async function loadTagesbericht(datum) {
   const orders = await db.all('SELECT * FROM orders WHERE COALESCE(is_deleted,0) = 0 AND created_at::date = $1 ORDER BY created_at', [datum]);
   const valid = orders.filter(o => o.order_status !== 'storniert');
   const revenue = valid.reduce((s, o) => s + parseFloat(o.total || 0), 0);
@@ -445,16 +442,28 @@ router.get('/tagesbericht', auth, async (req, res) => {
       itemsSum[key].total += (parseFloat(it.price) || 0) * (parseInt(it.qty) || 0);
     });
   });
-  res.render('admin/report', {
-    title: 'Tagesbericht – Admin',
-    datum,
-    orders,
-    validCount: valid.length,
-    revenue,
-    pay,
-    itemsSum: Object.values(itemsSum).sort((a, b) => b.qty - a.qty),
-    settings: res.locals.settings
-  });
+  return {
+    datum, orders, validCount: valid.length, revenue, pay,
+    itemsSum: Object.values(itemsSum).sort((a, b) => b.qty - a.qty)
+  };
+}
+
+function reportDatum(req) {
+  return typeof req.query.datum === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(req.query.datum)
+    ? req.query.datum
+    : new Date().toISOString().slice(0, 10);
+}
+
+// Tagesbericht (druckbar, A4): Umsatz, Zahlungsarten, Artikel, Bestellungen
+router.get('/tagesbericht', auth, async (req, res) => {
+  const data = await loadTagesbericht(reportDatum(req));
+  res.render('admin/report', { title: 'Tagesbericht – Admin', settings: res.locals.settings, ...data });
+});
+
+// Tagesbericht als Thermo-Bon (80mm, TM-T88V)
+router.get('/tagesbericht/bon', auth, async (req, res) => {
+  const data = await loadTagesbericht(reportDatum(req));
+  res.render('admin/report-bon', { settings: res.locals.settings, ...data });
 });
 
 // Backup-Download (JSON): Bestellungen, Produkte, Kategorien, Rabatte, Einstellungen

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Tagesbericht <%= datum %></title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Courier New', Courier, monospace; font-size: 15px; font-weight: bold; color: #000; background: #fff; width: 72mm; margin: 0 auto; padding: 4mm 2mm; }
+  .center { text-align: center; }
+  .big { font-size: 19px; }
+  hr { border: none; border-top: 1px dashed #000; margin: 6px 0; }
+  .row { display: flex; justify-content: space-between; margin: 3px 0; }
+  .total { font-size: 18px; }
+  @media print {
+    @page { size: 80mm auto; margin: 0; }
+    body { width: 72mm; padding: 2mm; }
+  }
+</style>
+</head>
+<body>
+  <div class="center">
+    <% if (typeof settings !== 'undefined' && settings.logo_url) { %>
+      <img src="<%= settings.logo_url %>" style="max-width:55mm;max-height:22mm;filter:brightness(0);" alt="Logo">
+    <% } %>
+    <div class="big">TAGESBERICHT</div>
+    <div><%= new Date(datum + 'T12:00:00').toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'numeric', year: 'numeric' }) %></div>
+  </div>
+  <hr>
+  <div class="row"><span>Bestellungen</span><span><%= validCount %></span></div>
+  <div class="row"><span>Storniert</span><span><%= orders.length - validCount %></span></div>
+  <div class="row total"><span>UMSATZ</span><span><%= revenue.toFixed(2) %> €</span></div>
+  <hr>
+  <% Object.keys(pay).forEach(function(k) { %>
+  <div class="row"><span><%= k %></span><span><%= pay[k].toFixed(2) %></span></div>
+  <% }); %>
+  <hr>
+  <% itemsSum.slice(0, 30).forEach(function(i) { %>
+  <div class="row"><span><%= i.qty %>x <%= i.name %></span><span><%= i.total.toFixed(2) %></span></div>
+  <% }); %>
+  <hr>
+  <div class="center">* * * Ende * * *</div>
+  <br><br><br>
+<script>
+  if (new URLSearchParams(location.search).get('autoprint') === '1') { window.onload = function() { setTimeout(function(){ window.print(); }, 300); }; }
+</script>
+</body>
+</html>

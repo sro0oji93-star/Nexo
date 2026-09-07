@@ -4,6 +4,7 @@
   <form method="GET" action="/admin/tagesbericht" style="display:flex;gap:8px;align-items:center">
     <input type="date" name="datum" value="<%= datum %>" onchange="this.form.submit()" style="padding:8px 12px;border-radius:8px;border:1px solid #e8e4de;font-size:13px">
     <button type="button" class="btn btn-sm btn-primary" onclick="window.print()"><i class="fas fa-print"></i> Drucken / PDF</button>
+    <a href="/admin/tagesbericht/bon?datum=<%= datum %>&autoprint=1" target="_blank" class="btn btn-sm btn-primary"><i class="fas fa-receipt"></i> Thermo-Bon (80mm)</a>
   </form>
 </div>
 
