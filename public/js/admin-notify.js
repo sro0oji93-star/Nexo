@@ -114,12 +114,49 @@
         });
         var max = Math.max.apply(null, j.orders.map(function (o) { return o.id; }));
         setLastId(Math.max(lastId(), max, j.max_id || 0));
+        // Liste live aktualisieren (ohne Seiten-Reload, damit der Druckdialog nicht abbricht)
+        var ids = j.orders.map(function (o) { return o.id; });
+        setTimeout(function () { refreshLists(ids); }, 6000);
       } else if (j.max_id && j.max_id > lastId()) {
         // Beim ersten Laden: Zeiger initialisieren ohne alte Bestellungen zu drucken
         if (!localStorage.getItem(LS_LAST)) setLastId(j.max_id);
         else if (j.max_id > lastId()) setLastId(j.max_id);
       }
     } catch (e) { /* offline -> still weitermachen */ }
+  }
+
+  // Bestellliste still aktualisieren: Seite neu laden (als HTML) und nur
+  // Tabellen-Body + Tages-Badge ersetzen. Kein location.reload -> Druck läuft weiter.
+  async function refreshLists(newIds) {
+    try {
+      // Nur wenn Filter "alle"/"neu" (sonst wäre die neue Bestellung eh unsichtbar)
+      var st = new URLSearchParams(location.search).get('status') || 'alle';
+      var onOrders = location.pathname.indexOf('/admin/bestellungen') === 0;
+      var onDash = location.pathname === '/admin' || location.pathname === '/admin/';
+      if (onOrders && st !== 'alle' && st !== 'neu') return;
+      if (!onOrders && !onDash) return;
+      var r = await fetch(location.pathname + location.search, { credentials: 'same-origin' });
+      if (!r.ok) return;
+      var t = await r.text();
+      var doc = new DOMParser().parseFromString(t, 'text/html');
+      var newTbody = doc.querySelector('.admin-table tbody');
+      var curTbody = document.querySelector('.admin-table tbody');
+      if (newTbody && curTbody) {
+        curTbody.innerHTML = newTbody.innerHTML;
+        // Neue Zeilen grün markieren
+        (newIds || []).forEach(function (id) {
+          var a = curTbody.querySelector('a[href="/admin/bestellungen/' + id + '"]');
+          if (a && a.closest('tr')) {
+            a.closest('tr').style.background = '#dcfce7';
+            a.closest('tr').style.transition = 'background 2s';
+            setTimeout(function () { if (a.closest('tr')) a.closest('tr').style.background = ''; }, 30000);
+          }
+        });
+      }
+      var newBadge = doc.querySelector('.section-header-row .badge');
+      var curBadge = document.querySelector('.section-header-row .badge');
+      if (newBadge && curBadge) curBadge.textContent = newBadge.textContent;
+    } catch (e) { /* still weiter pollen */ }
   }
 
   function addControls() {
