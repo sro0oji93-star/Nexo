@@ -173,33 +173,70 @@
 
 </div>
 
-<!-- Half-Section: Create Your Own -->
-<div class="mad-section no-pd mad-section--stretched-content-no-px">
-  <div class="mad-half-section">
-    <div class="mad-col">
-      <div class="mad-half-section-item" style="background:linear-gradient(135deg,rgba(35,34,35,.7),rgba(35,34,35,.4)),url('/images/revolution/5b6b6-burger.png') center/cover">
-        <div class="mad-half-content">
-          <div class="content-element-6">
-            <h2 class="mad-page-title">Ihre eigene<br>Kreation</h2>
-            <p>Stellen Sie sich Ihre Lieblingspizza oder Ihren Burger selbst zusammen.</p>
-          </div>
-          <a href="/speisekarte" class="btn btn-style-3 btn-big">Jetzt kombinieren</a>
-        </div>
-      </div>
-    </div>
-    <div class="mad-col">
-      <div class="mad-half-section-item" style="background:linear-gradient(135deg,rgba(35,34,35,.7),rgba(35,34,35,.4)),url('/images/384x384_img3.jpg') center/cover">
-        <div class="mad-half-content">
-          <div class="content-element-6">
-            <h2 class="mad-page-title">Angebote &<br>Aktionen</h2>
-            <p>Verpassen Sie nicht unsere aktuellen Angebote und Sparmenüs.</p>
-          </div>
-          <a href="/speisekarte" class="btn btn-style-3 btn-big">Angebote entdecken</a>
-        </div>
-      </div>
+<!-- Spotlight: rotierende Produkt-Highlights (4 pro Seite) -->
+<div class="mad-section" style="background:#0a0a0a">
+  <div class="container">
+    <h2 class="mad-page-title align-center" style="color:#f5d67b">Entdecke unsere Highlights</h2>
+    <div id="spotGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:24px;transition:opacity .5s ease"></div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-top:18px">
+      <button type="button" id="spotPrev" aria-label="Zurück" style="background:none;border:1px solid #d4af37;color:#d4af37;border-radius:50%;width:38px;height:38px;cursor:pointer;font-size:18px">‹</button>
+      <div id="spotDots" style="display:flex;gap:8px"></div>
+      <button type="button" id="spotNext" aria-label="Weiter" style="background:none;border:1px solid #d4af37;color:#d4af37;border-radius:50%;width:38px;height:38px;cursor:pointer;font-size:18px">›</button>
     </div>
   </div>
 </div>
+<style>
+  .spot-card { background:#141414;border:1px solid rgba(212,175,55,.35);border-radius:14px;overflow:hidden;text-align:center; }
+  .spot-card img { width:100%;height:150px;object-fit:cover;display:block; }
+  .spot-card h4 { color:#fff;font-size:15px;margin:10px 8px 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+  .spot-card .spot-price { color:#d4af37;font-weight:700;font-size:15px; }
+  .spot-card a.spot-btn { display:inline-block;margin:10px 0 14px;padding:7px 20px;border-radius:20px;background:linear-gradient(135deg,#f5d67b,#d4af37);color:#0a0a0a;font-weight:700;font-size:13px;text-decoration:none; }
+  @media (max-width:900px) { #spotGrid { grid-template-columns:repeat(2,1fr) !important; } }
+  @media (max-width:560px) { #spotGrid { grid-template-columns:1fr !important; } .spot-card img { height:180px; } }
+</style>
+<script>
+(function() {
+  var all = <%- JSON.stringify((products || []).filter(function(p) { return p.is_available && p.image; }).map(function(p) { var min = p.price; try { if (p.sizes) { var sz = JSON.parse(p.sizes); min = Math.min.apply(null, sz.map(function(s) { return s.price; })); } } catch (e) {} return { name: p.name, slug: p.slug, image: p.image, price: min, feat: !!p.is_featured }; })) %>;
+  all.sort(function(a, b) { return (b.feat - a.feat); });
+  if (!all.length) return;
+  var PER = 4, page = 0;
+  var pages = Math.max(1, Math.ceil(all.length / PER));
+  var grid = document.getElementById('spotGrid');
+  var dots = document.getElementById('spotDots');
+  var timer = null;
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function render() {
+    grid.style.opacity = '0';
+    setTimeout(function() {
+      var slice = [];
+      for (var i = 0; i < PER; i++) slice.push(all[(page * PER + i) % all.length]);
+      grid.innerHTML = slice.map(function(p) {
+        return '<div class="spot-card"><a href="/speisekarte/produkt/' + esc(p.slug) + '"><img loading="lazy" src="' + esc(p.image) + '" alt="' + esc(p.name) + '"></a><h4>' + esc(p.name) + '</h4><div class="spot-price">ab ' + Number(p.price).toFixed(2).replace('.', ',') + ' €</div><a class="spot-btn" href="/speisekarte/produkt/' + esc(p.slug) + '">Jetzt bestellen</a></div>';
+      }).join('');
+      grid.style.opacity = '1';
+      dots.innerHTML = '';
+      for (var d = 0; d < pages; d++) {
+        (function(dd) {
+          var b = document.createElement('button');
+          b.setAttribute('aria-label', 'Seite ' + (dd + 1));
+          b.style.cssText = 'width:10px;height:10px;border-radius:50%;border:none;cursor:pointer;background:' + (dd === page ? '#d4af37' : 'rgba(255,255,255,.3)');
+          b.onclick = function() { page = dd; render(); restart(); };
+          dots.appendChild(b);
+        })(d);
+      }
+    }, 250);
+  }
+  function next() { page = (page + 1) % pages; render(); }
+  function prev() { page = (page - 1 + pages) % pages; render(); }
+  function restart() { if (timer) clearInterval(timer); timer = setInterval(next, 6000); }
+  document.getElementById('spotNext').onclick = function() { next(); restart(); };
+  document.getElementById('spotPrev').onclick = function() { prev(); restart(); };
+  var sec = grid.closest('.mad-section');
+  sec.addEventListener('mouseenter', function() { if (timer) clearInterval(timer); timer = null; });
+  sec.addEventListener('mouseleave', function() { restart(); });
+  render(); restart();
+})();
+</script>
 
 <!-- Testimonials -->
 <div class="mad-section">
