@@ -21,6 +21,7 @@ async function createCheckoutSession(order, req) {
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',
     locale: 'de',
+    payment_method_types: ['card'],
     customer_email: order.customer_email || undefined,
     line_items: [{
       price_data: {
