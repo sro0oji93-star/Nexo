@@ -14,7 +14,7 @@ const TOPPINGS = [
   'Mozzarella', 'Thunfisch', 'Rote Zwiebeln', 'Scampi', 'Frutti di Mare',
   'Hähnchen', 'Paprika', 'Brokkoli', 'Hackfleisch', 'Rinderhackfleisch',
   'Hirtenkäse', 'Feta', 'Röstzwiebeln', 'Sucuk', 'Ei', 'Bacon',
-  'Würstchen', 'Gewürzgurken', 'Jalapeños', 'Krispy Chicken', 'Mais',
+  'Würstchen', 'Gewürzgurken', 'Jalapeños', 'Crispy Chicken', 'Mais',
   'Lachs', 'Rucola', 'Pute', 'Oregano'
 ];
 
