@@ -112,6 +112,9 @@ app.use((req, res, next) => {
   next();
 });
 
+const { visitorMiddleware } = require('./middleware/visitors');
+app.use(visitorMiddleware);
+
 app.use('/', indexRoutes);
 app.use('/speisekarte', menuRoutes);
 app.use('/warenkorb', cartRoutes);

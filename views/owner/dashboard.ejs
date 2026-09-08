@@ -28,7 +28,26 @@
     <div class="v"><%= (monthCount * rate).toFixed(2) %> €</div>
     <div class="l">Provision Monat</div>
   </div>
+  <div class="owner-card">
+    <div class="v"><%= typeof visitorsToday !== 'undefined' ? visitorsToday : 0 %></div>
+    <div class="l">Besucher heute (eindeutig)</div>
+  </div>
 </div>
+
+<% if (typeof visitorsWeek !== 'undefined' && visitorsWeek.length) { %>
+<div class="settings-card">
+  <h3>Besucher letzte 7 Tage</h3>
+  <table class="admin-table">
+    <thead><tr><th>Tag</th><th>Eindeutige Besucher</th></tr></thead>
+    <tbody>
+      <% visitorsWeek.forEach(function(w) { %>
+      <tr><td><%= new Date(w.day + 'T12:00:00').toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'numeric' }) %></td><td><%= w.count %></td></tr>
+      <% }); %>
+    </tbody>
+  </table>
+  <p style="font-size:12px;color:#6b6b6b;margin-top:8px">Mehrfachbesuche pro Tag zählen einmal. Bots und Admin-Seiten zählen nicht.</p>
+</div>
+<% } %>
 
 <div class="settings-card">
   <h3>Provision pro Bestellung</h3>

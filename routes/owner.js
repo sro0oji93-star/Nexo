@@ -99,9 +99,15 @@ router.get('/', requireOwner, async (req, res) => {
   const dayDeleted = (await db.get('SELECT COUNT(*) as count FROM orders WHERE created_at::date = $1 AND COALESCE(is_deleted,0) = 1', [today])).count;
   const monthCount = (await db.get("SELECT COUNT(*) as count FROM orders WHERE TO_CHAR(created_at,'YYYY-MM') = TO_CHAR(NOW(),'YYYY-MM')")).count;
   const monthRevenue = (await db.get("SELECT COALESCE(SUM(total),0) as total FROM orders WHERE TO_CHAR(created_at,'YYYY-MM') = TO_CHAR(NOW(),'YYYY-MM') AND order_status != 'storniert'")).total;
+  let visitorsToday = 0, visitorsWeek = [];
+  try {
+    visitorsToday = (await db.get('SELECT COUNT(*) as count FROM visitor_days WHERE day = $1', [today])).count;
+    visitorsWeek = await db.all("SELECT day, COUNT(*) as count FROM visitor_days WHERE day >= CURRENT_DATE - INTERVAL '6 days' GROUP BY day ORDER BY day DESC");
+  } catch (e) { console.error('Besucherzahlen übersprungen:', e.message); }
   res.render('owner/dashboard', {
     title: 'Eigentümer Dashboard',
     today, rate, dayCount, dayRevenue, dayDeleted, monthCount, monthRevenue,
+    visitorsToday, visitorsWeek,
     success: null
   });
 });

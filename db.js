@@ -199,6 +199,13 @@ async function initialize() {
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS printed_at TIMESTAMP;
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS vat7 NUMERIC(10,2) DEFAULT 0;
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS vat19 NUMERIC(10,2) DEFAULT 0;
+
+    CREATE TABLE IF NOT EXISTS visitor_days (
+      day TEXT NOT NULL,
+      vhash TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (day, vhash)
+    );
   `);
 
   const hash = bcrypt.hashSync('admin123', 10);
