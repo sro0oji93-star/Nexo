@@ -12,16 +12,15 @@
   var cfg = window.deliveryConfig || { restaurant_lat: 53.295344, restaurant_lon: 10.391293, max_km: 12, phone: '04131 4006817' };
 
   // Zustand für den Submit-Check in cart.js
-  window.DeliveryCheck = { lat: null, lon: null, km: null, fee: null, min: null, blocked: false };
+  window.DeliveryCheck = { lat: null, lon: null, km: null, fee: null, min: null, free: null, blocked: false };
 
-  // NEXO Lieferservice-Zonen: Entfernung -> Zuschlag + Mindestbestellwert (bis 15 km, darüber Anruf)
+  // NEXO Lieferservice-Zonen: Entfernung -> Zuschlag + Mindestbestellwert + Gratisgrenze (bis 15 km, darüber Anruf)
   window.DeliveryZones = [
-    { to: 3, fee: 1.00, min: 15.00 },
-    { to: 5, fee: 1.50, min: 20.00 },
-    { to: 7, fee: 2.50, min: 25.00 },
-    { to: 10, fee: 3.50, min: 30.00 },
-    { to: 12, fee: 4.50, min: 35.00 },
-    { to: 15, fee: 6.00, min: 40.00 }
+    { to: 3, fee: 1.00, min: 10.00, free: 20.00 },
+    { to: 6, fee: 2.00, min: 15.00, free: 25.00 },
+    { to: 9, fee: 3.00, min: 20.00, free: 30.00 },
+    { to: 12, fee: 3.50, min: 25.00, free: 0 },
+    { to: 15, fee: 4.50, min: 30.00, free: 0 }
   ];
 
   function findZone(km) {
@@ -48,7 +47,7 @@
     noteOk.style.background = '#f0fdf4';
     noteOk.style.border = '1px solid #22c55e';
     noteOk.style.color = '#15803d';
-    noteOk.textContent = 'Entfernung: ' + fmtKm(km) + ' Fahrstrecke – Lieferzuschlag ' + fmtEur(z.fee) + ', Mindestbestellwert ' + fmtEur(z.min) + '.';
+    noteOk.textContent = 'Entfernung: ' + fmtKm(km) + ' Fahrstrecke – Lieferzuschlag ' + fmtEur(z.fee) + ', Mindestbestellwert ' + fmtEur(z.min) + (z.free > 0 ? ', ab ' + fmtEur(z.free) + ' kostenlose Lieferung.' : '.');
   }
 
   function showBlocked(km) {
@@ -78,6 +77,7 @@
     window.DeliveryCheck.km = null;
     window.DeliveryCheck.fee = null;
     window.DeliveryCheck.min = null;
+    window.DeliveryCheck.free = null;
     window.DeliveryCheck.blocked = false;
     if (latField) latField.value = '';
     if (lonField) lonField.value = '';
@@ -101,6 +101,7 @@
       if (zone) {
         window.DeliveryCheck.fee = zone.fee;
         window.DeliveryCheck.min = zone.min;
+        window.DeliveryCheck.free = zone.free;
         window.DeliveryCheck.blocked = false;
         showOk(km);
         refreshSummary();

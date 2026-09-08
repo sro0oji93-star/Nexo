@@ -23,14 +23,13 @@ const TIME_DEALS = {
 
 // Liefergebiet serverseitig prüfen (Nominatim-Geocoding + OSRM-Fahrstrecke).
 // Ergebnis: { km } (km=null -> unverifiziert, fail-open) oder { km, noRoute:true } (keine Fahrstrecke -> nicht lieferbar)
-// NEXO Lieferservice-Zonen: Fahrstrecke -> Zuschlag + Mindestbestellwert (bis 15 km, darüber Anruf)
+// NEXO Lieferservice-Zonen: Fahrstrecke -> Zuschlag + Mindestbestellwert + Gratisgrenze (bis 15 km, darüber Anruf)
 const DELIVERY_ZONES = [
-  { to: 3, fee: 1.00, min: 15.00 },
-  { to: 5, fee: 1.50, min: 20.00 },
-  { to: 7, fee: 2.50, min: 25.00 },
-  { to: 10, fee: 3.50, min: 30.00 },
-  { to: 12, fee: 4.50, min: 35.00 },
-  { to: 15, fee: 6.00, min: 40.00 }
+  { to: 3, fee: 1.00, min: 10.00, free: 20.00 },
+  { to: 6, fee: 2.00, min: 15.00, free: 25.00 },
+  { to: 9, fee: 3.00, min: 20.00, free: 30.00 },
+  { to: 12, fee: 3.50, min: 25.00, free: 0 },
+  { to: 15, fee: 4.50, min: 30.00, free: 0 }
 ];
 
 function findDeliveryZone(km) {
@@ -338,7 +337,7 @@ router.post('/', async (req, res) => {
     const freeFrom = parseFloat(settings.free_delivery_from) || 0;
     let calculatedDelivery;
     if (type === 'abholung') calculatedDelivery = 0;
-    else if (zone) calculatedDelivery = zone.fee;
+    else if (zone) calculatedDelivery = (zone.free > 0 && calculatedSubtotal >= zone.free - 1e-9) ? 0 : zone.fee;
     else calculatedDelivery = calculatedSubtotal >= freeFrom ? 0 : deliveryFee;
     
     let calculatedDiscount = 0;

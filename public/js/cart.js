@@ -159,6 +159,8 @@ var Cart = (function() {
     if (orderType === 'abholung') return 0;
     // Zonenpreis aus der Adressprüfung (OSRM-Fahrstrecke), sonst alte Pauschale als Fallback
     if (window.DeliveryCheck && window.DeliveryCheck.fee != null && isFinite(window.DeliveryCheck.fee)) {
+      var zfree = parseFloat(window.DeliveryCheck.free) || 0;
+      if (zfree > 0 && subtotal >= zfree - 1e-9) return 0;
       return parseFloat(window.DeliveryCheck.fee);
     }
     var fee = parseFloat(settings.delivery_fee) || 4.50;
