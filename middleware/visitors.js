@@ -35,9 +35,9 @@ function visitorMiddleware(req, res, next) {
         res.setHeader('Set-Cookie', 'nexo_vid=' + vid + '; Path=/; Max-Age=31536000; HttpOnly; SameSite=Lax' + secure);
       }
     }
-    const ip = req.ip || '';
     const day = new Date().toISOString().slice(0, 10);
-    const vhash = crypto.createHash('sha256').update(day + '|' + vid + '|' + ip + '|' + ua).digest('hex');
+    // Nur Tag + Cookie-ID hashen (kein IP/UA): stabil bei IP-Wechsel, keine personenbezogenen Daten
+    const vhash = crypto.createHash('sha256').update(day + '|' + vid).digest('hex');
     db.run('INSERT INTO visitor_days (day, vhash) VALUES ($1, $2) ON CONFLICT DO NOTHING', [day, vhash])
       .catch(() => {});
   } catch (e) { /* Zähler darf Anfragen nie blockieren */ }
