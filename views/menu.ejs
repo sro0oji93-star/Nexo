@@ -123,7 +123,7 @@
                   <% } %>
                 </div>
                 <div class="mad-spec-tags" style="font-size:1rem;line-height:1.5rem;color:#7a7879;margin-top:0.25rem">
-                  <div class="mad-spec-el"><%= p.description %></div>
+                  <div class="mad-spec-el"><% (p.description || '').split('\n').forEach(function(line, li) { %><% if (li) { %><br><% } %><%= line %><% }); %></div>
                 </div>
                 <% if (!p.is_available) { %>
                 <div style="margin-top:10px"><span style="display:inline-block;padding:6px 16px;border-radius:50px;background:rgba(220,53,53,.1);color:#dc3545;font-size:12px;font-weight:700">Ausverkauft</span></div>
@@ -182,7 +182,7 @@
                   <% } %>
                 </div>
                 <div class="mad-spec-tags" style="font-size:1rem;line-height:1.5rem;color:#7a7879;margin-top:0.25rem">
-                  <div class="mad-spec-el"><%= p.description %></div>
+                  <div class="mad-spec-el"><% (p.description || '').split('\n').forEach(function(line, li) { %><% if (li) { %><br><% } %><%= line %><% }); %></div>
                 </div>
                 <% if (!p.is_available) { %>
                 <div style="margin-top:10px"><span style="display:inline-block;padding:6px 16px;border-radius:50px;background:rgba(220,53,53,.1);color:#dc3545;font-size:12px;font-weight:700">Ausverkauft</span></div>
