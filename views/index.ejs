@@ -238,30 +238,11 @@
 })();
 </script>
 
-<!-- Testimonials -->
+<!-- Über uns (statt Testimonials) -->
 <div class="mad-section">
-  <div class="container">
-    <h2 class="mad-page-title align-center">Das sagen unsere Gäste</h2>
-    <div class="mad-testimonials">
-      <div class="mad-grid mad-grid--cols-2 owl-carousel" id="testimonialCarousel">
-        <% testimonials.forEach(function(t) { %>
-        <div class="mad-grid-item">
-          <div class="mad-testimonial">
-            <div data-estimate="5" class="mad-rating"></div>
-            <div class="mad-testimonial-info">
-              <blockquote><p>"<%= t.text %>"</p></blockquote>
-            </div>
-            <div class="mad-author">
-              <div class="mad-author-img"><% if (t.image) { %><img loading="lazy" src="<%= t.image %>" alt="<%= t.name %>" style="width:48px;height:48px;border-radius:50%;object-fit:cover"><% } else { %><span class="material-icons" style="font-size:36px;color:var(--primary)">person</span><% } %></div>
-              <div class="mad-author-info">
-                <cite><%= t.name %></cite>
-              </div>
-            </div>
-          </div>
-        </div>
-        <% }); %>
-      </div>
-    </div>
+  <div class="container" style="max-width:800px;text-align:center">
+    <h2 class="mad-page-title align-center"><%= typeof settings !== 'undefined' && settings.about_title ? settings.about_title : 'Unsere Philosophie' %></h2>
+    <p style="font-size:1.05rem;line-height:1.8;color:#4b5563"><%= typeof settings !== 'undefined' && settings.about_text ? settings.about_text : '' %></p>
   </div>
 </div>
 
