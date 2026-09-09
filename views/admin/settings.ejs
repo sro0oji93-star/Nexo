@@ -226,25 +226,27 @@ document.getElementById('header_bg_picker').addEventListener('input', function()
         <div class="form-group"><label>Zeile 3</label><input name="line3" value="+ 4 GETRÄNKE"></div>
       </div>
       <div class="form-grid">
-        <div class="form-group"><label>Preis 1 Zahl</label><input name="price1" value="19"></div>
-        <div class="form-group"><label>Preis 1 Cent</label><input name="price1_cents" value=",99€"></div>
-        <div class="form-group"><label>Preis 1 Label</label><input name="price1_tag" value="ABHOLUNG"></div>
-        <div class="form-group"><label>Preis 2 Zahl</label><input name="price2" value="21"></div>
-        <div class="form-group"><label>Preis 2 Cent</label><input name="price2_cents" value=",99€"></div>
-        <div class="form-group"><label>Preis 2 Label</label><input name="price2_tag" value="LIEFERUNG"></div>
+        <div class="form-group"><label>Preis (z.B. 10,99)</label><input name="preis1" value="19,99" placeholder="19,99"></div>
+        <div class="form-group"><label>Preis-Label</label><input name="preis1_tag" value="ABHOLUNG"></div>
+        <div class="form-group"><label>2. Preis (optional, leer = keiner)</label><input name="preis2" value="21,99" placeholder="leer lassen für nur 1 Preis"></div>
+        <div class="form-group"><label>2. Preis-Label</label><input name="preis2_tag" value="LIEFERUNG"></div>
       </div>
-      <div class="form-group"><label>Beschreibung</label><input name="description" value="Bestellen Sie eine große 3-Belag-Pizza..."></div>
+      <div class="form-group"><label>Beschreibung</label><textarea name="description" rows="2" style="width:100%">Bestellen Sie eine große 3-Belag-Pizza...</textarea></div>
       <div class="form-grid">
         <div class="form-group"><label>Button Text</label><input name="button_text" value="JETZT BESTELLEN"></div>
-        <div class="form-group"><label>Button Link</label><input name="button_link" value="/speisekarte"></div>
+        <div class="form-group"><label>Button Ziel</label><select name="button_link" style="width:100%;padding:8px">
+          <% (typeof dealLinks !== 'undefined' ? dealLinks : []).forEach(function(dl) { %>
+          <option value="<%= dl.value %>" <%= dl.value === '/speisekarte' ? 'selected' : '' %>><%= dl.label %></option>
+          <% }); %>
+        </select></div>
         <div class="form-group"><label>Sortierung</label><input type="number" name="sort_order" value="0"></div>
       </div>
       <div class="form-grid">
-        <div class="form-group"><label>Hintergrundbild URL</label><input name="bg_image" value="/images/revolution/6cbea-bg1.jpg"><br><small>oder Datei:</small> <input type="file" name="bg_image_file" accept="image/*"></div>
-        <div class="form-group"><label>Hauptbild URL</label><input name="main_image" value="/images/revolution/75ec1-big1.png"><br><small>oder Datei:</small> <input type="file" name="main_image_file" accept="image/*"></div>
-        <div class="form-group"><label>Getränk (oben links) URL</label><input name="drink_tl" value="/images/revolution/f13af-big3.png"><br><small>oder Datei:</small> <input type="file" name="drink_tl_file" accept="image/*"></div>
-        <div class="form-group"><label>Getränk (oben rechts) URL</label><input name="drink_tr" value="/images/revolution/d70da-big4.png"><br><small>oder Datei:</small> <input type="file" name="drink_tr_file" accept="image/*"></div>
-        <div class="form-group"><label>Getränk (unten rechts) URL</label><input name="drink_br" value="/images/revolution/96fdd-big6.png"><br><small>oder Datei:</small> <input type="file" name="drink_br_file" accept="image/*"></div>
+        <div class="form-group"><label>Hintergrundbild</label><input type="file" name="bg_image_file" accept="image/*"><br><small>Leer = Standardbild</small></div>
+        <div class="form-group"><label>Hauptbild</label><input type="file" name="main_image_file" accept="image/*"><br><small>Leer = Standardbild</small></div>
+        <div class="form-group"><label>Getränk (oben links)</label><input type="file" name="drink_tl_file" accept="image/*"><br><small>Leer = keins</small></div>
+        <div class="form-group"><label>Getränk (oben rechts)</label><input type="file" name="drink_tr_file" accept="image/*"><br><small>Leer = keins</small></div>
+        <div class="form-group"><label>Getränk (unten rechts)</label><input type="file" name="drink_br_file" accept="image/*"><br><small>Leer = keins</small></div>
       </div>
       <button type="submit" class="btn btn-primary">Erstellen</button>
       <button type="button" class="btn btn-secondary" onclick="document.getElementById('newSlideForm').style.display='none'">Abbrechen</button>
@@ -289,26 +291,31 @@ document.getElementById('header_bg_picker').addEventListener('input', function()
       <div class="form-group"><label>Zeile 3</label><input name="line3" value="<%= s.line3 || '' %>"></div>
     </div>
     <div class="form-grid">
-      <div class="form-group"><label>Preis 1 Zahl</label><input name="price1" value="<%= s.price1 || '' %>"></div>
-      <div class="form-group"><label>Preis 1 Cent</label><input name="price1_cents" value="<%= s.price1_cents || '' %>"></div>
-      <div class="form-group"><label>Preis 1 Label</label><input name="price1_tag" value="<%= s.price1_tag || '' %>"></div>
-      <div class="form-group"><label>Preis 2 Zahl</label><input name="price2" value="<%= s.price2 || '' %>"></div>
-      <div class="form-group"><label>Preis 2 Cent</label><input name="price2_cents" value="<%= s.price2_cents || '' %>"></div>
-      <div class="form-group"><label>Preis 2 Label</label><input name="price2_tag" value="<%= s.price2_tag || '' %>"></div>
+      <div class="form-group"><label>Preis (z.B. 10,99)</label><input name="preis1" value="<%= (s.price1 || '') + (/^([,.]\d+)?€?$/.test(s.price1_cents || '') ? (s.price1_cents || '') : '') %>"></div>
+      <div class="form-group"><label>Preis-Label</label><input name="preis1_tag" value="<%= s.price1_tag || '' %>"></div>
+      <div class="form-group"><label>2. Preis (optional, leer = keiner)</label><input name="preis2" value="<%= (s.price2 || '') + (/^([,.]\d+)?€?$/.test(s.price2_cents || '') ? (s.price2_cents || '') : '') %>"></div>
+      <div class="form-group"><label>2. Preis-Label</label><input name="preis2_tag" value="<%= s.price2_tag || '' %>"></div>
     </div>
-    <div class="form-group"><label>Beschreibung</label><input name="description" value="<%= s.description || '' %>"></div>
+    <div class="form-group"><label>Beschreibung</label><textarea name="description" rows="2" style="width:100%"><%= s.description || '' %></textarea></div>
     <div class="form-grid">
       <div class="form-group"><label>Button Text</label><input name="button_text" value="<%= s.button_text || 'JETZT BESTELLEN' %>"></div>
-      <div class="form-group"><label>Button Link</label><input name="button_link" value="<%= s.button_link || '/speisekarte' %>"></div>
+      <div class="form-group"><label>Button Ziel</label><select name="button_link" style="width:100%;padding:8px">
+        <% (typeof dealLinks !== 'undefined' ? dealLinks : []).forEach(function(dl) { %>
+        <option value="<%= dl.value %>" <%= (s.button_link || '') === dl.value ? 'selected' : '' %>><%= dl.label %></option>
+        <% }); %>
+        <% if ((s.button_link || '') && !(typeof dealLinks !== 'undefined' ? dealLinks : []).some(function(dl) { return dl.value === s.button_link; })) { %>
+        <option value="<%= s.button_link %>" selected>Beibehalten: <%= s.button_link %></option>
+        <% } %>
+      </select></div>
       <div class="form-group"><label>Sortierung</label><input type="number" name="sort_order" value="<%= s.sort_order || 0 %>"></div>
       <div class="form-group"><label>Aktiv</label><input type="checkbox" name="active" value="1" <%= s.active ? 'checked' : '' %>></div>
     </div>
     <div class="form-grid">
-      <div class="form-group"><label>Hintergrundbild</label><input name="bg_image" value="<%= (s.bg_image || '').startsWith('data:') ? '' : s.bg_image || '' %>" placeholder="<%= (s.bg_image || '').startsWith('data:') ? 'Bild hochgeladen (Datei wählen zum ersetzen)' : '' %>"><br><small>Datei:</small> <input type="file" name="bg_image_file" accept="image/*"> <label><input type="checkbox" name="remove_bg_image" value="1"> Bild entfernen</label></div>
-      <div class="form-group"><label>Hauptbild</label><input name="main_image" value="<%= (s.main_image || '').startsWith('data:') ? '' : s.main_image || '/images/revolution/75ec1-big1.png' %>" placeholder="<%= (s.main_image || '').startsWith('data:') ? 'Bild hochgeladen (Datei wählen zum ersetzen)' : '' %>"><br><small>Datei:</small> <input type="file" name="main_image_file" accept="image/*"> <label><input type="checkbox" name="remove_main_image" value="1"> Bild entfernen</label></div>
-      <div class="form-group"><label>Getränk (oben links)</label><input name="drink_tl" value="<%= (s.drink_tl || '').startsWith('data:') ? '' : s.drink_tl || '' %>" placeholder="<%= (s.drink_tl || '').startsWith('data:') ? 'Bild hochgeladen (Datei wählen zum ersetzen)' : '' %>"><br><small>Datei:</small> <input type="file" name="drink_tl_file" accept="image/*"> <label><input type="checkbox" name="remove_drink_tl" value="1"> Bild entfernen</label></div>
-      <div class="form-group"><label>Getränk (oben rechts)</label><input name="drink_tr" value="<%= (s.drink_tr || '').startsWith('data:') ? '' : s.drink_tr || '' %>" placeholder="<%= (s.drink_tr || '').startsWith('data:') ? 'Bild hochgeladen (Datei wählen zum ersetzen)' : '' %>"><br><small>Datei:</small> <input type="file" name="drink_tr_file" accept="image/*"> <label><input type="checkbox" name="remove_drink_tr" value="1"> Bild entfernen</label></div>
-      <div class="form-group"><label>Getränk (unten rechts)</label><input name="drink_br" value="<%= (s.drink_br || '').startsWith('data:') ? '' : s.drink_br || '' %>" placeholder="<%= (s.drink_br || '').startsWith('data:') ? 'Bild hochgeladen (Datei wählen zum ersetzen)' : '' %>"><br><small>Datei:</small> <input type="file" name="drink_br_file" accept="image/*"> <label><input type="checkbox" name="remove_drink_br" value="1"> Bild entfernen</label></div>
+      <div class="form-group"><label>Hintergrundbild</label><% if (s.bg_image && !String(s.bg_image).startsWith('data:')) { %><img src="<%= s.bg_image %>" style="width:80px;height:45px;object-fit:cover;border-radius:4px"><br><% } %><input type="file" name="bg_image_file" accept="image/*"><br><small>Leer = behalten · </small><label><input type="checkbox" name="remove_bg_image" value="1"> Bild entfernen</label></div>
+      <div class="form-group"><label>Hauptbild</label><% if (s.main_image && !String(s.main_image).startsWith('data:')) { %><img src="<%= s.main_image %>" style="width:80px;height:45px;object-fit:cover;border-radius:4px"><br><% } %><input type="file" name="main_image_file" accept="image/*"><br><small>Leer = behalten · </small><label><input type="checkbox" name="remove_main_image" value="1"> Bild entfernen</label></div>
+      <div class="form-group"><label>Getränk (oben links)</label><input type="file" name="drink_tl_file" accept="image/*"><br><small>Leer = behalten · </small><label><input type="checkbox" name="remove_drink_tl" value="1"> Bild entfernen</label></div>
+      <div class="form-group"><label>Getränk (oben rechts)</label><input type="file" name="drink_tr_file" accept="image/*"><br><small>Leer = behalten · </small><label><input type="checkbox" name="remove_drink_tr" value="1"> Bild entfernen</label></div>
+      <div class="form-group"><label>Getränk (unten rechts)</label><input type="file" name="drink_br_file" accept="image/*"><br><small>Leer = behalten · </small><label><input type="checkbox" name="remove_drink_br" value="1"> Bild entfernen</label></div>
     </div>
     <button type="submit" class="btn btn-primary">Speichern</button>
     <button type="button" class="btn btn-secondary" onclick="editSlide(<%= s.id %>)">Abbrechen</button>

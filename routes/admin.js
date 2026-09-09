@@ -303,12 +303,31 @@ router.post('/testimonials/loeschen/:id', auth, async (req, res) => {
   res.redirect('/admin/testimonials');
 });
 
+// Einfaches Preis-Feld ("10,99" / "10.99 €" / "10") -> { zahl, cents } für Slide-Template.
+// "" = kein Preis (wird nicht angezeigt). Bestehende DB-Werte bleiben unberührt.
+function parseSlidePreis(v) {
+  if (v == null || !String(v).trim()) return { zahl: '', cents: '' };
+  const n = parseFloat(String(v).replace(/[€\s]/g, '').replace(',', '.'));
+  if (!isFinite(n) || n < 0) return { zahl: '', cents: '' };
+  const parts = (Math.round(n * 100) / 100).toFixed(2).split('.');
+  return { zahl: parts[0], cents: parts[1] === '00' ? '€' : ',' + parts[1] + '€' };
+}
+
 router.get('/einstellungen', auth, async (req, res) => {
   const settings = res.locals.settings;
   const slides = await db.all('SELECT * FROM hero_slides ORDER BY sort_order');
+  const dealProducts = await db.all(
+    "SELECT name, slug FROM products WHERE category_id = (SELECT id FROM categories WHERE slug = 'nexo-deals') ORDER BY sort_order"
+  ).catch(() => []);
+  const dealLinks = [
+    { label: 'NEXO Deals (Kategorie)', value: '/speisekarte/kategorie/nexo-deals' },
+    ...dealProducts.map(p => ({ label: p.name + ' (direkt)', value: '/warenkorb?add=' + p.slug })),
+    { label: 'Speisekarte', value: '/speisekarte' },
+    { label: 'Warenkorb', value: '/warenkorb' }
+  ];
   const success = req.flash && req.flash.success ? req.flash.success : null;
   if (req.flash) req.flash.success = null;
-  res.render('admin/settings', { title: 'Einstellungen – Admin', settings, slides, success });
+  res.render('admin/settings', { title: 'Einstellungen – Admin', settings, slides, dealLinks, success });
 });
 
 router.post('/einstellungen', auth, async (req, res) => {
@@ -367,9 +386,11 @@ async function imgVal(files, field, textVal) {
 }
 
 router.post('/einstellungen/hero-slides', auth, hsUpload, async (req, res) => {
-  const { line1, line2, line3, price1, price1_cents, price1_tag, price2, price2_cents, price2_tag, description, button_text, button_link, sort_order } = req.body;
+  const { line1, line2, line3, preis1, preis1_tag, preis2, preis2_tag, description, button_text, button_link, sort_order } = req.body;
+  const p1 = parseSlidePreis(preis1), p2 = parseSlidePreis(preis2);
+  const price1 = p1.zahl, price1_cents = p1.cents, price2 = p2.zahl, price2_cents = p2.cents;
   await db.run(`INSERT INTO hero_slides (sort_order, line1, line2, line3, price1, price1_cents, price1_tag, price2, price2_cents, price2_tag, description, button_text, button_link, bg_image, main_image, drink_tl, drink_tr, drink_br) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)`,
-    [sort_order || 0, line1 || '', line2 || '', line3 || '', price1 || '', price1_cents || '', price1_tag || '', price2 || '', price2_cents || '', price2_tag || '', description || '', button_text || 'JETZT BESTELLEN', button_link || '/warenkorb',
+    [sort_order || 0, line1 || '', line2 || '', line3 || '', price1, price1_cents, preis1_tag || '', price2, price2_cents, preis2_tag || '', description || '', button_text || 'JETZT BESTELLEN', button_link || '/warenkorb',
     await imgVal(req.files, 'bg_image_file', req.body.bg_image) || '/images/revolution/6cbea-bg1.jpg',
     await imgVal(req.files, 'main_image_file', req.body.main_image) || '/images/revolution/75ec1-big1.png',
     await imgVal(req.files, 'drink_tl_file', req.body.drink_tl),
@@ -377,7 +398,7 @@ router.post('/einstellungen/hero-slides', auth, hsUpload, async (req, res) => {
     await imgVal(req.files, 'drink_br_file', req.body.drink_br)]);
   // Anzeige-Preise sind Single Source: Deal-Produkt sofort von den Slide-Preisen ableiten
   try {
-    await db.syncDealPricesFromSlide({ button_link: button_link || '/warenkorb', price1, price1_cents, price1_tag, price2, price2_cents, price2_tag });
+    await db.syncDealPricesFromSlide({ button_link: button_link || '/warenkorb', price1, price1_cents, price1_tag: preis1_tag || '', price2, price2_cents, price2_tag: preis2_tag || '' });
   } catch (e) {
     console.error('Deal-Preis-Sync übersprungen:', e.message);
   }
@@ -389,7 +410,10 @@ router.post('/einstellungen/hero-slides', auth, hsUpload, async (req, res) => {
 router.post('/einstellungen/hero-slides/bearbeiten/:id', auth, hsUpload, async (req, res) => {
   const slide = await db.get('SELECT * FROM hero_slides WHERE id = $1', [req.params.id]);
   if (!slide) return res.status(404).send('Slide nicht gefunden');
-  const { line1, line2, line3, price1, price1_cents, price1_tag, price2, price2_cents, price2_tag, description, button_text, button_link, sort_order, active, remove_bg_image, remove_main_image, remove_drink_tl, remove_drink_tr, remove_drink_br } = req.body;
+  const { line1, line2, line3, preis1, preis1_tag, preis2, preis2_tag, description, button_text, button_link, sort_order, active, remove_bg_image, remove_main_image, remove_drink_tl, remove_drink_tr, remove_drink_br } = req.body;
+  const pe1 = parseSlidePreis(preis1), pe2 = parseSlidePreis(preis2);
+  const price1 = pe1.zahl, price1_cents = pe1.cents, price2 = pe2.zahl, price2_cents = pe2.cents;
+  const price1_tag = preis1_tag, price2_tag = preis2_tag;
   async function imgValEdit(field, fileField, oldVal, defaultVal) {
     if (req.files && req.files[fileField] && req.files[fileField][0]) return optimizeUpload(req.files[fileField][0].buffer, req.files[fileField][0].mimetype);
     if (req.body['remove_' + field]) return '';
