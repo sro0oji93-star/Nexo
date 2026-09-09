@@ -144,6 +144,7 @@
 </section>
 
 <script>
+  window.DeliveryZones = <%- JSON.stringify(typeof deliveryZones !== 'undefined' && deliveryZones ? deliveryZones : [{ to: 15, fee: 4.5, min: 30, free: 0 }]) %>;
   window.restaurantSettings = {
     delivery_fee: <%- (typeof settings !== 'undefined' && settings.delivery_fee ? parseFloat(settings.delivery_fee) : 4.50) %>,
     free_delivery_from: <%- (typeof settings !== 'undefined' && settings.free_delivery_from ? parseFloat(settings.free_delivery_from) : 40.00) %>

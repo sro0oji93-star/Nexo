@@ -315,6 +315,8 @@ function parseSlidePreis(v) {
 
 router.get('/einstellungen', auth, async (req, res) => {
   const settings = res.locals.settings;
+  const { getDeliveryZones } = require('../delivery');
+  const zones = getDeliveryZones(settings);
   const slides = await db.all('SELECT * FROM hero_slides ORDER BY sort_order');
   const dealProducts = await db.all(
     "SELECT name, slug FROM products WHERE category_id = (SELECT id FROM categories WHERE slug = 'nexo-deals') ORDER BY sort_order"
@@ -327,7 +329,7 @@ router.get('/einstellungen', auth, async (req, res) => {
   ];
   const success = req.flash && req.flash.success ? req.flash.success : null;
   if (req.flash) req.flash.success = null;
-  res.render('admin/settings', { title: 'Einstellungen – Admin', settings, slides, dealLinks, success });
+  res.render('admin/settings', { title: 'Einstellungen – Admin', settings, slides, dealLinks, zones, success });
 });
 
 router.post('/einstellungen', auth, async (req, res) => {
@@ -345,6 +347,26 @@ router.post('/einstellungen', auth, async (req, res) => {
       }
       if (key === 'hero_theme' && !['black-gold','banner'].includes(val)) continue;
       await db.run('UPDATE settings SET value = $1 WHERE key = $2', [val, key]);
+    }
+  }
+  // Lieferzonen-Tabelle (Bis km / Mindestbestellwert / Lieferkosten / Gratis ab)
+  if (req.body.zone_to !== undefined) {
+    const toArr = Array.isArray(req.body.zone_to) ? req.body.zone_to : [req.body.zone_to];
+    const feeArr = Array.isArray(req.body.zone_fee) ? req.body.zone_fee : [req.body.zone_fee];
+    const minArr = Array.isArray(req.body.zone_min) ? req.body.zone_min : [req.body.zone_min];
+    const freeArr = Array.isArray(req.body.zone_free) ? req.body.zone_free : [req.body.zone_free];
+    const zones = [];
+    for (let i = 0; i < Math.min(toArr.length, 10); i++) {
+      const to = parseFloat(String(toArr[i] || '').replace(',', '.'));
+      const fee = parseFloat(String(feeArr[i] || '').replace(',', '.'));
+      const min = parseFloat(String(minArr[i] || '').replace(',', '.'));
+      const free = parseFloat(String(freeArr[i] || '').replace(',', '.')) || 0;
+      if (!isFinite(to) || to <= 0 || !isFinite(fee) || fee < 0 || !isFinite(min) || min < 0 || !isFinite(free) || free < 0) continue;
+      zones.push({ to, fee: Math.round(fee * 100) / 100, min: Math.round(min * 100) / 100, free: Math.round(free * 100) / 100 });
+    }
+    zones.sort((a, b) => a.to - b.to);
+    if (zones.length) {
+      await db.run('UPDATE settings SET value = $1 WHERE key = $2', [JSON.stringify(zones), 'delivery_zones']);
     }
   }
   req.flash = req.flash || {};

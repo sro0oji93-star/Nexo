@@ -23,21 +23,8 @@ const TIME_DEALS = {
 
 // Liefergebiet serverseitig prüfen (Nominatim-Geocoding + OSRM-Fahrstrecke).
 // Ergebnis: { km } (km=null -> unverifiziert, fail-open) oder { km, noRoute:true } (keine Fahrstrecke -> nicht lieferbar)
-// NEXO Lieferservice-Zonen: Fahrstrecke -> Zuschlag + Mindestbestellwert + Gratisgrenze (bis 15 km, darüber Anruf)
-const DELIVERY_ZONES = [
-  { to: 3, fee: 1.00, min: 10.00, free: 20.00 },
-  { to: 6, fee: 2.00, min: 15.00, free: 25.00 },
-  { to: 9, fee: 3.00, min: 20.00, free: 30.00 },
-  { to: 12, fee: 3.50, min: 25.00, free: 0 },
-  { to: 15, fee: 4.50, min: 30.00, free: 0 }
-];
-
-function findDeliveryZone(km) {
-  for (const z of DELIVERY_ZONES) {
-    if (km <= z.to + 1e-9) return z;
-  }
-  return null;
-}
+// Zonen kommen aus den Einstellungen (Admin pflegbar), siehe delivery.js
+const { getDeliveryZones, findDeliveryZone } = require('../delivery');
 
 async function checkDeliveryArea(address, zip, city, settings) {
   const rLat = parseFloat((settings && (settings.restaurant_lat || settings.latitude)) || 53.295344);
@@ -82,7 +69,8 @@ router.get('/', async (req, res) => {
   
   res.render('checkout', {
     title: 'Kasse – ' + settings.site_name,
-    settings
+    settings,
+    deliveryZones: getDeliveryZones(settings)
   });
 });
 
@@ -99,6 +87,8 @@ router.post('/', async (req, res) => {
     const type = orderType === 'abholung' ? 'abholung' : 'lieferung';
 
     // Liefergebiet + Zonenpreise serverseitig prüfen (nur Lieferung; Abholung bleibt immer möglich)
+    const zones = getDeliveryZones(res.locals.settings);
+    const maxKm = zones.length ? zones[zones.length - 1].to : 15;
     let zone = null;
     let areaKm = null;
     if (type === 'lieferung') {
@@ -110,11 +100,11 @@ router.post('/', async (req, res) => {
       }
       if (area.km != null) {
         areaKm = area.km;
-        const cap = parseFloat(s.max_delivery_km) || 15;
+        const cap = parseFloat(s.max_delivery_km) || maxKm;
         if (area.km > cap + 1e-9) {
-          return res.status(400).json({ success: false, message: 'Ihre Adresse liegt über 15 km Fahrstrecke von uns entfernt. Bitte rufen Sie uns an: ' + tel + ' – oder wählen Sie Abholung.' });
+          return res.status(400).json({ success: false, message: 'Ihre Adresse liegt über ' + cap + ' km Fahrstrecke von uns entfernt. Bitte rufen Sie uns an: ' + tel + ' – oder wählen Sie Abholung.' });
         }
-        zone = findDeliveryZone(area.km);
+        zone = findDeliveryZone(zones, area.km);
       }
     }
 

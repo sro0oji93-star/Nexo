@@ -56,11 +56,11 @@
     <h3>Lieferung</h3>
     <div class="form-grid">
       <div class="form-group">
-        <label>Liefergebühr (€)</label>
+        <label>Liefergebühr (€, ohne Zone)</label>
         <input type="number" step="0.01" name="delivery_fee" value="<%= settings.delivery_fee || '0' %>">
       </div>
       <div class="form-group">
-        <label>Kostenfreie Lieferung ab (€)</label>
+        <label>Kostenfreie Lieferung ab (€, ohne Zone)</label>
         <input type="number" step="0.01" name="free_delivery_from" value="<%= settings.free_delivery_from || '0' %>">
       </div>
       <div class="form-group">
@@ -68,6 +68,21 @@
         <input type="number" step="0.5" min="1" name="max_delivery_km" value="<%= settings.max_delivery_km || '15' %>">
       </div>
     </div>
+    <h4 style="margin-top:18px">Lieferzonen (Fahrstrecke)</h4>
+    <table class="admin-table" id="zonesTable">
+      <thead><tr><th>Bis (km)</th><th>Mindestbestellwert (€)</th><th>Lieferkosten (€)</th><th>Gratis ab (€, leer = nie)</th></tr></thead>
+      <tbody>
+        <% (typeof zones !== 'undefined' && zones ? zones : []).forEach(function(z) { %>
+        <tr>
+          <td><input type="number" step="0.5" min="0.5" name="zone_to" value="<%= z.to %>" style="width:90px;padding:6px 8px"></td>
+          <td><input type="number" step="0.01" min="0" name="zone_min" value="<%= z.min %>" style="width:90px;padding:6px 8px"></td>
+          <td><input type="number" step="0.01" min="0" name="zone_fee" value="<%= z.fee %>" style="width:90px;padding:6px 8px"></td>
+          <td><input type="number" step="0.01" min="0" name="zone_free" value="<%= z.free ? z.free : '' %>" placeholder="—" style="width:90px;padding:6px 8px"></td>
+        </tr>
+        <% }); %>
+      </tbody>
+    </table>
+    <p style="font-size:12px;color:#6b6b6b;margin-top:6px">Zeilen werden nach Entfernung sortiert. Ungültige Zeilen werden ignoriert.</p>
   </div>
 
   <div class="settings-card">

@@ -14,14 +14,15 @@
   // Zustand für den Submit-Check in cart.js
   window.DeliveryCheck = { lat: null, lon: null, km: null, fee: null, min: null, free: null, blocked: false };
 
-  // NEXO Lieferservice-Zonen: Entfernung -> Zuschlag + Mindestbestellwert + Gratisgrenze (bis 15 km, darüber Anruf)
-  window.DeliveryZones = [
+  // NEXO Lieferservice-Zonen (vom Server via checkout.ejs, sonst Fallback)
+  window.DeliveryZones = window.DeliveryZones || [
     { to: 3, fee: 1.00, min: 10.00, free: 20.00 },
     { to: 6, fee: 2.00, min: 15.00, free: 25.00 },
     { to: 9, fee: 3.00, min: 20.00, free: 30.00 },
     { to: 12, fee: 3.50, min: 25.00, free: 0 },
     { to: 15, fee: 4.50, min: 30.00, free: 0 }
   ];
+  var maxZoneKm = window.DeliveryZones.length ? window.DeliveryZones[window.DeliveryZones.length - 1].to : 15;
 
   function findZone(km) {
     for (var i = 0; i < window.DeliveryZones.length; i++) {
@@ -58,7 +59,7 @@
     var kmTxt = km != null ? ' (' + fmtKm(km) + ' Fahrstrecke)' : '';
     noteBlocked.innerHTML = '';
     var t = document.createElement('div');
-    t.textContent = 'Ihre Adresse liegt über 15 km Fahrstrecke von uns entfernt' + kmTxt + '. Bitte rufen Sie uns an und fragen Sie nach:';
+    t.textContent = 'Ihre Adresse liegt über ' + maxZoneKm + ' km Fahrstrecke von uns entfernt' + kmTxt + '. Bitte rufen Sie uns an und fragen Sie nach:';
     var t2 = document.createElement('div');
     t2.style.marginTop = '6px';
     t2.textContent = 'Bitte kontaktieren Sie uns – oder wählen Sie Abholung: ';
