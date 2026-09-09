@@ -200,6 +200,24 @@ async function initialize() {
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS vat7 NUMERIC(10,2) DEFAULT 0;
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS vat19 NUMERIC(10,2) DEFAULT 0;
 
+    // Slug-Reparatur: Admin-Edits haben Box-/Deal-Slugs angehängt ("box-2-45").
+    // Box-/Deal-Logik hängt am exakten Slug -> kanonischen Slug wiederherstellen.
+    try {
+      const canonSlugs = ['box-1', 'box-2', 'box-3', 'mix-milkshake',
+        'nexo-mittag-deal', 'nexo-night-deal', 'deal-night-abholung',
+        'deal-grosse-pizza-getraenke', 'deal-mix-match', 'deal-grosse-hamburger-getraenk',
+        'crepe-nutella', 'crepe-frucht', 'crepe-lotus', 'crepe-oreo', 'crepe-bueno',
+        'mini-pancakes', 'mini-waffel'];
+      for (const cs of canonSlugs) {
+        await query(
+          "UPDATE products SET slug = $1 WHERE slug ~ ('^' || $1 || '-[0-9]+$') AND NOT EXISTS (SELECT 1 FROM products WHERE slug = $1)",
+          [cs]
+        );
+      }
+    } catch (e) {
+      console.error('Slug-Reparatur übersprungen:', e.message);
+    }
+
     CREATE TABLE IF NOT EXISTS visitor_days (
       day TEXT NOT NULL,
       vhash TEXT NOT NULL,

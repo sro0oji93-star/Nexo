@@ -111,7 +111,7 @@ router.post('/produkte/bearbeiten/:id', auth, upload.single('image'), async (req
   const { name, category_id, description, price, old_price, ingredients, is_featured, is_available, sort_order, sizes } = req.body;
   const product = await db.get('SELECT * FROM products WHERE id = $1', [req.params.id]);
   if (!product) return res.status(404).send('Produkt nicht gefunden');
-  const slug = slugify(name, { lower: true, strict: true }) + '-' + req.params.id;
+  const slug = product.slug; // Slug bleibt stabil (Box-/Deal-/Größen-Logik hängt am exakten Slug)
   const image = req.file ? await optimizeUpload(req.file.buffer, req.file.mimetype) : product.image;
   let sizesJson = product.sizes;
   if (sizes !== undefined) {
