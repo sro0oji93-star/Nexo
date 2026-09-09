@@ -121,6 +121,9 @@ router.post('/produkte/bearbeiten/:id', auth, upload.single('image'), async (req
     [category_id || null, name, slug, description, price, old_price || null, image, ingredients,
     is_featured ? 1 : 0, is_available ? 1 : 0, sort_order || 0, sizesJson, req.params.id]
   );
+  // Preis für alle Namens-Duplikate übernehmen (Menü zeigt MIN(id) je Name – sonst wirkt der Preis "zurückgesetzt")
+  await db.run('UPDATE products SET price = $1, old_price = $2 WHERE name = $3 AND id != $4',
+    [price, old_price || null, name, req.params.id]);
   res.redirect('/admin/produkte');
 });
 
