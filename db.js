@@ -431,8 +431,6 @@ async function initialize() {
   try {
     const burgerCat = await get("SELECT * FROM categories WHERE slug = 'burger'");
     if (burgerCat) {
-      await query('UPDATE categories SET description = $1 WHERE id = $2',
-        ['Smash Burger frisch für dich gesmasht. Als Menü (+5,00 €) mit Pommes und 0,33 l Softdrink nach Wahl.', burgerCat.id]);
       await query("DELETE FROM products WHERE category_id = $1 AND slug IN ('classic-burger','cheese-burger','chicken-burger')", [burgerCat.id]);
       const smashBurgers = [
         ['Hamburger Smash', 'hamburger-smash', '110 g Smash Beef, Salat, Gewürzgurken, Tomate, rote Zwiebeln, Burgersauce', 8.90, '110 g Smash Beef, Salat, Gewürzgurken, Tomate, rote Zwiebeln, Burgersauce', 0, 4, '/images/products/img13.jpg'],
@@ -452,7 +450,7 @@ async function initialize() {
         await query(
           `INSERT INTO products (category_id, name, slug, description, price, old_price, image, ingredients, is_featured, is_available, sort_order)
            VALUES ($1,$2,$3,$4,$5,NULL,$6,$7,$8,1,$9)
-           ON CONFLICT (slug) DO UPDATE SET category_id=EXCLUDED.category_id, name=EXCLUDED.name, description=EXCLUDED.description, price=EXCLUDED.price, ingredients=EXCLUDED.ingredients, is_featured=COALESCE(products.is_featured, EXCLUDED.is_featured), is_available=1, sort_order=EXCLUDED.sort_order, image=COALESCE(products.image, EXCLUDED.image)`,
+           ON CONFLICT (slug) DO NOTHING`, // Admin-Daten bleiben erhalten (kein Revert bei Deploy)
           [burgerCat.id, name, slug, description, price, image, ingredients, is_featured, sort_order]
         );
       }
@@ -478,8 +476,6 @@ async function initialize() {
   try {
     const croqueCat = await get("SELECT * FROM categories WHERE slug = 'croque'");
     if (croqueCat) {
-      await query('UPDATE categories SET description = $1 WHERE id = $2',
-        ['Frisch überbackene Croques. Inklusive 1 Sauce nach Wahl.', croqueCat.id]);
       await query("DELETE FROM products WHERE category_id = $1 AND slug IN ('croque-monsieur','croque-madame','croque-hawaii')", [croqueCat.id]);
       const nexoCroques = [
         ['NEXO Madame', 'nexo-madame', 'Tomate, Käse', 7.90, 'Tomate, Käse', 0, 16, '/images/products/img7.jpg'],
@@ -500,7 +496,7 @@ async function initialize() {
         await query(
           `INSERT INTO products (category_id, name, slug, description, price, old_price, image, ingredients, is_featured, is_available, sort_order)
            VALUES ($1,$2,$3,$4,$5,NULL,$6,$7,$8,1,$9)
-           ON CONFLICT (slug) DO UPDATE SET category_id=EXCLUDED.category_id, name=EXCLUDED.name, description=EXCLUDED.description, price=EXCLUDED.price, ingredients=EXCLUDED.ingredients, is_featured=COALESCE(products.is_featured, EXCLUDED.is_featured), is_available=1, sort_order=EXCLUDED.sort_order, image=COALESCE(products.image, EXCLUDED.image)`,
+           ON CONFLICT (slug) DO NOTHING`, // Admin-Daten bleiben erhalten (kein Revert bei Deploy)
           [croqueCat.id, name, slug, description, price, image, ingredients, is_featured, sort_order]
         );
       }
@@ -513,8 +509,6 @@ async function initialize() {
   try {
     const pizzaCat = await get("SELECT * FROM categories WHERE slug = 'pizza'");
     if (pizzaCat) {
-      await query('UPDATE categories SET description = $1 WHERE id = $2',
-        ['Steinofenpizza in 4 Größen: 26 cm, 30 cm, Familien Pizza und Party. Alle Pizzen in 26 cm und 30 cm auch als Calzone erhältlich.', pizzaCat.id]);
       await query("DELETE FROM products WHERE category_id = $1 AND slug IN ('prosciutto')", [pizzaCat.id]);
       const SZ = (a, b, c, d) => JSON.stringify([{ label: '26 cm', price: a }, { label: '30 cm', price: b }, { label: 'Familien Pizza', price: c }, { label: 'Party 60x40', price: d }]);
       const nexoPizzen = [
@@ -553,7 +547,7 @@ async function initialize() {
         await query(
           `INSERT INTO products (category_id, name, slug, description, price, old_price, image, ingredients, is_featured, is_available, sort_order, sizes)
            VALUES ($1,$2,$3,$4,$5,NULL,$6,$7,$8,1,$9,$10)
-           ON CONFLICT (slug) DO UPDATE SET category_id=EXCLUDED.category_id, name=EXCLUDED.name, description=EXCLUDED.description, price=EXCLUDED.price, ingredients=EXCLUDED.ingredients, is_featured=COALESCE(products.is_featured, EXCLUDED.is_featured), is_available=1, sort_order=EXCLUDED.sort_order, sizes=EXCLUDED.sizes, image=COALESCE(products.image, EXCLUDED.image)`,
+           ON CONFLICT (slug) DO NOTHING`, // Admin-Daten bleiben erhalten (kein Revert bei Deploy)
           [pizzaCat.id, name, slug, description, price, image, ingredients, is_featured, sort_order, sizes]
         );
       }
@@ -573,8 +567,6 @@ async function initialize() {
       dessertCat = await get("SELECT * FROM categories WHERE slug = 'dessert'");
     }
     if (dessertCat) {
-      await query('UPDATE categories SET description = $1, sort_order = 11 WHERE id = $2',
-        ['Süße Klassiker, Crêpes, Mini Pancakes & Mini Waffeln. Alle Crêpes inklusive 2 Schokoladensorten nach Wahl.', dessertCat.id]);
       const desserts = [
         ['Spaghetti Eis', 'spaghetti-eis', '', 5.50, '', 1, 1, '/images/products/img20.jpg', null],
         ['Tiramisu', 'tiramisu', '', 5.50, '', 0, 2, '/images/products/img19.jpg', null],
@@ -593,7 +585,7 @@ async function initialize() {
         await query(
           `INSERT INTO products (category_id, name, slug, description, price, old_price, image, ingredients, is_featured, is_available, sort_order, sizes)
            VALUES ($1,$2,$3,$4,$5,NULL,$6,$7,$8,1,$9,$10)
-           ON CONFLICT (slug) DO UPDATE SET category_id=EXCLUDED.category_id, name=EXCLUDED.name, description=EXCLUDED.description, price=EXCLUDED.price, ingredients=EXCLUDED.ingredients, is_featured=COALESCE(products.is_featured, EXCLUDED.is_featured), is_available=1, sort_order=EXCLUDED.sort_order, sizes=COALESCE(EXCLUDED.sizes, products.sizes), image=COALESCE(products.image, EXCLUDED.image)`,
+           ON CONFLICT (slug) DO NOTHING`, // Admin-Daten bleiben erhalten (kein Revert bei Deploy)
           [dessertCat.id, name, slug, description, price, image, ingredients, is_featured, sort_order, sizes]
         );
       }
@@ -613,8 +605,6 @@ async function initialize() {
       beilagenCat = await get("SELECT * FROM categories WHERE slug = 'beilagen'");
     }
     if (beilagenCat) {
-      await query('UPDATE categories SET description = $1, sort_order = 12 WHERE id = $2',
-        ['Knusprige Beilagen für jeden Geschmack.', beilagenCat.id]);
       const beilagen = [
         ['Portion Oliven', 'portion-oliven', '', 4.50, '', 0, 1, '/images/products/img4.jpg', null],
         ['Portion Peperoni oder Jalapeños', 'portion-peperoni-jalapenos', '', 4.50, '', 0, 2, '/images/products/img5.jpg', null],
@@ -626,7 +616,7 @@ async function initialize() {
         await query(
           `INSERT INTO products (category_id, name, slug, description, price, old_price, image, ingredients, is_featured, is_available, sort_order, sizes)
            VALUES ($1,$2,$3,$4,$5,NULL,$6,$7,$8,1,$9,$10)
-           ON CONFLICT (slug) DO UPDATE SET category_id=EXCLUDED.category_id, name=EXCLUDED.name, description=EXCLUDED.description, price=EXCLUDED.price, ingredients=EXCLUDED.ingredients, is_featured=COALESCE(products.is_featured, EXCLUDED.is_featured), is_available=1, sort_order=EXCLUDED.sort_order, sizes=COALESCE(EXCLUDED.sizes, products.sizes), image=COALESCE(products.image, EXCLUDED.image)`,
+           ON CONFLICT (slug) DO NOTHING`, // Admin-Daten bleiben erhalten (kein Revert bei Deploy)
           [beilagenCat.id, name, slug, description, price, image, ingredients, is_featured, sort_order, sizes]
         );
       }
@@ -646,8 +636,6 @@ async function initialize() {
       friesCat = await get("SELECT * FROM categories WHERE slug = 'fries'");
     }
     if (friesCat) {
-      await query('UPDATE categories SET description = $1, sort_order = 13 WHERE id = $2',
-        ['Knusprige Fries für jeden Geschmack.', friesCat.id]);
       const fries = [
         ['Pommes Frites', 'pommes-frites', 'Groß', 5.50, 'Kartoffeln', 1, 1, '/images/products/img7.jpg', null],
         ['Chili Cheese Fries', 'chili-cheese-fries', '', 6.90, '', 0, 2, '/images/products/img8.jpg', null],
@@ -659,7 +647,7 @@ async function initialize() {
         await query(
           `INSERT INTO products (category_id, name, slug, description, price, old_price, image, ingredients, is_featured, is_available, sort_order, sizes)
            VALUES ($1,$2,$3,$4,$5,NULL,$6,$7,$8,1,$9,$10)
-           ON CONFLICT (slug) DO UPDATE SET category_id=EXCLUDED.category_id, name=EXCLUDED.name, description=EXCLUDED.description, price=EXCLUDED.price, ingredients=EXCLUDED.ingredients, is_featured=COALESCE(products.is_featured, EXCLUDED.is_featured), is_available=1, sort_order=EXCLUDED.sort_order, sizes=COALESCE(EXCLUDED.sizes, products.sizes), image=COALESCE(products.image, EXCLUDED.image)`,
+           ON CONFLICT (slug) DO NOTHING`, // Admin-Daten bleiben erhalten (kein Revert bei Deploy)
           [friesCat.id, name, slug, description, price, image, ingredients, is_featured, sort_order, sizes]
         );
       }
@@ -679,8 +667,6 @@ async function initialize() {
       boxCat = await get("SELECT * FROM categories WHERE slug = 'nexo-box'");
     }
     if (boxCat) {
-      await query('UPDATE categories SET description = $1, sort_order = 14 WHERE id = $2',
-        ['Gemeinsam genießen & sparen.', boxCat.id]);
       const boxen = [
         ['BOX 1', 'box-1', '2 Cheeseburger oder 2 Chickenburger, 6 Chicken Nuggets, 6 Chicken Wings, Pommes, 3 Saucen', 38.90, '2 Cheeseburger oder 2 Chickenburger, 6 Chicken Nuggets, 6 Chicken Wings, Pommes, 3 Saucen', 1, 1, '/images/products/img16.jpg', null],
         ['BOX 2', 'box-2', 'Pizza Wunsch Ø 30 cm, 2 Cheeseburger oder 2 Chickenburger, 6 Snacks nach Wahl, Pommes, 3 Saucen', 49.90, 'Pizza Wunsch, Cheeseburger oder Chickenburger, Snacks, Pommes, Saucen', 0, 2, '/images/products/img17.jpg', null],
@@ -690,7 +676,7 @@ async function initialize() {
         await query(
           `INSERT INTO products (category_id, name, slug, description, price, old_price, image, ingredients, is_featured, is_available, sort_order, sizes)
            VALUES ($1,$2,$3,$4,$5,NULL,$6,$7,$8,1,$9,$10)
-           ON CONFLICT (slug) DO UPDATE SET category_id=EXCLUDED.category_id, name=EXCLUDED.name, description=EXCLUDED.description, price=EXCLUDED.price, ingredients=EXCLUDED.ingredients, is_featured=COALESCE(products.is_featured, EXCLUDED.is_featured), is_available=1, sort_order=EXCLUDED.sort_order, sizes=COALESCE(EXCLUDED.sizes, products.sizes), image=COALESCE(products.image, EXCLUDED.image)`,
+           ON CONFLICT (slug) DO NOTHING`, // Admin-Daten bleiben erhalten (kein Revert bei Deploy)
           [boxCat.id, name, slug, description, price, image, ingredients, is_featured, sort_order, sizes]
         );
       }
@@ -710,8 +696,6 @@ async function initialize() {
       kidsCat = await get("SELECT * FROM categories WHERE slug = 'kids-menue'");
     }
     if (kidsCat) {
-      await query('UPDATE categories SET description = $1, sort_order = 15 WHERE id = $2',
-        ['Bei allen Kids-Menüs inklusive: Capri-Sun, Überraschungsei.', kidsCat.id]);
       const kids = [
         ['Kids Pizza', 'kids-pizza', 'Pizza Ø 22 cm – bitte wählen: Margherita oder Salami', 7.90, 'Pizza, Margherita oder Salami', 1, 1, '/images/products/img1.jpg', '[{"label":"Margherita","price":7.9},{"label":"Salami","price":7.9}]'],
         ['Kids Nuggets', 'kids-nuggets', '5 Chicken Nuggets, Pommes', 7.50, 'Chicken Nuggets, Pommes', 0, 2, '/images/products/img8.jpg', null],
@@ -721,7 +705,7 @@ async function initialize() {
         await query(
           `INSERT INTO products (category_id, name, slug, description, price, old_price, image, ingredients, is_featured, is_available, sort_order, sizes)
            VALUES ($1,$2,$3,$4,$5,NULL,$6,$7,$8,1,$9,$10)
-           ON CONFLICT (slug) DO UPDATE SET category_id=EXCLUDED.category_id, name=EXCLUDED.name, description=EXCLUDED.description, price=EXCLUDED.price, ingredients=EXCLUDED.ingredients, is_featured=COALESCE(products.is_featured, EXCLUDED.is_featured), is_available=1, sort_order=EXCLUDED.sort_order, sizes=COALESCE(EXCLUDED.sizes, products.sizes), image=COALESCE(products.image, EXCLUDED.image)`,
+           ON CONFLICT (slug) DO NOTHING`, // Admin-Daten bleiben erhalten (kein Revert bei Deploy)
           [kidsCat.id, name, slug, description, price, image, ingredients, is_featured, sort_order, sizes]
         );
       }
@@ -748,8 +732,6 @@ async function initialize() {
       shakeCat = await get("SELECT * FROM categories WHERE slug = 'milkshake'");
     }
     if (shakeCat) {
-      await query('UPDATE categories SET description = $1, sort_order = 16 WHERE id = $2',
-        ['Frisch gemixte Milkshakes.', shakeCat.id]);
       const shakes = [
         ['Vanille', 'vanille', '', 5.99, '', 0, 1, '/images/products/img22.jpg', null],
         ['Schokolade', 'schokolade', '', 5.99, '', 0, 2, '/images/products/img22.jpg', null],
@@ -761,7 +743,7 @@ async function initialize() {
         await query(
           `INSERT INTO products (category_id, name, slug, description, price, old_price, image, ingredients, is_featured, is_available, sort_order, sizes)
            VALUES ($1,$2,$3,$4,$5,NULL,$6,$7,$8,1,$9,$10)
-           ON CONFLICT (slug) DO UPDATE SET category_id=EXCLUDED.category_id, name=EXCLUDED.name, description=EXCLUDED.description, price=EXCLUDED.price, ingredients=EXCLUDED.ingredients, is_featured=COALESCE(products.is_featured, EXCLUDED.is_featured), is_available=1, sort_order=EXCLUDED.sort_order, sizes=COALESCE(EXCLUDED.sizes, products.sizes), image=COALESCE(products.image, EXCLUDED.image)`,
+           ON CONFLICT (slug) DO NOTHING`, // Admin-Daten bleiben erhalten (kein Revert bei Deploy)
           [shakeCat.id, name, slug, description, price, image, ingredients, is_featured, sort_order, sizes]
         );
       }
@@ -795,7 +777,7 @@ async function initialize() {
         await query(
           `INSERT INTO products (category_id, name, slug, description, price, old_price, image, ingredients, is_featured, is_available, sort_order, sizes)
            VALUES ($1,$2,$3,$4,$5,NULL,$6,$7,$8,1,$9,$10)
-           ON CONFLICT (slug) DO UPDATE SET category_id=EXCLUDED.category_id, name=EXCLUDED.name, description=EXCLUDED.description, price=EXCLUDED.price, ingredients=EXCLUDED.ingredients, is_featured=COALESCE(products.is_featured, EXCLUDED.is_featured), is_available=1, sort_order=EXCLUDED.sort_order, sizes=COALESCE(EXCLUDED.sizes, products.sizes), image=COALESCE(products.image, EXCLUDED.image)`,
+           ON CONFLICT (slug) DO NOTHING`, // Admin-Daten bleiben erhalten (kein Revert bei Deploy)
           [pastaCat.id, name, slug, description, price, image, ingredients, is_featured, sort_order, sizes]
         );
       }
@@ -820,7 +802,7 @@ async function initialize() {
       await query(
         `INSERT INTO products (category_id, name, slug, description, price, old_price, image, ingredients, is_featured, is_available, sort_order, sizes)
          VALUES ($1,'NEXO Deluxe','pasta-nexo-deluxe','Crispy Chicken, Mais, Paprika, Hollandaise, Sahnesauce',12.90,NULL,'/images/products/img10.jpg','Crispy Chicken, Mais, Paprika, Hollandaise, Sahnesauce',0,1,13,NULL)
-         ON CONFLICT (slug) DO UPDATE SET category_id=EXCLUDED.category_id, name=EXCLUDED.name, description=EXCLUDED.description, price=EXCLUDED.price, ingredients=EXCLUDED.ingredients, is_featured=COALESCE(products.is_featured, EXCLUDED.is_featured), is_available=1, sort_order=EXCLUDED.sort_order, sizes=NULL, image=COALESCE(products.image, EXCLUDED.image)`,
+         ON CONFLICT (slug) DO NOTHING`, // Admin-Daten bleiben erhalten (kein Revert bei Deploy)
         [pastaCatFix.id]
       );
       // Falsche Pasta-Deluxe-Duplikate (mit Pizza-Größen) entfernen
@@ -991,7 +973,7 @@ async function initialize() {
         await query(
           `INSERT INTO products (category_id, name, slug, description, price, old_price, image, ingredients, is_featured, is_available, sort_order, sizes)
            VALUES ($1,$2,$3,$4,$5,NULL,$6,$7,$8,1,$9,NULL)
-           ON CONFLICT (slug) DO UPDATE SET category_id=EXCLUDED.category_id, name=EXCLUDED.name, description=EXCLUDED.description, price=EXCLUDED.price, ingredients=EXCLUDED.ingredients, is_featured=COALESCE(products.is_featured, EXCLUDED.is_featured), sort_order=EXCLUDED.sort_order, image=COALESCE(products.image, EXCLUDED.image)`,
+           ON CONFLICT (slug) DO NOTHING`, // Admin-Daten bleiben erhalten (kein Revert bei Deploy)
           [boxCat.id, name, slug, desc, price, img, ingr, feat, sort]
         );
         await query('DELETE FROM products WHERE name = $1 AND slug != $2', [name, slug]);
@@ -1078,8 +1060,6 @@ async function initialize() {
   try {
     const schnitzelCat = await get("SELECT * FROM categories WHERE slug = 'schnitzel'");
     if (schnitzelCat) {
-      await query('UPDATE categories SET description = $1 WHERE id = $2',
-        ['Inklusive Pommes oder Kroketten.', schnitzelCat.id]);
       await query("DELETE FROM products WHERE category_id = $1 AND slug IN ('wiener-schnitzel')", [schnitzelCat.id]);
       const schnitzel = [
         ['Schnitzel Wiener Art', 'schnitzel-wiener-art', 'Schnitzel, Zitrone', 13.90, 'Schnitzel, Zitrone', 1, 1, '/images/products/img16.jpg', null],
@@ -1091,7 +1071,7 @@ async function initialize() {
         await query(
           `INSERT INTO products (category_id, name, slug, description, price, old_price, image, ingredients, is_featured, is_available, sort_order, sizes)
            VALUES ($1,$2,$3,$4,$5,NULL,$6,$7,$8,1,$9,$10)
-           ON CONFLICT (slug) DO UPDATE SET category_id=EXCLUDED.category_id, name=EXCLUDED.name, description=EXCLUDED.description, price=EXCLUDED.price, ingredients=EXCLUDED.ingredients, is_featured=COALESCE(products.is_featured, EXCLUDED.is_featured), is_available=1, sort_order=EXCLUDED.sort_order, sizes=COALESCE(EXCLUDED.sizes, products.sizes), image=COALESCE(products.image, EXCLUDED.image)`,
+           ON CONFLICT (slug) DO NOTHING`, // Admin-Daten bleiben erhalten (kein Revert bei Deploy)
           [schnitzelCat.id, name, slug, description, price, image, ingredients, is_featured, sort_order, sizes]
         );
       }
@@ -1104,8 +1084,6 @@ async function initialize() {
   try {
     const saucenCat = await get("SELECT * FROM categories WHERE slug = 'saucen-dips'");
     if (saucenCat) {
-      await query('UPDATE categories SET description = $1 WHERE id = $2',
-        ['Alle Saucen je 2,00 €.', saucenCat.id]);
       await query("DELETE FROM products WHERE category_id = $1 AND slug IN ('ketchup','mayonnaise','knoblauchsauce','chillisauce')", [saucenCat.id]);
       const saucen = [
         ['Knoblauch', 'knoblauch', '', 2.00, '', 0, 1, '/images/products/img9.jpg', null],
@@ -1120,7 +1098,7 @@ async function initialize() {
         await query(
           `INSERT INTO products (category_id, name, slug, description, price, old_price, image, ingredients, is_featured, is_available, sort_order, sizes)
            VALUES ($1,$2,$3,$4,$5,NULL,$6,$7,$8,1,$9,$10)
-           ON CONFLICT (slug) DO UPDATE SET category_id=EXCLUDED.category_id, name=EXCLUDED.name, description=EXCLUDED.description, price=EXCLUDED.price, ingredients=EXCLUDED.ingredients, is_featured=COALESCE(products.is_featured, EXCLUDED.is_featured), is_available=1, sort_order=EXCLUDED.sort_order, sizes=COALESCE(EXCLUDED.sizes, products.sizes), image=COALESCE(products.image, EXCLUDED.image)`,
+           ON CONFLICT (slug) DO NOTHING`, // Admin-Daten bleiben erhalten (kein Revert bei Deploy)
           [saucenCat.id, name, slug, description, price, image, ingredients, is_featured, sort_order, sizes]
         );
       }
@@ -1133,8 +1111,6 @@ async function initialize() {
   try {
     const salatCat = await get("SELECT * FROM categories WHERE slug = 'salat'");
     if (salatCat) {
-      await query('UPDATE categories SET description = $1 WHERE id = $2',
-        ['Frische Salate mit Dressing nach Wahl: Knoblauch, Hausdressing, Yoghurt, American, Kräuter.', salatCat.id]);
       await query("DELETE FROM products WHERE category_id = $1 AND slug IN ('griechischer-salat','caesar-salat')", [salatCat.id]);
       const salate = [
         ['Gemischter Salat', 'gemischter-salat', 'Eisbergsalat, Tomaten, Gurken, Mais. Dressing nach Wahl.', 7.90, 'Eisbergsalat, Tomaten, Gurken, Mais', 0, 1, '/images/products/img4.jpg', null],
@@ -1148,7 +1124,7 @@ async function initialize() {
         await query(
           `INSERT INTO products (category_id, name, slug, description, price, old_price, image, ingredients, is_featured, is_available, sort_order, sizes)
            VALUES ($1,$2,$3,$4,$5,NULL,$6,$7,$8,1,$9,$10)
-           ON CONFLICT (slug) DO UPDATE SET category_id=EXCLUDED.category_id, name=EXCLUDED.name, description=EXCLUDED.description, price=EXCLUDED.price, ingredients=EXCLUDED.ingredients, is_featured=COALESCE(products.is_featured, EXCLUDED.is_featured), is_available=1, sort_order=EXCLUDED.sort_order, sizes=COALESCE(EXCLUDED.sizes, products.sizes), image=COALESCE(products.image, EXCLUDED.image)`,
+           ON CONFLICT (slug) DO NOTHING`, // Admin-Daten bleiben erhalten (kein Revert bei Deploy)
           [salatCat.id, name, slug, description, price, image, ingredients, is_featured, sort_order, sizes]
         );
       }
@@ -1161,8 +1137,6 @@ async function initialize() {
   try {
     const snacksCat = await get("SELECT * FROM categories WHERE slug = 'snacks'");
     if (snacksCat) {
-      await query('UPDATE categories SET description = $1 WHERE id = $2',
-        ['Menü-Aufpreis +4,00 €: mit Pommes und 0,33 l Softdrink nach Wahl.', snacksCat.id]);
       await query("DELETE FROM products WHERE category_id = $1 AND slug IN ('pommes-frites','nachos')", [snacksCat.id]);
       const S6 = (a, b) => JSON.stringify([{ label: '6 Stk.', price: a }, { label: '12 Stk.', price: b }]);
       const snacks = [
@@ -1183,7 +1157,7 @@ async function initialize() {
         await query(
           `INSERT INTO products (category_id, name, slug, description, price, old_price, image, ingredients, is_featured, is_available, sort_order, sizes)
            VALUES ($1,$2,$3,$4,$5,NULL,$6,$7,$8,1,$9,$10)
-           ON CONFLICT (slug) DO UPDATE SET category_id=EXCLUDED.category_id, name=EXCLUDED.name, description=EXCLUDED.description, price=EXCLUDED.price, ingredients=EXCLUDED.ingredients, is_featured=COALESCE(products.is_featured, EXCLUDED.is_featured), is_available=1, sort_order=EXCLUDED.sort_order, sizes=EXCLUDED.sizes, image=COALESCE(products.image, EXCLUDED.image)`,
+           ON CONFLICT (slug) DO NOTHING`, // Admin-Daten bleiben erhalten (kein Revert bei Deploy)
           [snacksCat.id, name, slug, description, price, image, ingredients, is_featured, sort_order, sizes]
         );
       }
@@ -1217,7 +1191,7 @@ async function initialize() {
         await query(
           `INSERT INTO products (category_id, name, slug, description, price, old_price, image, ingredients, is_featured, is_available, sort_order, sizes)
            VALUES ($1,$2,$3,$4,$5,NULL,$6,$7,$8,1,$9,$10)
-           ON CONFLICT (slug) DO UPDATE SET category_id=EXCLUDED.category_id, name=EXCLUDED.name, description=EXCLUDED.description, price=EXCLUDED.price, ingredients=EXCLUDED.ingredients, is_featured=COALESCE(products.is_featured, EXCLUDED.is_featured), is_available=1, sort_order=EXCLUDED.sort_order, sizes=COALESCE(EXCLUDED.sizes, products.sizes), image=COALESCE(products.image, EXCLUDED.image)`,
+           ON CONFLICT (slug) DO NOTHING`, // Admin-Daten bleiben erhalten (kein Revert bei Deploy)
           [ringsCat.id, name, slug, description, price, image, ingredients, is_featured, sort_order, sizes]
         );
       }
@@ -1246,7 +1220,7 @@ async function initialize() {
         await query(
           `INSERT INTO products (category_id, name, slug, description, price, old_price, image, ingredients, is_featured, is_available, sort_order, sizes)
            VALUES ($1,$2,$3,$4,$5,NULL,$6,$7,$8,1,$9,$10)
-           ON CONFLICT (slug) DO UPDATE SET category_id=EXCLUDED.category_id, name=EXCLUDED.name, description=EXCLUDED.description, price=EXCLUDED.price, ingredients=EXCLUDED.ingredients, is_featured=COALESCE(products.is_featured, EXCLUDED.is_featured), is_available=1, sort_order=EXCLUDED.sort_order, sizes=EXCLUDED.sizes, image=COALESCE(products.image, EXCLUDED.image)`,
+           ON CONFLICT (slug) DO NOTHING`, // Admin-Daten bleiben erhalten (kein Revert bei Deploy)
           [boxCat.id, name, slug, description, price, image, ingredients, is_featured, sort_order, sizes]
         );
       }
@@ -1266,7 +1240,7 @@ async function initialize() {
       await query(
         `INSERT INTO products (category_id, name, slug, description, price, old_price, image, ingredients, is_featured, is_available, sort_order, sizes)
          VALUES ($1,$2,$3,$4,$5,NULL,$6,$7,$8,1,$9,$10)
-         ON CONFLICT (slug) DO UPDATE SET category_id=EXCLUDED.category_id, name=EXCLUDED.name, description=EXCLUDED.description, price=EXCLUDED.price, ingredients=EXCLUDED.ingredients, is_featured=COALESCE(products.is_featured, EXCLUDED.is_featured), is_available=1, sort_order=EXCLUDED.sort_order, sizes=EXCLUDED.sizes, image=COALESCE(products.image, EXCLUDED.image)`,
+         ON CONFLICT (slug) DO NOTHING`, // Admin-Daten bleiben erhalten (kein Revert bei Deploy)
         [boxCat2.id, '1 Grosser Hamburger + 1 Getränk', 'deal-grosse-hamburger-getraenk', '1 großer Hamburger + 1 Getränk (0,33 l) nach Wahl', 19.99, '/images/products/img14.jpg', 'Hamburger, 1 Getränk (0,33 l)', 0, 12, JSON.stringify([{ label: 'Abholung', price: 19.99 }, { label: 'Lieferung', price: 21.99 }])]
       );
     }
@@ -1287,7 +1261,7 @@ async function initialize() {
       await query(
         `INSERT INTO products (category_id, name, slug, description, price, old_price, image, ingredients, is_featured, is_available, sort_order, sizes)
          VALUES ($1,$2,$3,$4,$5,NULL,$6,$7,$8,1,$9,$10)
-         ON CONFLICT (slug) DO UPDATE SET category_id=EXCLUDED.category_id, name=EXCLUDED.name, description=EXCLUDED.description, price=EXCLUDED.price, ingredients=EXCLUDED.ingredients, is_featured=COALESCE(products.is_featured, EXCLUDED.is_featured), is_available=1, sort_order=EXCLUDED.sort_order, sizes=EXCLUDED.sizes, image=COALESCE(products.image, EXCLUDED.image)`,
+         ON CONFLICT (slug) DO NOTHING`, // Admin-Daten bleiben erhalten (kein Revert bei Deploy)
         [boxCat3.id, 'Night Deal · Pizza Ø 26', 'deal-night-abholung', 'Pizza Ø 26 cm nach Wunsch, bis zu 3 Beläge + 1 Sauce nach Wahl (Fisch & Käserand ausgeschlossen). Nur für Abholer, ab 21:00 Uhr.', 5.99, '/images/products/img3.jpg', 'Pizza 26 cm, 3 Beläge, 1 Sauce nach Wahl', 0, 13, JSON.stringify([{ label: 'Abholung', price: 5.99 }])]
       );
     }
@@ -1318,7 +1292,7 @@ async function initialize() {
         await query(
           `INSERT INTO products (category_id, name, slug, description, price, old_price, image, ingredients, is_featured, is_available, sort_order, sizes)
            VALUES ($1,$2,$3,$4,$5,NULL,$6,$7,$8,1,$9,$10)
-           ON CONFLICT (slug) DO UPDATE SET category_id=EXCLUDED.category_id, name=EXCLUDED.name, description=EXCLUDED.description, price=EXCLUDED.price, ingredients=EXCLUDED.ingredients, is_featured=COALESCE(products.is_featured, EXCLUDED.is_featured), is_available=1, sort_order=EXCLUDED.sort_order, sizes=EXCLUDED.sizes, image=COALESCE(products.image, EXCLUDED.image)`,
+           ON CONFLICT (slug) DO NOTHING`, // Admin-Daten bleiben erhalten (kein Revert bei Deploy)
           [getrCat.id, name, slug, description, price, image, ingredients, is_featured, sort_order, sizes]
         );
       }
@@ -1351,7 +1325,7 @@ async function initialize() {
         await query(
           `INSERT INTO products (category_id, name, slug, description, price, old_price, image, ingredients, is_featured, is_available, sort_order, sizes)
            VALUES ($1,$2,$3,$4,$5,NULL,$6,$7,$8,1,$9,$10)
-           ON CONFLICT (slug) DO UPDATE SET category_id=EXCLUDED.category_id, name=EXCLUDED.name, description=EXCLUDED.description, price=EXCLUDED.price, ingredients=EXCLUDED.ingredients, is_featured=COALESCE(products.is_featured, EXCLUDED.is_featured), is_available=1, sort_order=EXCLUDED.sort_order, sizes=COALESCE(EXCLUDED.sizes, products.sizes), image=COALESCE(products.image, EXCLUDED.image)`,
+           ON CONFLICT (slug) DO NOTHING`, // Admin-Daten bleiben erhalten (kein Revert bei Deploy)
           [wrapsCat.id, name, slug, description, price, image, ingredients, is_featured, sort_order, sizes]
         );
       }
@@ -1385,7 +1359,7 @@ async function initialize() {
         await query(
           `INSERT INTO products (category_id, name, slug, description, price, old_price, image, ingredients, is_featured, is_available, sort_order, sizes)
            VALUES ($1,$2,$3,$4,$5,NULL,$6,$7,$8,1,$9,$10)
-           ON CONFLICT (slug) DO UPDATE SET category_id=EXCLUDED.category_id, name=EXCLUDED.name, description=EXCLUDED.description, price=EXCLUDED.price, ingredients=EXCLUDED.ingredients, is_featured=COALESCE(products.is_featured, EXCLUDED.is_featured), is_available=1, sort_order=EXCLUDED.sort_order, sizes=COALESCE(EXCLUDED.sizes, products.sizes), image=COALESCE(products.image, EXCLUDED.image)`,
+           ON CONFLICT (slug) DO NOTHING`, // Admin-Daten bleiben erhalten (kein Revert bei Deploy)
           [bowlsCat.id, name, slug, description, price, image, ingredients, is_featured, sort_order, sizes]
         );
       }
@@ -1422,7 +1396,7 @@ async function initialize() {
         await query(
           `INSERT INTO products (category_id, name, slug, description, price, old_price, image, ingredients, is_featured, is_available, sort_order, sizes)
            VALUES ($1,$2,$3,$4,$5,NULL,$6,$7,$8,1,$9,$10)
-           ON CONFLICT (slug) DO UPDATE SET category_id=EXCLUDED.category_id, name=EXCLUDED.name, description=EXCLUDED.description, price=EXCLUDED.price, ingredients=EXCLUDED.ingredients, is_featured=COALESCE(products.is_featured, EXCLUDED.is_featured), is_available=1, sort_order=EXCLUDED.sort_order, sizes=EXCLUDED.sizes, image=COALESCE(products.image, EXCLUDED.image)`,
+           ON CONFLICT (slug) DO NOTHING`, // Admin-Daten bleiben erhalten (kein Revert bei Deploy)
           [broetchenCat.id, name, slug, description, price, image, ingredients, is_featured, sort_order, sizes]
         );
       }
@@ -1451,7 +1425,7 @@ async function initialize() {
         await query(
           `INSERT INTO products (category_id, name, slug, description, price, old_price, image, ingredients, is_featured, is_available, sort_order, sizes)
            VALUES ($1,$2,$3,$4,$5,NULL,$6,$7,$8,1,$9,$10)
-           ON CONFLICT (slug) DO UPDATE SET category_id=EXCLUDED.category_id, name=EXCLUDED.name, description=EXCLUDED.description, price=EXCLUDED.price, ingredients=EXCLUDED.ingredients, is_featured=COALESCE(products.is_featured, EXCLUDED.is_featured), is_available=1, sort_order=EXCLUDED.sort_order, sizes=COALESCE(EXCLUDED.sizes, products.sizes), image=COALESCE(products.image, EXCLUDED.image)`,
+           ON CONFLICT (slug) DO NOTHING`, // Admin-Daten bleiben erhalten (kein Revert bei Deploy)
           [dealsCat.id, name, slug, description, price, image, ingredients, is_featured, sort_order, sizes]
         );
       }
@@ -1467,15 +1441,7 @@ async function initialize() {
     console.error('Night-Deal-Löschung übersprungen:', e.message);
   }
 
-  // Hero-Preise als Single Source (nur Anzeigen): Deal-Produkte von den Slide-Preisen ableiten
-  try {
-    const slides = await query("SELECT * FROM hero_slides WHERE button_link LIKE '%?add=deal-%'");
-    for (const s of slides.rows) {
-      await syncDealPricesFromSlide(s);
-    }
-  } catch (e) {
-    console.error('Hero-Preis-Sync übersprungen:', e.message);
-  }
+  // Deal-Preise nur bei Admin-Speichern synchronisieren (kein Boot-Sync -> kein Revert).
 
   // Liefergebiet: echte Restaurant-Koordinaten (Pieperstraße 8, 21357 Bardowick) + 15-km-Limit (Zonentabelle)
   // Alte Berlin-Platzhalter (52.520008, 13.404954) und Musteradresse dabei korrigieren
