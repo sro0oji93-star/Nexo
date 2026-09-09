@@ -431,7 +431,7 @@ async function initialize() {
   try {
     const burgerCat = await get("SELECT * FROM categories WHERE slug = 'burger'");
     if (burgerCat) {
-      await query("DELETE FROM products WHERE category_id = $1 AND slug IN ('classic-burger','cheese-burger','chicken-burger')", [burgerCat.id]);
+      // (Alte-Slug-Bereinigung entfernt: Admin-Daten bleiben erhalten)
       const smashBurgers = [
         ['Hamburger Smash', 'hamburger-smash', '110 g Smash Beef, Salat, Gewürzgurken, Tomate, rote Zwiebeln, Burgersauce', 8.90, '110 g Smash Beef, Salat, Gewürzgurken, Tomate, rote Zwiebeln, Burgersauce', 0, 4, '/images/products/img13.jpg'],
         ['Cheeseburger Smash', 'cheeseburger-smash', '110 g Smash Beef, Cheddar, Salat, Gewürzgurken, Tomate, rote Zwiebeln, Burgersauce', 9.90, '110 g Smash Beef, Cheddar, Salat, Gewürzgurken, Tomate, rote Zwiebeln, Burgersauce', 1, 5, '/images/products/img14.jpg'],
@@ -476,7 +476,7 @@ async function initialize() {
   try {
     const croqueCat = await get("SELECT * FROM categories WHERE slug = 'croque'");
     if (croqueCat) {
-      await query("DELETE FROM products WHERE category_id = $1 AND slug IN ('croque-monsieur','croque-madame','croque-hawaii')", [croqueCat.id]);
+      // (Alte-Slug-Bereinigung entfernt: Admin-Daten bleiben erhalten)
       const nexoCroques = [
         ['NEXO Madame', 'nexo-madame', 'Tomate, Käse', 7.90, 'Tomate, Käse', 0, 16, '/images/products/img7.jpg'],
         ['NEXO Mozzarella', 'nexo-mozzarella', 'Mozzarella, Tomate, Käse', 8.50, 'Mozzarella, Tomate, Käse', 1, 17, '/images/products/img8.jpg'],
@@ -509,7 +509,7 @@ async function initialize() {
   try {
     const pizzaCat = await get("SELECT * FROM categories WHERE slug = 'pizza'");
     if (pizzaCat) {
-      await query("DELETE FROM products WHERE category_id = $1 AND slug IN ('prosciutto')", [pizzaCat.id]);
+      // (Alte-Slug-Bereinigung entfernt: Admin-Daten bleiben erhalten)
       const SZ = (a, b, c, d) => JSON.stringify([{ label: '26 cm', price: a }, { label: '30 cm', price: b }, { label: 'Familien Pizza', price: c }, { label: 'Party 60x40', price: d }]);
       const nexoPizzen = [
         ['Margherita', 'margherita', 'Tomatensauce, Oregano', 8.90, 'Tomatensauce, Oregano', 1, 1, '/images/products/img1.jpg', SZ(8.90, 11.50, 19.90, 27.10)],
@@ -756,7 +756,7 @@ async function initialize() {
   try {
     const pastaCat = await get("SELECT * FROM categories WHERE slug = 'pasta'");
     if (pastaCat) {
-      await query("DELETE FROM products WHERE category_id = $1 AND slug IN ('spaghetti-bolognese','penne-arrabiata')", [pastaCat.id]);
+      // (Alte-Slug-Bereinigung entfernt: Admin-Daten bleiben erhalten)
       const pasten = [
         ['NEXO Napoli', 'nexo-napoli', 'Tomatensauce', 8.90, 'Tomatensauce', 1, 1, '/images/products/img10.jpg', null],
         ['NEXO Bolognese', 'nexo-bolognese', 'Rinderhack, Tomatensauce', 9.90, 'Rinderhack, Tomatensauce', 0, 2, '/images/products/img11.jpg', null],
@@ -1060,7 +1060,7 @@ async function initialize() {
   try {
     const schnitzelCat = await get("SELECT * FROM categories WHERE slug = 'schnitzel'");
     if (schnitzelCat) {
-      await query("DELETE FROM products WHERE category_id = $1 AND slug IN ('wiener-schnitzel')", [schnitzelCat.id]);
+      // (Alte-Slug-Bereinigung entfernt: Admin-Daten bleiben erhalten)
       const schnitzel = [
         ['Schnitzel Wiener Art', 'schnitzel-wiener-art', 'Schnitzel, Zitrone', 13.90, 'Schnitzel, Zitrone', 1, 1, '/images/products/img16.jpg', null],
         ['Jägerschnitzel', 'jaegerschnitzel', 'Schnitzel, Champignons, Jägersauce', 15.90, 'Schnitzel, Champignons, Jägersauce', 0, 2, '/images/products/img17.jpg', null],
@@ -1084,7 +1084,7 @@ async function initialize() {
   try {
     const saucenCat = await get("SELECT * FROM categories WHERE slug = 'saucen-dips'");
     if (saucenCat) {
-      await query("DELETE FROM products WHERE category_id = $1 AND slug IN ('ketchup','mayonnaise','knoblauchsauce','chillisauce')", [saucenCat.id]);
+      // (Alte-Slug-Bereinigung entfernt: Admin-Daten bleiben erhalten)
       const saucen = [
         ['Knoblauch', 'knoblauch', '', 2.00, '', 0, 1, '/images/products/img9.jpg', null],
         ['American', 'american', '', 2.00, '', 0, 2, '/images/products/img12.jpg', null],
@@ -1111,7 +1111,7 @@ async function initialize() {
   try {
     const salatCat = await get("SELECT * FROM categories WHERE slug = 'salat'");
     if (salatCat) {
-      await query("DELETE FROM products WHERE category_id = $1 AND slug IN ('griechischer-salat','caesar-salat')", [salatCat.id]);
+      // (Alte-Slug-Bereinigung entfernt: Admin-Daten bleiben erhalten)
       const salate = [
         ['Gemischter Salat', 'gemischter-salat', 'Eisbergsalat, Tomaten, Gurken, Mais. Dressing nach Wahl.', 7.90, 'Eisbergsalat, Tomaten, Gurken, Mais', 0, 1, '/images/products/img4.jpg', null],
         ['Chicken Salat', 'chicken-salat', 'Gemischter Salat, gegrillte Hähnchenbrust. Dressing nach Wahl.', 10.90, 'Gemischter Salat, gegrillte Hähnchenbrust', 1, 2, '/images/products/img5.jpg', null],
@@ -1137,7 +1137,7 @@ async function initialize() {
   try {
     const snacksCat = await get("SELECT * FROM categories WHERE slug = 'snacks'");
     if (snacksCat) {
-      await query("DELETE FROM products WHERE category_id = $1 AND slug IN ('pommes-frites','nachos')", [snacksCat.id]);
+      // (Alte-Slug-Bereinigung entfernt: Admin-Daten bleiben erhalten)
       const S6 = (a, b) => JSON.stringify([{ label: '6 Stk.', price: a }, { label: '12 Stk.', price: b }]);
       const snacks = [
         ['Currywurst mit Pommes', 'currywurst-pommes', 'Mit Pommes', 8.90, 'Wurst, Curry, Pommes', 1, 1, '/images/products/img7.jpg', null],
@@ -1277,7 +1277,7 @@ async function initialize() {
     if (getrCat) {
       await query('UPDATE categories SET name = $1, description = $2 WHERE id = $3',
         ['Getränke', 'Softgetränke: Coca-Cola, Fanta, Sprite, Mezzo Mix, Durstlöscher und Red Bull.', getrCat.id]);
-      await query("DELETE FROM products WHERE category_id = $1 AND slug IN ('coca-cola','fanta','wasser')", [getrCat.id]);
+      // (Alte-Slug-Bereinigung entfernt: Admin-Daten bleiben erhalten)
       const SD = (a, b) => JSON.stringify([{ label: '0,33 l Dose', price: a }, { label: '1,0 l', price: b }]);
       const softgetraenke = [
         ['Coca-Cola', 'coca-cola', '0,33 l Dose oder 1,0 l Flasche', 2.40, '0,33 l Dose oder 1,0 l Flasche', 1, 1, '/images/products/img22.jpg', SD(2.40, 5.90)],
