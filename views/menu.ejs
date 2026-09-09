@@ -154,6 +154,9 @@
                 <% } else if (['crepe-nutella','crepe-frucht','crepe-lotus','crepe-oreo','crepe-bueno','mini-pancakes','mini-waffel'].indexOf(p.slug) !== -1) { %>
                 <%- include('partials/choco-box', { productId: p.id }) %>
                 <button class="btn btn-style-3 btn-small add-to-cart" data-id="<%= p.id %>" data-name="<%= p.name %>" data-price="<%= p.price %>" data-has-choco="1" style="margin-top:8px">In den Warenkorb</button>
+                <% } else if (cat.slug === 'pasta') { %>
+                <%- include('partials/pasta-type', { productId: p.id, showSauce: p.slug === 'pasta-wunsch' }) %>
+                <button class="btn btn-style-3 btn-small add-to-cart" data-id="<%= p.id %>" data-name="<%= p.name %>" data-price="<%= p.price %>" data-has-pasta="1" style="margin-top:8px">In den Warenkorb</button>
                 <% } else { %>
                 <button class="btn btn-style-3 btn-small add-to-cart" data-id="<%= p.id %>" data-name="<%= p.name %>" data-price="<%= p.price %>"<%- dealWindows[p.slug] ? ' data-deal-from="' + dealWindows[p.slug].from + '" data-deal-to="' + dealWindows[p.slug].to + '" data-deal-hint="' + dealWindows[p.slug].hint + '"' : '' %><%- p.slug === 'nexo-night-deal' ? ' data-pickup-only="1"' : '' %> style="margin-top:8px">In den Warenkorb</button>
                 <% } %>
@@ -210,6 +213,9 @@
                 <% } else if (['crepe-nutella','crepe-frucht','crepe-lotus','crepe-oreo','crepe-bueno','mini-pancakes','mini-waffel'].indexOf(p.slug) !== -1) { %>
                 <%- include('partials/choco-box', { productId: p.id }) %>
                 <button class="btn btn-style-3 btn-small add-to-cart" data-id="<%= p.id %>" data-name="<%= p.name %>" data-price="<%= p.price %>" data-has-choco="1" style="margin-top:8px">In den Warenkorb</button>
+                <% } else if (cat.slug === 'pasta') { %>
+                <%- include('partials/pasta-type', { productId: p.id, showSauce: p.slug === 'pasta-wunsch' }) %>
+                <button class="btn btn-style-3 btn-small add-to-cart" data-id="<%= p.id %>" data-name="<%= p.name %>" data-price="<%= p.price %>" data-has-pasta="1" style="margin-top:8px">In den Warenkorb</button>
                 <% } else { %>
                 <button class="btn btn-style-3 btn-small add-to-cart" data-id="<%= p.id %>" data-name="<%= p.name %>" data-price="<%= p.price %>"<%- dealWindows[p.slug] ? ' data-deal-from="' + dealWindows[p.slug].from + '" data-deal-to="' + dealWindows[p.slug].to + '" data-deal-hint="' + dealWindows[p.slug].hint + '"' : '' %><%- p.slug === 'nexo-night-deal' ? ' data-pickup-only="1"' : '' %> style="margin-top:8px">In den Warenkorb</button>
                 <% } %>

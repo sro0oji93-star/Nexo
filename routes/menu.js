@@ -16,7 +16,9 @@ async function loadBoxLists() {
   const names = async (slug) => (await db.all(
     "SELECT name FROM products WHERE category_id = (SELECT id FROM categories WHERE slug = $1) AND is_available = 1 ORDER BY sort_order", [slug]
   )).map(r => r.name);
-  return { sauces: await names('saucen-dips'), snacks: await names('snacks'), pastas: await names('pasta'), toppings: TOPPINGS };
+  const lists = { sauces: await names('saucen-dips'), snacks: await names('snacks'), pastas: await names('pasta'), toppings: TOPPINGS };
+  lists['pizza-broetchen'] = await names('pizza-broetchen');
+  return lists;
 }
 
 function attachBoxGroups(products, lists) {

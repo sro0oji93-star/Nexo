@@ -152,7 +152,8 @@ router.post('/', async (req, res) => {
         sauces: validSauces,
         snacks: await boxNames('snacks'),
         pastas: await boxNames('pasta'),
-        toppings: TOPPINGS
+        toppings: TOPPINGS,
+        'pizza-broetchen': await boxNames('pizza-broetchen')
       };
     }
     for (const item of parsedItems) {
@@ -306,6 +307,17 @@ router.post('/', async (req, res) => {
         } else {
           delete item.chocos;
         }
+      }
+      // Pasta: Nudelsorte Pflicht (+ Sauce bei NEXO Wunsch), alles inklusive
+      if (product.catslug === 'pasta') {
+        const { validatePasta, PASTA_WUNSCH_SLUG } = require('../boxen');
+        const needSauce = product.slug === PASTA_WUNSCH_SLUG;
+        const check = validatePasta(item.pasta, needSauce);
+        if (!check.ok) {
+          return res.status(400).json({ success: false, message: check.error + ' (' + item.name + ')' });
+        }
+        item.extras = check.lines;
+        delete item.pasta;
       }
       // Notiz pro Position (aus der Kasse), max. 200 Zeichen
       if (typeof item.note === 'string' && item.note.trim()) {

@@ -127,6 +127,23 @@
                 </div>
               </div>
             </div>
+            <% } else if (product.category_name === 'Pasta') { %>
+            <div class="form-control content-element-6">
+              <div class="content-element-2">
+                <%- include('partials/pasta-type', { productId: product.id, showSauce: product.slug === 'pasta-wunsch' }) %>
+                <p class="mad-text-color-2 content-element">Anzahl:</p>
+                <div class="btn-set big-btns">
+                  <div class="quantity size-2">
+                    <input type="text" id="qtyInput" value="1" readonly>
+                    <button type="button" class="qty-plus"><i class="material-icons">add</i></button>
+                    <button type="button" class="qty-minus"><i class="material-icons">remove</i></button>
+                  </div>
+                  <button class="btn btn-big btn-style-3 add-to-cart" data-id="<%= product.id %>" data-name="<%= product.name %>" data-price="<%= product.price %>" data-has-pasta="1">
+                    <i class="material-icons-outlined">shopping_cart</i><span>In den Warenkorb</span>
+                  </button>
+                </div>
+              </div>
+            </div>
             <% } else { %>
             <div class="form-control content-element-6">
               <div class="content-element-2">

@@ -53,7 +53,7 @@ const BOX_DEFS = {
   'box-2': [
     { key: 'burger1', type: 'radio', label: 'Burger 1', options: BURGER_OPTS },
     { key: 'burger2', type: 'radio', label: 'Burger 2', options: BURGER_OPTS },
-    { key: 'snacks', type: 'radio', label: 'Snacks', title: '6 Snacks nach Wahl', source: 'snacks' },
+    { key: 'pizzabroetchen', type: 'radio', label: 'Pizza Brötchen', title: '1× Pizza Brötchen nach Wahl', source: 'pizza-broetchen' },
     { key: 'toppings', type: 'check', min: 3, max: 3, label: 'Pizza-Zutaten', title: 'Pizza: 3 Zutaten nach Wahl', source: 'toppings' },
     { key: 'sauces', type: 'check', min: 3, max: 3, label: 'Saucen', title: '3 Saucen nach Wahl', source: 'sauces' },
   ],
@@ -114,4 +114,20 @@ function validateBox(boxSlug, box, lists) {
   return { ok: true, lines };
 }
 
-module.exports = { BOX_DEFS, BOX_SLUGS, BURGER_OPTS, resolveGroups, validateBox, DEAL_SLUG, DEAL_BASIS, DEAL_DRINKS, DEAL_MAX_TOPPINGS, dealToppingsNoFish, validateDeal };
+// Pasta: Nudelsorte Pflicht (alle Pasta), Sauce nach Wahl nur bei pasta-wunsch (NEXO Wunsch)
+const PASTA_TYPES = ['Makkaroni', 'Spaghetti'];
+const PASTA_SAUCES = ['Tomatensauce', 'Sahnesauce'];
+const PASTA_WUNSCH_SLUG = 'pasta-wunsch';
+
+function validatePasta(pasta, needSauce) {
+  if (!pasta || typeof pasta !== 'object') return { ok: false, error: 'Bitte Nudelsorte wählen' };
+  if (!PASTA_TYPES.includes(pasta.type)) return { ok: false, error: 'Bitte Nudelsorte wählen (Makkaroni oder Spaghetti)' };
+  const lines = [{ name: 'Nudeln: ' + pasta.type, price: 0 }];
+  if (needSauce) {
+    if (!PASTA_SAUCES.includes(pasta.sauce)) return { ok: false, error: 'Bitte Sauce wählen (Tomaten oder Sahne)' };
+    lines.push({ name: 'Sauce: ' + pasta.sauce, price: 0 });
+  }
+  return { ok: true, lines };
+}
+
+module.exports = { BOX_DEFS, BOX_SLUGS, BURGER_OPTS, resolveGroups, validateBox, DEAL_SLUG, DEAL_BASIS, DEAL_DRINKS, DEAL_MAX_TOPPINGS, dealToppingsNoFish, validateDeal, PASTA_TYPES, PASTA_SAUCES, PASTA_WUNSCH_SLUG, validatePasta };

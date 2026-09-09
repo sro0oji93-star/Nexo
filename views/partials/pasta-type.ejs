@@ -1,0 +1,45 @@
+<% /* Pasta-Box – Locals: productId, showSauce (bool). Nudelsorte Pflicht, Sauce nur bei NEXO Wunsch. */ %>
+<div class="box-choices pasta-box" data-pasta-for="<%= productId %>" <%= showSauce ? 'data-needs-sauce="1"' : '' %> style="margin-top:10px;border:1px dashed #e5c8ce;border-radius:10px;padding:10px 12px;background:#fffdf7">
+  <details open>
+    <summary style="cursor:pointer;font-weight:700;font-size:13px;color:#232223">Nudelsorte <span style="font-weight:400;color:#7a7879;font-size:12px">– bitte wählen (inklusive)</span></summary>
+    <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px">
+      <% ['Makkaroni', 'Spaghetti'].forEach(function(t, ti) { %>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 14px;border:2px solid #3a3a41;border-radius:10px;font-size:13px;background:#fff;color:#232223">
+        <input type="radio" name="pasta_<%= productId %>_type" value="<%= t %>" data-pasta-type style="display:none" <%= ti === 0 ? 'checked' : '' %>>
+        <span style="font-weight:600;font-size:13px"><%= t %></span>
+        <span class="sauce-tick" style="display:none;color:#16a34a;font-weight:900">✓</span>
+      </label>
+      <% }); %>
+    </div>
+  </details>
+  <% if (showSauce) { %>
+  <details style="margin-top:8px">
+    <summary style="cursor:pointer;font-weight:700;font-size:13px;color:#232223">Sauce nach Wahl <span style="font-weight:400;color:#7a7879;font-size:12px">– bitte wählen (inklusive)</span></summary>
+    <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px">
+      <% ['Tomatensauce', 'Sahnesauce'].forEach(function(s, si) { %>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 14px;border:2px solid #3a3a41;border-radius:10px;font-size:13px;background:#fff;color:#232223">
+        <input type="radio" name="pasta_<%= productId %>_sauce" value="<%= s %>" data-pasta-sauce style="display:none" <%= si === 0 ? 'checked' : '' %>>
+        <span style="font-weight:600;font-size:13px"><%= s %></span>
+        <span class="sauce-tick" style="display:none;color:#16a34a;font-weight:900">✓</span>
+      </label>
+      <% }); %>
+    </div>
+  </details>
+  <% } %>
+</div>
+<script>
+(function() {
+  var box = document.querySelector('.pasta-box[data-pasta-for="<%= productId %>"]');
+  if (!box || box.dataset.pastaInit) return;
+  box.dataset.pastaInit = '1';
+  function paint() {
+    box.querySelectorAll('label').forEach(function(l) {
+      var inp = l.querySelector('input');
+      var tick = l.querySelector('.sauce-tick');
+      if (tick) tick.style.display = (inp && inp.checked) ? '' : 'none';
+    });
+  }
+  box.addEventListener('change', paint);
+  paint();
+})();
+</script>
