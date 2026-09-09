@@ -252,3 +252,25 @@ table .mad-product-price:before,
 .mad-menu-item .mad-menu-price:before {
   content: none !important;
 }
+
+/* Leichter Kopierschutz: Textauswahl aus (Kontaktdaten bleiben kopierbar) */
+body {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+input, textarea, select, [contenteditable="true"],
+a, .contact-card, .contact-card *, .mad-info, .mad-info *,
+.mad-our-info, .mad-our-info *, .copyrights, .vat-note {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+/* Bilder: kein Drag & Drop, kein Callout-Menü am Handy */
+img {
+  -webkit-user-drag: none;
+  user-drag: none;
+  -webkit-touch-callout: none;
+}

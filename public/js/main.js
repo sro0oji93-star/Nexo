@@ -247,3 +247,15 @@
 })();
 
 
+
+/* Leichter Bildschutz: Rechtsklick + Ziehen auf Bildern blockieren (nur Frontend) */
+(function() {
+  document.addEventListener('contextmenu', function(e) {
+    var t = e.target && e.target.closest ? e.target.closest('img') : null;
+    if (t) e.preventDefault();
+  });
+  document.addEventListener('dragstart', function(e) {
+    var t = e.target && e.target.closest ? e.target.closest('img') : null;
+    if (t) e.preventDefault();
+  });
+})();
