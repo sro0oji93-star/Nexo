@@ -181,8 +181,9 @@
 .addr-suggest-item:last-child{border-bottom:none}
 .addr-suggest-item:hover{background:#f5f1e6}
 .addr-suggest-item small{color:#7a7879}
-.time-choice{display:block;margin:7px 0;font-size:14px;cursor:pointer}
-.time-choice input{margin-right:8px;accent-color:#d4af37}
+.time-choice{display:flex;align-items:center;gap:8px;margin:7px 0;font-size:14px;cursor:pointer;padding:9px 12px;border:1px solid #e8e4de;border-radius:10px;background:#fff;transition:border-color .2s,background .2s}
+.time-choice:has(input:checked){border-color:#d4af37;background:rgba(212,175,55,.12);font-weight:700}
+.time-choice input{margin:0;accent-color:#d4af37}
 </style>
 <script src="/js/checkout-address.js?v=20260905b"></script>
 
