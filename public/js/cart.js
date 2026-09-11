@@ -859,7 +859,9 @@ var Cart = (function() {
     applyDiscount: applyDiscount,
     clearDiscount: clearDiscount,
     renderCartPage: renderCartPage,
-    renderCheckoutSummary: renderCheckoutSummary
+    renderCheckoutSummary: renderCheckoutSummary,
+    getWishState: function() { return wishState; },
+    getMinPreorderMin: minPreorderMin
   };
 })();
 
@@ -917,9 +919,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
       // Wunschtermin prüfen (mind. Mindestvorlauf, 12:00–00:00 Uhr, max. Vorausbuchung)
       var wishTime = null;
-      if (wishState.mode === 'wish') {
-        var wd = wishState.value ? new Date(wishState.value) : null;
-        var need = minPreorderMin();
+      var ws = Cart.getWishState();
+      if (ws.mode === 'wish') {
+        var wd = ws.value ? new Date(ws.value) : null;
+        var need = Cart.getMinPreorderMin();
         if (!wd || isNaN(wd.getTime()) || wd.getTime() < Date.now() + need * 60000 - 60000) {
           alert('Bitte wählen Sie einen Wunschtermin mindestens ' + need + ' Minuten in der Zukunft.');
           var wi = document.querySelector('.time-sub:not([style*="none"]) input[type="datetime-local"]');
@@ -935,7 +938,7 @@ document.addEventListener('DOMContentLoaded', function() {
           alert(Cart.getOrderType() === 'abholung' ? 'Abholung ist maximal 7 Tage im Voraus buchbar.' : 'Bitte wählen Sie einen früheren Termin.');
           return;
         }
-        wishTime = wishState.value; // "YYYY-MM-DDTHH:MM" (wird serverseitig als Berlin-Zeit geprüft)
+        wishTime = ws.value; // "YYYY-MM-DDTHH:MM" (wird serverseitig als Berlin-Zeit geprüft)
       }
 
       var data = {
