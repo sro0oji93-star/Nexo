@@ -88,7 +88,7 @@ router.get('/produkte', auth, async (req, res) => {
 });
 
 router.post('/produkte', auth, upload.single('image'), async (req, res) => {
-  const { name, category_id, description, price, old_price, ingredients, is_featured, is_available, sort_order, sizes } = req.body;
+  const { name, category_id, description, price, old_price, ingredients, allergene, zusatzstoffe, is_featured, is_available, sort_order, sizes } = req.body;
   const slug = slugify(name, { lower: true, strict: true });
   const image = req.file ? await optimizeUpload(req.file.buffer, req.file.mimetype) : null;
   const existing = await db.get('SELECT id FROM products WHERE name = $1', [name]);
@@ -99,16 +99,16 @@ router.post('/produkte', auth, upload.single('image'), async (req, res) => {
   if (sizes) {
     try { sizesJson = JSON.stringify(JSON.parse(sizes)); } catch (e) { sizesJson = null; }
   }
-  await db.run(`INSERT INTO products (category_id, name, slug, description, price, old_price, image, ingredients, is_featured, is_available, sort_order, sizes)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+  await db.run(`INSERT INTO products (category_id, name, slug, description, price, old_price, image, ingredients, allergene, zusatzstoffe, is_featured, is_available, sort_order, sizes)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
     [category_id || null, name, slug + '-' + Date.now(), description, price, old_price || null,
-    image, ingredients, is_featured ? 1 : 0, is_available ? 1 : 0, sort_order || 0, sizesJson]
+    image, ingredients, (allergene || '').trim(), (zusatzstoffe || '').trim(), is_featured ? 1 : 0, is_available ? 1 : 0, sort_order || 0, sizesJson]
   );
   res.redirect('/admin/produkte');
 });
 
 router.post('/produkte/bearbeiten/:id', auth, upload.single('image'), async (req, res) => {
-  const { name, category_id, description, price, old_price, ingredients, is_featured, is_available, sort_order, sizes } = req.body;
+  const { name, category_id, description, price, old_price, ingredients, allergene, zusatzstoffe, is_featured, is_available, sort_order, sizes } = req.body;
   const product = await db.get('SELECT * FROM products WHERE id = $1', [req.params.id]);
   if (!product) return res.status(404).send('Produkt nicht gefunden');
   const slug = product.slug; // Slug bleibt stabil (Box-/Deal-/Größen-Logik hängt am exakten Slug)
@@ -117,14 +117,14 @@ router.post('/produkte/bearbeiten/:id', auth, upload.single('image'), async (req
   if (sizes !== undefined) {
     try { sizesJson = JSON.stringify(JSON.parse(sizes)); } catch (e) { sizesJson = product.sizes; }
   }
-  await db.run(`UPDATE products SET category_id=$1, name=$2, slug=$3, description=$4, price=$5, old_price=$6, image=$7, ingredients=$8, is_featured=$9, is_available=$10, sort_order=$11, sizes=$12 WHERE id=$13`,
-    [category_id || null, name, slug, description, price, old_price || null, image, ingredients,
+  await db.run(`UPDATE products SET category_id=$1, name=$2, slug=$3, description=$4, price=$5, old_price=$6, image=$7, ingredients=$8, allergene=$9, zusatzstoffe=$10, is_featured=$11, is_available=$12, sort_order=$13, sizes=$14 WHERE id=$15`,
+    [category_id || null, name, slug, description, price, old_price || null, image, ingredients, (allergene || '').trim(), (zusatzstoffe || '').trim(),
     is_featured ? 1 : 0, is_available ? 1 : 0, sort_order || 0, sizesJson, req.params.id]
   );
-  // Preis + Größen für alle Namens-Duplikate übernehmen (Menü zeigt MIN(id) je Name –
+  // Preis + Größen + Kennzeichnung für alle Namens-Duplikate übernehmen (Menü zeigt MIN(id) je Name –
   // bei Größen-Produkten wie Fanta kommt der sichtbare Preis aus sizes, nicht aus price)
-  await db.run('UPDATE products SET price = $1, old_price = $2, sizes = $3 WHERE name = $4 AND id != $5',
-    [price, old_price || null, sizesJson, name, req.params.id]);
+  await db.run('UPDATE products SET price = $1, old_price = $2, sizes = $3, allergene = $4, zusatzstoffe = $5 WHERE name = $6 AND id != $7',
+    [price, old_price || null, sizesJson, (allergene || '').trim(), (zusatzstoffe || '').trim(), name, req.params.id]);
   res.redirect('/admin/produkte');
 });
 

@@ -1,0 +1,6 @@
+<% /* LMIV-Kennzeichnung: Allergen-Codes + Zusatzstoff-Nummern, nur wenn gesetzt. Aufruf: include('partials/allergen-codes', { p: produkt }) */ %>
+<% var _a = (typeof p !== 'undefined' && p.allergene) ? String(p.allergene).trim() : ''; %>
+<% var _z = (typeof p !== 'undefined' && p.zusatzstoffe) ? String(p.zusatzstoffe).trim() : ''; %>
+<% if (_a || _z) { %>
+<div class="allergen-codes" style="font-size:12px;color:#7a7879;margin-top:4px">Kennzeichnung: <%= _a %><%= (_a && _z) ? ' · ' : '' %><%= _z %> – <a href="/allergene" style="color:inherit;text-decoration:underline">Legende</a></div>
+<% } %>

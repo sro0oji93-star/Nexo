@@ -53,6 +53,8 @@ function editProduct(product) {
   document.getElementById('edit_old_price').value = product.old_price || '';
   document.getElementById('edit_description').value = product.description || '';
   document.getElementById('edit_ingredients').value = product.ingredients || '';
+  document.getElementById('edit_allergene').value = product.allergene || '';
+  document.getElementById('edit_zusatzstoffe').value = product.zusatzstoffe || '';
   document.getElementById('edit_sort_order').value = product.sort_order || 0;
   document.getElementById('edit_is_featured').checked = product.is_featured == 1;
   document.getElementById('edit_is_available').checked = product.is_available == 1;

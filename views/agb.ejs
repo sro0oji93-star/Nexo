@@ -1,0 +1,37 @@
+<%- include('partials/header') %>
+
+<div class="page-hero contact-hero" style="background:linear-gradient(135deg,rgba(35,34,35,.5),rgba(35,34,35,.3)),url('/images/688x944_img1.jpg') center/cover">
+  <div class="page-hero-overlay"></div>
+  <div class="page-hero-content">
+    <div class="page-hero-badge">RECHTLICHES</div>
+    <h1 class="page-hero-title" style="color:#fff">Allgemeine Geschäftsbedingungen</h1>
+    <p class="page-hero-subtitle" style="color:rgba(255,255,255,.7)">Stand: September 2026</p>
+  </div>
+</div>
+
+<section class="section">
+  <div class="container" style="max-width:800px">
+    <h2>1. Geltungsbereich &amp; Anbieter</h2>
+    <p>Diese AGB gelten für alle Bestellungen über diese Website bei <%= (typeof settings !== 'undefined' && settings.impressum_company) ? settings.impressum_company : 'NEXO' %>, <%= (typeof settings !== 'undefined' && settings.address) ? settings.address : 'Pieperstraße 8, 21357 Bardowick' %> (siehe <a href="/impressum">Impressum</a>).</p>
+
+    <h2>2. Bestellung &amp; Vertragsschluss</h2>
+    <p>Mit Klick auf „Bestellung aufgeben" geben Sie ein verbindliches Angebot ab. Der Vertrag kommt mit unserer Bestätigung (Website, E-Mail, SMS oder Anruf) zustande.</p>
+
+    <h2>3. Preise &amp; Zahlung</h2>
+    <p>Alle Preise inkl. MwSt. – Speisen 7 %, Getränke 19 % – zzgl. Lieferkosten (werden vor Bestellabschluss angezeigt). Zahlung per Bar/EC bei Lieferung bzw. Abholung oder online per Karte (Stripe).</p>
+
+    <h2>4. Lieferung &amp; Abholung</h2>
+    <p>Wir liefern im angegebenen Liefergebiet (Mindestbestellwert und Lieferkosten je Zone). Angegebene Zeiten sind Richtwerte. Bei Abholung erhalten Sie eine Abholzeit.</p>
+
+    <h2>5. Kein Widerrufsrecht bei frischen Speisen</h2>
+    <p>Bei schnell verderblichen Waren (zubereitete Speisen) besteht gemäß § 312g Abs. 2 Nr. 2 BGB <strong>kein Widerrufsrecht</strong>.</p>
+
+    <h2>6. Gewährleistung</h2>
+    <p>Bei Mängeln (z.B. falsche oder verdorbene Ware) melden Sie sich bitte sofort unter <%= (typeof settings !== 'undefined' && settings.phone) ? settings.phone : '04131 4006817' %> – wir liefern nach oder erstatten.</p>
+
+    <h2>7. Streitbeilegung</h2>
+    <p>Wir nehmen nicht an Verbraucherschlichtungsverfahren teil. EU-Streitbeilegung: <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener">ec.europa.eu/consumers/odr</a>.</p>
+  </div>
+</section>
+
+<%- include('partials/footer') %>

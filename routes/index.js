@@ -43,4 +43,20 @@ router.get('/datenschutz', async (req, res) => {
   });
 });
 
+router.get('/allergene', async (req, res) => {
+  const settings = res.locals.settings;
+  res.render('allergene', {
+    title: 'Allergene & Zusatzstoffe – ' + settings.site_name,
+    settings
+  });
+});
+
+router.get('/agb', async (req, res) => {
+  const settings = res.locals.settings;
+  res.render('agb', {
+    title: 'AGB – ' + settings.site_name,
+    settings
+  });
+});
+
 module.exports = router;

@@ -1,0 +1,59 @@
+<%- include('partials/header') %>
+
+<div class="page-hero contact-hero" style="background:linear-gradient(135deg,rgba(35,34,35,.5),rgba(35,34,35,.3)),url('/images/688x944_img1.jpg') center/cover">
+  <div class="page-hero-overlay"></div>
+  <div class="page-hero-content">
+    <div class="page-hero-badge">RECHTLICHES</div>
+    <h1 class="page-hero-title" style="color:#fff">Allergene &amp; Zusatzstoffe</h1>
+    <p class="page-hero-subtitle" style="color:rgba(255,255,255,.7)">Kennzeichnung gemäß LMIV (EU) Nr. 1169/2011</p>
+  </div>
+</div>
+
+<section class="section">
+  <div class="container" style="max-width:800px">
+    <p>Die Codes bei unseren Gerichten bedeuten:</p>
+    <h2>Allergene</h2>
+    <table class="admin-table">
+      <thead><tr><th>Code</th><th>Allergen</th></tr></thead>
+      <tbody>
+        <tr><td><strong>A</strong></td><td>Glutenhaltiges Getreide (Weizen, Roggen, Gerste, Hafer, Dinkel u.a.)</td></tr>
+        <tr><td><strong>B</strong></td><td>Krebstiere</td></tr>
+        <tr><td><strong>C</strong></td><td>Eier</td></tr>
+        <tr><td><strong>D</strong></td><td>Fische</td></tr>
+        <tr><td><strong>E</strong></td><td>Erdnüsse</td></tr>
+        <tr><td><strong>F</strong></td><td>Sojabohnen</td></tr>
+        <tr><td><strong>G</strong></td><td>Milch (einschließlich Laktose)</td></tr>
+        <tr><td><strong>H</strong></td><td>Schalenfrüchte (Mandeln, Haselnüsse, Walnüsse, Cashew u.a.)</td></tr>
+        <tr><td><strong>L</strong></td><td>Sellerie</td></tr>
+        <tr><td><strong>M</strong></td><td>Senf</td></tr>
+        <tr><td><strong>N</strong></td><td>Sesamsamen</td></tr>
+        <tr><td><strong>O</strong></td><td>Schwefeldioxid und Sulfite</td></tr>
+        <tr><td><strong>P</strong></td><td>Lupinen</td></tr>
+        <tr><td><strong>R</strong></td><td>Weichtiere</td></tr>
+      </tbody>
+    </table>
+    <h2 style="margin-top:24px">Zusatzstoffe</h2>
+    <table class="admin-table">
+      <thead><tr><th>Nr.</th><th>Zusatzstoff</th></tr></thead>
+      <tbody>
+        <tr><td><strong>1</strong></td><td>mit Farbstoff</td></tr>
+        <tr><td><strong>2</strong></td><td>mit Konservierungsstoff</td></tr>
+        <tr><td><strong>3</strong></td><td>mit Antioxidationsmittel</td></tr>
+        <tr><td><strong>4</strong></td><td>mit Geschmacksverstärker</td></tr>
+        <tr><td><strong>5</strong></td><td>geschwefelt</td></tr>
+        <tr><td><strong>6</strong></td><td>geschwärzt</td></tr>
+        <tr><td><strong>7</strong></td><td>mit Phosphat</td></tr>
+        <tr><td><strong>8</strong></td><td>mit Milcheiweiß</td></tr>
+        <tr><td><strong>9</strong></td><td>koffeinhaltig</td></tr>
+        <tr><td><strong>10</strong></td><td>chininhaltig</td></tr>
+        <tr><td><strong>11</strong></td><td>mit Süßungsmittel</td></tr>
+        <tr><td><strong>12</strong></td><td>enthält eine Phenylalaninquelle</td></tr>
+        <tr><td><strong>13</strong></td><td>gewachst</td></tr>
+        <tr><td><strong>14</strong></td><td>mit Nitritpökelsalz</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:16px">Trotz sorgfältiger Zubereitung können Spuren aller Allergene in jedem Gericht enthalten sein. Bei Fragen sprechen Sie uns gerne an: <%= (typeof settings !== 'undefined' && settings.phone) ? settings.phone : '04131 4006817' %>.</p>
+  </div>
+</section>
+
+<%- include('partials/footer') %>
