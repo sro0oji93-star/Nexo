@@ -54,37 +54,36 @@
               </label>
             </div>
             <p id="pickupOnlyNote" style="display:none;margin-top:10px;padding:10px 14px;background:#fff5f5;border:1px solid var(--primary);border-radius:10px;font-size:13px;color:#9c7c1a;font-weight:600">Hinweis: Der Night Deal ist nur für Abholer – Ihre Bestellung wird als Abholung aufgegeben.</p>
-          </div>
-
-          <div class="checkout-card" id="timeCard">
-            <h3><i class="fas fa-clock"></i> Lieferzeit</h3>
-            <div class="payment-options">
-              <label class="payment-option">
-                <input type="radio" name="timeMode" value="asap" checked>
-                <div class="payment-option-content">
-                  <i class="fas fa-bolt"></i>
-                  <div>
-                    <strong>So schnell wie möglich</strong>
-                    <span>Wir starten sofort mit Ihrer Bestellung</span>
+            <div style="margin-top:14px;padding-top:14px;border-top:1px solid #eee">
+              <h4 style="font-size:14px;margin-bottom:10px"><i class="fas fa-clock"></i> Lieferzeit</h4>
+              <div class="payment-options">
+                <label class="payment-option">
+                  <input type="radio" name="timeMode" value="asap" checked>
+                  <div class="payment-option-content">
+                    <i class="fas fa-bolt"></i>
+                    <div>
+                      <strong>So schnell wie möglich</strong>
+                      <span>Wir starten sofort mit Ihrer Bestellung</span>
+                    </div>
                   </div>
-                </div>
-              </label>
-              <label class="payment-option">
-                <input type="radio" name="timeMode" value="wish">
-                <div class="payment-option-content">
-                  <i class="fas fa-calendar-alt"></i>
-                  <div>
-                    <strong>Wunschtermin</strong>
-                    <span>Lieferung / Abholung zu einer Uhrzeit</span>
+                </label>
+                <label class="payment-option">
+                  <input type="radio" name="timeMode" value="wish">
+                  <div class="payment-option-content">
+                    <i class="fas fa-calendar-alt"></i>
+                    <div>
+                      <strong>Wunschtermin</strong>
+                      <span>Lieferung / Abholung zu einer Uhrzeit</span>
+                    </div>
                   </div>
-                </div>
-              </label>
-            </div>
-            <div id="wishWrap" style="display:none;margin-top:10px">
-              <div class="form-group">
-                <input type="datetime-local" id="wish_time" name="wish_time" aria-label="Wunschtermin">
+                </label>
               </div>
-              <p id="wishHint" style="font-size:12px;color:#7a7879;margin-top:6px"></p>
+              <div id="wishWrap" style="display:none;margin-top:10px">
+                <div class="form-group">
+                  <input type="datetime-local" id="wish_time" name="wish_time" aria-label="Wunschtermin">
+                </div>
+                <p id="wishHint" style="font-size:12px;color:#7a7879;margin-top:6px"></p>
+              </div>
             </div>
           </div>
 
@@ -200,11 +199,12 @@
 <script src="/js/checkout-address.js?v=20260905b"></script>
 
 <!-- Sticky Mini-Total (nur Mobil): Gesamt + Bestellen immer sichtbar -->
-<div id="stickyTotalBar" style="display:none">
+<div id="stickyTotalBar">
   <div><small>Gesamt</small><strong id="stickyTotal">0,00 €</strong></div>
   <button type="submit" form="checkoutForm" class="btn btn-primary">Bestellen</button>
 </div>
 <style>
+  #stickyTotalBar { display:none; }
   @media (max-width:767px) {
     #stickyTotalBar {
       display:flex;align-items:center;justify-content:space-between;gap:10px;
