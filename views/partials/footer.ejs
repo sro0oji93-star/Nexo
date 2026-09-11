@@ -9,7 +9,7 @@
               <a href="/" class="mad-logo" style="font-family:'Josefin Sans',sans-serif;font-size:clamp(28px,4vw,42px);font-weight:700;font-style:italic;color:#fff;text-decoration:none!important"><% if (typeof settings !== 'undefined' && settings.logo_url) { %><img src="<%= settings.logo_url %>" alt="<%= settings.site_name || 'Logo' %>" style="height:56px;width:auto;max-width:240px;object-fit:contain"><% } else { %><%= typeof settings !== 'undefined' && settings.site_name ? settings.site_name : 'Ammaya' %><% } %></a>
             </div>
             <div class="mad-our-info vr-type">
-              <div class="mad-info"><i class="material-icons-outlined">location_on</i> <span><%= typeof settings !== 'undefined' && settings.address ? settings.address : 'Berlin, Deutschland' %></span></div>
+              <div class="mad-info"><i class="material-icons-outlined">location_on</i> <span><%= typeof settings !== 'undefined' && settings.address ? settings.address : 'Pieperstraße 8, 21357 Bardowick' %></span></div>
               <div class="mad-info"><i class="material-icons-outlined">call</i> <span><%= typeof settings !== 'undefined' && settings.phone ? settings.phone : '+49 30 123456789' %></span></div>
               <div class="mad-info"><i class="material-icons">mail_outline</i> <a href="mailto:<%= typeof settings !== 'undefined' && settings.email ? settings.email : '' %>" class="mad-link"><%= typeof settings !== 'undefined' && settings.email ? settings.email : 'info@ammaya.de' %></a></div>
               <div class="mad-info"><i class="material-icons">access_time</i> <span><%= typeof settings !== 'undefined' && settings.opening_hours ? settings.opening_hours : 'Mo–So: 11:30 – 22:30' %></span></div>

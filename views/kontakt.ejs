@@ -16,17 +16,17 @@
         <div class="contact-card">
           <div class="contact-icon"><i class="fas fa-map-marker-alt"></i></div>
           <h3>Adresse</h3>
-          <p><%= typeof settings !== 'undefined' && settings.address ? settings.address : 'Friedrichstraße 42, 10117 Berlin' %></p>
+          <p><%= typeof settings !== 'undefined' && settings.address ? settings.address : 'Pieperstraße 8, 21357 Bardowick' %></p>
         </div>
         <div class="contact-card">
           <div class="contact-icon"><i class="fas fa-phone"></i></div>
           <h3>Telefon</h3>
-          <p><a href="tel:<%= typeof settings !== 'undefined' && settings.phone ? settings.phone : '' %>"><%= typeof settings !== 'undefined' && settings.phone ? settings.phone : '+49 30 123456789' %></a></p>
+          <p><a href="tel:<%= typeof settings !== 'undefined' && settings.phone ? settings.phone : '' %>"><%= typeof settings !== 'undefined' && settings.phone ? settings.phone : '04131 4006817' %></a></p>
         </div>
         <div class="contact-card">
           <div class="contact-icon"><i class="fas fa-envelope"></i></div>
           <h3>E-Mail</h3>
-          <p><a href="mailto:<%= typeof settings !== 'undefined' && settings.email ? settings.email : '' %>"><%= typeof settings !== 'undefined' && settings.email ? settings.email : 'info@feinschmeckerei.de' %></a></p>
+          <p><a href="mailto:<%= typeof settings !== 'undefined' && settings.email ? settings.email : '' %>"><%= typeof settings !== 'undefined' && settings.email ? settings.email : 'info@nexofood.de' %></a></p>
         </div>
         <div class="contact-card">
           <div class="contact-icon"><i class="fas fa-clock"></i></div>
@@ -82,14 +82,14 @@
     <div class="map-placeholder" id="mapContainer">
       <div class="map-overlay">
         <i class="fas fa-map-marked-alt"></i>
-        <h3><%= typeof settings !== 'undefined' && settings.address ? settings.address : 'Friedrichstraße 42, 10117 Berlin' %></h3>
-        <p>Berlin, Deutschland</p>
-        <a href="https://maps.google.com/?q=<%= typeof settings !== 'undefined' && settings.latitude ? settings.latitude : '52.520008' %>,<%= typeof settings !== 'undefined' && settings.longitude ? settings.longitude : '13.404954' %>" target="_blank" rel="noopener" class="btn btn-primary btn-sm">
+        <h3><%= typeof settings !== 'undefined' && settings.address ? settings.address : 'Pieperstraße 8, 21357 Bardowick' %></h3>
+        <p>Bardowick, Deutschland</p>
+        <a href="https://maps.google.com/?q=<%= typeof settings !== 'undefined' && settings.latitude ? settings.latitude : '53.295344' %>,<%= typeof settings !== 'undefined' && settings.longitude ? settings.longitude : '10.391293' %>" target="_blank" rel="noopener" class="btn btn-primary btn-sm">
           <i class="fas fa-external-link-alt"></i> In Google Maps öffnen
         </a>
       </div>
       <iframe 
-        src="https://maps.google.com/maps?q=<%= typeof settings !== 'undefined' && settings.latitude ? settings.latitude : '52.520008' %>,<%= typeof settings !== 'undefined' && settings.longitude ? settings.longitude : '13.404954' %>&z=15&output=embed"
+        src="https://maps.google.com/maps?q=<%= typeof settings !== 'undefined' && settings.latitude ? settings.latitude : '53.295344' %>,<%= typeof settings !== 'undefined' && settings.longitude ? settings.longitude : '10.391293' %>&z=15&output=embed"
         width="100%"
         height="450"
         style="border:0;"
