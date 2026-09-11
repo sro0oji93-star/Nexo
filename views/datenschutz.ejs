@@ -1,0 +1,39 @@
+<%- include('partials/header') %>
+
+<div class="page-hero contact-hero" style="background:linear-gradient(135deg,rgba(35,34,35,.5),rgba(35,34,35,.3)),url('/images/688x944_img1.jpg') center/cover">
+  <div class="page-hero-overlay"></div>
+  <div class="page-hero-content">
+    <div class="page-hero-badge">RECHTLICHES</div>
+    <h1 class="page-hero-title" style="color:#fff">Datenschutzerklärung</h1>
+    <p class="page-hero-subtitle" style="color:rgba(255,255,255,.7)">Informationen gemäß Art. 13 DSGVO</p>
+  </div>
+</div>
+
+<section class="section">
+  <div class="container" style="max-width:800px">
+    <h2>1. Verantwortlicher</h2>
+    <p>
+      <%= (typeof settings !== 'undefined' && settings.impressum_company) ? settings.impressum_company : 'NEXO' %><% if (typeof settings !== 'undefined' && settings.impressum_owner && settings.impressum_owner) { %>, Inhaber: <%= settings.impressum_owner %><% } %><br>
+      <%= (typeof settings !== 'undefined' && settings.address) ? settings.address : 'Pieperstraße 8, 21357 Bardowick' %><br>
+      Telefon: <%= (typeof settings !== 'undefined' && settings.phone) ? settings.phone : '04131 4006817' %><br>
+      E-Mail: <%= (typeof settings !== 'undefined' && settings.email) ? settings.email : 'info@nexofood.de' %>
+    </p>
+
+    <h2>2. Bestellungen</h2>
+    <p>Bei einer Bestellung verarbeiten wir Name, Adresse, Telefonnummer und Bestelldaten zur Vertragsabwicklung (Art. 6 Abs. 1 lit. b DSGVO). Die Daten werden 10 Jahre aufbewahrt (steuerrechtliche Pflicht).</p>
+
+    <h2>3. Kontaktformular</h2>
+    <p>Ihre Nachricht (Name, E-Mail, Inhalt) nutzen wir ausschließlich zur Beantwortung Ihrer Anfrage (Art. 6 Abs. 1 lit. f DSGVO) und löschen sie, sobald sie nicht mehr erforderlich ist.</p>
+
+    <h2>4. Zahlungsabwicklung (Stripe)</h2>
+    <p>Bei Kartenzahlung werden Zahlungsdaten an Stripe Payments Europe Ltd., Dublin, Irland, übermittelt (Art. 6 Abs. 1 lit. b DSGVO). Es gilt zusätzlich die <a href="https://stripe.com/privacy" target="_blank" rel="noopener">Datenschutzerklärung von Stripe</a>.</p>
+
+    <h2>5. Technisch notwendige Cookies &amp; Hosting</h2>
+    <p>Diese Website verwendet nur technisch notwendige Session-Cookies (Warenkorb, Anmeldung) sowie Server-Logfiles unseres Hosters (Render, USA – EU-Standardvertragsklauseln). Externe Bibliotheken (Google Fonts, cdnjs) können Ihre IP-Adresse an US-Anbieter übertragen (Art. 6 Abs. 1 lit. f DSGVO).</p>
+
+    <h2>6. Ihre Rechte</h2>
+    <p>Sie haben das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung, Datenübertragbarkeit und Widerspruch (Art. 15–21 DSGVO) sowie Beschwerde bei der Landesbeauftragten für den Datenschutz Niedersachsen.</p>
+  </div>
+</section>
+
+<%- include('partials/footer') %>

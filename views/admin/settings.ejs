@@ -53,6 +53,33 @@
   </div>
 
   <div class="settings-card">
+    <h3>Impressum (rechtlich erforderlich)</h3>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Firmenname</label>
+        <input type="text" name="impressum_company" value="<%= settings.impressum_company || '' %>" placeholder="z.B. NEXO">
+      </div>
+      <div class="form-group">
+        <label>Inhaber (Vor- und Nachname) *</label>
+        <input type="text" name="impressum_owner" value="<%= settings.impressum_owner || '' %>" placeholder="z.B. Max Mustermann">
+      </div>
+      <div class="form-group">
+        <label>Rechtsform</label>
+        <input type="text" name="impressum_legal_form" value="<%= settings.impressum_legal_form || '' %>" placeholder="z.B. Einzelunternehmen">
+      </div>
+      <div class="form-group">
+        <label>USt-IdNr. (optional, nachtragen sobald vorhanden)</label>
+        <input type="text" name="ust_idnr" value="<%= settings.ust_idnr || '' %>" placeholder="z.B. DE123456789">
+      </div>
+      <div class="form-group">
+        <label>Handelsregister (optional)</label>
+        <input type="text" name="impressum_register" value="<%= settings.impressum_register || '' %>" placeholder="z.B. HRA 12345, AG Lüneburg">
+      </div>
+    </div>
+    <p style="font-size:12px;color:#6b6b6b;margin-top:6px">Adresse, Telefon und E-Mail werden aus „Kontaktdaten" übernommen. Leere optionale Felder erscheinen nicht im Impressum.</p>
+  </div>
+
+  <div class="settings-card">
     <h3>Lieferung</h3>
     <div class="form-grid">
       <div class="form-group">

@@ -1506,6 +1506,11 @@ async function initialize() {
     ['logo_url', '/images/nexo-logo.png'],
     ['font_family', 'Inter'],
     ['commission_per_order', '0.40'],
+    ['impressum_company', 'NEXO'],
+    ['impressum_owner', 'Khaled Owaes'],
+    ['impressum_legal_form', ''],
+    ['ust_idnr', ''],
+    ['impressum_register', ''],
   ];
   for (const [key, value] of defaultSettings) {
     await query(

@@ -27,4 +27,20 @@ router.get('/', async (req, res) => {
   });
 });
 
+router.get('/impressum', async (req, res) => {
+  const settings = res.locals.settings;
+  res.render('impressum', {
+    title: 'Impressum – ' + settings.site_name,
+    settings
+  });
+});
+
+router.get('/datenschutz', async (req, res) => {
+  const settings = res.locals.settings;
+  res.render('datenschutz', {
+    title: 'Datenschutzerklärung – ' + settings.site_name,
+    settings
+  });
+});
+
 module.exports = router;

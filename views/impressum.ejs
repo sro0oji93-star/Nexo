@@ -1,0 +1,44 @@
+<%- include('partials/header') %>
+
+<div class="page-hero contact-hero" style="background:linear-gradient(135deg,rgba(35,34,35,.5),rgba(35,34,35,.3)),url('/images/688x944_img1.jpg') center/cover">
+  <div class="page-hero-overlay"></div>
+  <div class="page-hero-content">
+    <div class="page-hero-badge">RECHTLICHES</div>
+    <h1 class="page-hero-title" style="color:#fff">Impressum</h1>
+    <p class="page-hero-subtitle" style="color:rgba(255,255,255,.7)">Angaben gemäß § 5 DDG</p>
+  </div>
+</div>
+
+<section class="section">
+  <div class="container" style="max-width:800px">
+    <h2>Diensteanbieter</h2>
+    <p>
+      <%= (typeof settings !== 'undefined' && settings.impressum_company) ? settings.impressum_company : 'NEXO' %><% if (typeof settings !== 'undefined' && settings.impressum_legal_form && settings.impressum_legal_form) { %>, <%= settings.impressum_legal_form %><% } %><br>
+      <% if (typeof settings !== 'undefined' && settings.impressum_owner && settings.impressum_owner) { %>Inhaber: <%= settings.impressum_owner %><br><% } %>
+      <%= (typeof settings !== 'undefined' && settings.address) ? settings.address : 'Pieperstraße 8, 21357 Bardowick' %>
+    </p>
+
+    <h2>Kontakt</h2>
+    <p>
+      Telefon: <%= (typeof settings !== 'undefined' && settings.phone) ? settings.phone : '04131 4006817' %><br>
+      E-Mail: <%= (typeof settings !== 'undefined' && settings.email) ? settings.email : 'info@nexofood.de' %>
+    </p>
+
+    <% if (typeof settings !== 'undefined' && settings.ust_idnr && settings.ust_idnr) { %>
+    <h2>Umsatzsteuer-ID</h2>
+    <p>Umsatzsteuer-Identifikationsnummer gemäß § 27a UStG: <%= settings.ust_idnr %></p>
+    <% } %>
+
+    <% if (typeof settings !== 'undefined' && settings.impressum_register && settings.impressum_register) { %>
+    <h2>Registereintrag</h2>
+    <p><%= settings.impressum_register %></p>
+    <% } %>
+
+    <h2>Verantwortlich i.S.d. § 18 Abs. 2 MStV</h2>
+    <p>
+      <% if (typeof settings !== 'undefined' && settings.impressum_owner && settings.impressum_owner) { %><%= settings.impressum_owner %>, <% } %><%= (typeof settings !== 'undefined' && settings.address) ? settings.address : 'Pieperstraße 8, 21357 Bardowick' %>
+    </p>
+  </div>
+</section>
+
+<%- include('partials/footer') %>
