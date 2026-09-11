@@ -1,6 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
+const PgSession = require('connect-pg-simple')(session);
+const db = require('./db');
 const path = require('path');
 const helmet = require('helmet');
 const compression = require('compression');
@@ -54,6 +56,7 @@ app.use('/images', express.static(path.join(__dirname, 'public', 'images'), { ma
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(session({
+  store: new PgSession({ pool: db.pool, tableName: 'session', createTableIfMissing: true }),
   secret: process.env.SESSION_SECRET || require('crypto').randomBytes(64).toString('hex'),
   resave: true,
   saveUninitialized: true,
@@ -135,7 +138,6 @@ app.use((req, res) => {
   res.status(404).render('404', { title: 'Seite nicht gefunden' });
 });
 
-const db = require('./db');
 db.initialize().then(() => {
   app.listen(PORT, () => {
     console.log(`Server läuft auf http://localhost:${PORT}`);
