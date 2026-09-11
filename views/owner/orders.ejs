@@ -40,7 +40,7 @@
       <% orders.forEach(function(o) { %>
       <tr class="<%= o.is_deleted ? 'row-deleted' : '' %>">
         <td><strong><%= o.order_number %></strong><% if (o.is_deleted) { %><br><span class="badge-deleted">Gelöscht</span><% } %></td>
-        <td><%= new Date(o.created_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) %></td>
+        <td><%= new Date(o.created_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) %><% if (o.wish_time) { %><br><small style="color:#15803d;font-weight:700">Wunsch: <%= new Date(String(o.wish_time).replace(' ', 'T') + 'Z').toLocaleString('de-DE', { timeZone: 'Europe/Berlin', weekday: 'short', hour: '2-digit', minute: '2-digit' }) %></small><% } %></td>
         <td><%= o.customer_name %><br><small><%= o.customer_phone || '' %></small></td>
         <td>
           <% (o.itemsParsed || []).forEach(function(it) { %>

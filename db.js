@@ -196,6 +196,7 @@ async function initialize() {
     ALTER TABLE products ADD COLUMN IF NOT EXISTS sizes TEXT;
     ALTER TABLE products ADD COLUMN IF NOT EXISTS allergene TEXT DEFAULT '';
     ALTER TABLE products ADD COLUMN IF NOT EXISTS zusatzstoffe TEXT DEFAULT '';
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS wish_time TIMESTAMP;
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS order_type TEXT DEFAULT 'lieferung';
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS printed INTEGER DEFAULT 0;
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS printed_at TIMESTAMP;
@@ -1509,6 +1510,7 @@ async function initialize() {
     ['logo_url', '/images/nexo-logo.png'],
     ['font_family', 'Inter'],
     ['commission_per_order', '0.40'],
+    ['min_preorder_minutes', '45'],
     ['impressum_company', 'NEXO'],
     ['impressum_owner', 'Khaled Owaes'],
     ['impressum_legal_form', ''],

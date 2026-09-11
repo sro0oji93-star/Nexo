@@ -44,6 +44,7 @@
       <h3><i class="fas fa-shopping-bag"></i> Bestellart</h3>
       <table class="detail-table">
         <tr><td>Typ</td><td><strong style="color:<%= order.order_type === 'abholung' ? '#d4af37' : '#15803d' %>"><%= order.order_type === 'abholung' ? 'Abholung (Selbstabholer)' : 'Lieferung' %></strong></td></tr>
+        <% if (order.wish_time) { %><tr><td>Wunschtermin</td><td><strong><%= new Date(String(order.wish_time).replace(' ', 'T') + 'Z').toLocaleString('de-DE', { timeZone: 'Europe/Berlin', weekday: 'long', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) %> Uhr</strong></td></tr><% } %>
       </table>
     </div>
     <div class="detail-section">

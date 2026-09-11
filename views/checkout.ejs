@@ -21,7 +21,7 @@
                 <input type="text" id="name" name="name" required placeholder="Name *">
               </div>
               <div class="form-group">
-                <input type="email" id="email" name="email" required placeholder="E-Mail *">
+                <input type="email" id="email" name="email" placeholder="E-Mail (optional)">
               </div>
               <div class="form-group">
                 <input type="tel" id="phone" name="phone" required inputmode="tel" pattern="[0-9+\s\-/().]*" title="Bitte geben Sie eine gültige Telefonnummer an (z. B. 0151 23456789)." placeholder="Telefon *">
@@ -54,6 +54,38 @@
               </label>
             </div>
             <p id="pickupOnlyNote" style="display:none;margin-top:10px;padding:10px 14px;background:#fff5f5;border:1px solid var(--primary);border-radius:10px;font-size:13px;color:#9c7c1a;font-weight:600">Hinweis: Der Night Deal ist nur für Abholer – Ihre Bestellung wird als Abholung aufgegeben.</p>
+          </div>
+
+          <div class="checkout-card" id="timeCard">
+            <h3><i class="fas fa-clock"></i> Lieferzeit</h3>
+            <div class="payment-options">
+              <label class="payment-option">
+                <input type="radio" name="timeMode" value="asap" checked>
+                <div class="payment-option-content">
+                  <i class="fas fa-bolt"></i>
+                  <div>
+                    <strong>So schnell wie möglich</strong>
+                    <span>Wir starten sofort mit Ihrer Bestellung</span>
+                  </div>
+                </div>
+              </label>
+              <label class="payment-option">
+                <input type="radio" name="timeMode" value="wish">
+                <div class="payment-option-content">
+                  <i class="fas fa-calendar-alt"></i>
+                  <div>
+                    <strong>Wunschtermin</strong>
+                    <span>Lieferung / Abholung zu einer Uhrzeit</span>
+                  </div>
+                </div>
+              </label>
+            </div>
+            <div id="wishWrap" style="display:none;margin-top:10px">
+              <div class="form-group">
+                <input type="datetime-local" id="wish_time" name="wish_time" aria-label="Wunschtermin">
+              </div>
+              <p id="wishHint" style="font-size:12px;color:#7a7879;margin-top:6px"></p>
+            </div>
           </div>
 
           <div class="checkout-card" id="addressCard">
@@ -153,6 +185,7 @@
     restaurant_lat: <%- (typeof settings !== 'undefined' && (settings.restaurant_lat || settings.latitude) ? parseFloat(settings.restaurant_lat || settings.latitude) : 53.295344) %>,
     restaurant_lon: <%- (typeof settings !== 'undefined' && (settings.restaurant_lon || settings.longitude) ? parseFloat(settings.restaurant_lon || settings.longitude) : 10.391293) %>,
     max_km: <%- (typeof settings !== 'undefined' && settings.max_delivery_km ? parseFloat(settings.max_delivery_km) : 15) %>,
+    min_preorder_min: <%- (typeof settings !== 'undefined' && settings.min_preorder_minutes ? parseInt(settings.min_preorder_minutes, 10) : 45) %>,
     phone: '<%= (typeof settings !== 'undefined' && settings.phone) ? settings.phone : '04131 4006817' %>'
   };
   var cartCsrfToken = '<%= csrfToken %>';
@@ -165,4 +198,24 @@
 .addr-suggest-item small{color:#7a7879}
 </style>
 <script src="/js/checkout-address.js?v=20260905b"></script>
+
+<!-- Sticky Mini-Total (nur Mobil): Gesamt + Bestellen immer sichtbar -->
+<div id="stickyTotalBar" style="display:none">
+  <div><small>Gesamt</small><strong id="stickyTotal">0,00 €</strong></div>
+  <button type="submit" form="checkoutForm" class="btn btn-primary">Bestellen</button>
+</div>
+<style>
+  @media (max-width:767px) {
+    #stickyTotalBar {
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      position:fixed;left:0;right:0;bottom:0;z-index:999;
+      padding:10px 16px calc(10px + env(safe-area-inset-bottom));
+      background:rgba(10,10,10,.96);border-top:1px solid var(--primary);
+    }
+    #stickyTotalBar small { display:block;font-size:11px;color:rgba(255,255,255,.7); }
+    #stickyTotalBar strong { font-size:19px;color:#f5d67b; }
+    #stickyTotalBar .btn { padding:10px 26px; }
+    body { padding-bottom:76px; }
+  }
+</style>
 <%- include('partials/footer') %>

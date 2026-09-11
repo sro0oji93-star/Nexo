@@ -33,6 +33,7 @@
   </div>
   <hr>
   <div class="center medium"><%= order.order_type === 'abholung' ? '*** ABHOLUNG ***' : '*** LIEFERUNG ***' %></div>
+  <% if (order.wish_time) { %><div class="center medium"><strong>WUNSCHTERMIN: <%= new Date(String(order.wish_time).replace(' ', 'T') + 'Z').toLocaleString('de-DE', { timeZone: 'Europe/Berlin', weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) %></strong></div><% } %>
   <div class="center"><strong><%= order.order_number %></strong></div>
   <div class="center"><%= new Date(order.created_at).toLocaleDateString('de-DE') %> <%= new Date(order.created_at).toLocaleTimeString('de-DE', {hour:'2-digit', minute:'2-digit'}) %></div>
   <hr>

@@ -65,7 +65,7 @@ var Cart = (function() {
       if (n) setItemNote(n.getAttribute('data-key'), n.value);
     });
     if (document.getElementById('cartList')) renderCartPage();
-    if (document.getElementById('checkoutItems')) { bindOrderType(); applyPickupRules(); renderCheckoutSummary(); }
+    if (document.getElementById('checkoutItems')) { bindOrderType(); bindTimeMode(); applyPickupRules(); renderCheckoutSummary(); }
   }
 
   function load() {
@@ -257,6 +257,35 @@ var Cart = (function() {
         btn.insertAdjacentElement('afterend', hint);
       })(btns[bi]);
     }
+  }
+
+  // Wunschtermin-Umschalter an der Kasse (Sofort vs. Wunschtermin)
+  function minPreorderMin() {
+    var c = window.deliveryConfig || {};
+    var n = parseInt(c.min_preorder_min, 10);
+    return (isFinite(n) && n >= 15) ? n : 45;
+  }
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  function toLocalInput(d) {
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + 'T' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+  }
+  function bindTimeMode() {
+    var radios = document.querySelectorAll('input[name="timeMode"]');
+    if (!radios.length) return;
+    var wrap = document.getElementById('wishWrap');
+    var input = document.getElementById('wish_time');
+    var hint = document.getElementById('wishHint');
+    radios.forEach(function(r) {
+      r.addEventListener('change', function() {
+        var wish = document.querySelector('input[name="timeMode"]:checked');
+        var isWish = wish && wish.value === 'wish';
+        if (wrap) wrap.style.display = isWish ? '' : 'none';
+        if (isWish && input) {
+          input.min = toLocalInput(new Date(Date.now() + minPreorderMin() * 60000));
+          if (hint) hint.textContent = 'Mindestens ' + minPreorderMin() + ' Minuten im Voraus, täglich 12:00–00:00 Uhr.';
+        }
+      });
+    });
   }
 
   // Bestellart-Umschalter an der Kasse (Abholung blendet Lieferadresse aus)
@@ -767,6 +796,8 @@ var Cart = (function() {
     if (coFeeRow) coFeeRow.style.display = orderType === 'abholung' ? 'none' : '';
     document.getElementById('checkoutDelivery').textContent = fee === 0 ? 'Kostenfrei' : formatEUR(fee);
     document.getElementById('checkoutTotal').textContent = formatEUR(total);
+    var stickyTotal = document.getElementById('stickyTotal');
+    if (stickyTotal) stickyTotal.textContent = formatEUR(total);
 
     var discRow = document.getElementById('checkoutDiscountRow');
     var discEl = document.getElementById('checkoutDiscount');
@@ -856,9 +887,36 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
       }
 
+      // Wunschtermin prüfen (mind. Mindestvorlauf, 12:00–00:00 Uhr, max. Vorausbuchung)
+      var timeModeEl = document.querySelector('input[name="timeMode"]:checked');
+      var timeMode = timeModeEl ? timeModeEl.value : 'asap';
+      var wishTime = null;
+      if (timeMode === 'wish') {
+        var wishInput = document.getElementById('wish_time');
+        var wd = wishInput && wishInput.value ? new Date(wishInput.value) : null;
+        var need = minPreorderMin();
+        if (!wd || isNaN(wd.getTime()) || wd.getTime() < Date.now() + need * 60000 - 60000) {
+          alert('Bitte wählen Sie einen Wunschtermin mindestens ' + need + ' Minuten in der Zukunft.');
+          if (wishInput) wishInput.focus();
+          return;
+        }
+        if (wd.getHours() < 12) {
+          alert('Wunschtermine sind nur zwischen 12:00 und 00:00 Uhr möglich.');
+          if (wishInput) wishInput.focus();
+          return;
+        }
+        var maxAhead = (Cart.getOrderType() === 'abholung' ? 7 : 30) * 86400000;
+        if (wd.getTime() > Date.now() + maxAhead) {
+          alert(Cart.getOrderType() === 'abholung' ? 'Abholung ist maximal 7 Tage im Voraus buchbar.' : 'Bitte wählen Sie einen früheren Termin.');
+          if (wishInput) wishInput.focus();
+          return;
+        }
+        wishTime = wishInput.value; // "YYYY-MM-DDTHH:MM" (wird serverseitig als Berlin-Zeit geprüft)
+      }
+
       var data = {
         name: formData.get('name'),
-        email: formData.get('email'),
+        email: (formData.get('email') || '').trim(),
         phone: formData.get('phone'),
         address: formData.get('address'),
         city: formData.get('city'),
@@ -866,6 +924,7 @@ document.addEventListener('DOMContentLoaded', function() {
         notes: formData.get('notes'),
         payment: formData.get('payment'),
         orderType: Cart.getOrderType(),
+        wish_time: wishTime,
         items: items.map(function(i) { return { id: i.id, name: i.name, price: i.price, qty: i.qty, size: i.size, extras: (i.extras || []).map(function(e) { return e.name; }), note: i.note || '', menue: i.menue || null, sauce: i.sauce || null, sauces: (i.sauces && i.sauces.length) ? i.sauces : null, box: i.box || null, chocos: (i.chocos && i.chocos.length) ? i.chocos : null, deal: i.deal || null, pasta: i.pasta || null }; }),
         subtotal: Cart.getSubtotal(),
         delivery_fee: Cart.getDeliveryFee(Cart.getSubtotal()),
@@ -891,12 +950,12 @@ document.addEventListener('DOMContentLoaded', function() {
           window.location.href = '/bestellung/bestellung/' + result.orderNumber;
         } else {
           alert(result.message || 'Fehler bei der Bestellung');
-          if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = '<i class="fas fa-check"></i> Bestellung aufgeben'; }
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = '<i class="fas fa-check"></i> Zahlungspflichtig bestellen'; }
         }
       })
       .catch(function() {
         alert('Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.');
-        if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = '<i class="fas fa-check"></i> Bestellung aufgeben'; }
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = '<i class="fas fa-check"></i> Zahlungspflichtig bestellen'; }
       });
     });
   }

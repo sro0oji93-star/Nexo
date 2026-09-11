@@ -21,6 +21,45 @@ const TIME_DEALS = {
   'deal-night-abholung': { from: 21 * 60, to: 24 * 60, message: 'Der Night Deal ist erst ab 21:00 Uhr bestellbar (nur Abholer).' }
 };
 
+// "YYYY-MM-DDTHH:MM" als Berlin-Wandzeit -> UTC-Millis (Client-Zeit kann manipuliert sein)
+function berlinToUtcMs(y, mo, d, h, mi) {
+  const guess = Date.UTC(y, mo - 1, d, h, mi, 0);
+  const fmt = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Berlin', hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  let utc = guess;
+  for (let i = 0; i < 3; i++) {
+    const parts = {};
+    for (const p of fmt.formatToParts(new Date(utc))) parts[p.type] = p.value;
+    const asUtc = Date.UTC(+parts.year, +parts.month - 1, +parts.day, (+parts.hour) % 24, +parts.minute, +parts.second);
+    utc = guess + (guess - asUtc);
+  }
+  return utc;
+}
+function berlinHourOf(utcMs) {
+  const s = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Berlin', hour: '2-digit', hourCycle: 'h23' }).format(new Date(utcMs));
+  return parseInt(s, 10);
+}
+// Wunschtermin prüfen -> { ok, wishUtc } oder { ok:false, message }
+function validateWishTime(wishTime, type, settings) {
+  const m = String(wishTime || '').match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
+  if (!m) return { ok: false, message: 'Ungültiger Wunschtermin.' };
+  const wishUtc = berlinToUtcMs(+m[1], +m[2], +m[3], +m[4], +m[5]);
+  if (!isFinite(wishUtc)) return { ok: false, message: 'Ungültiger Wunschtermin.' };
+  const s = settings || {};
+  let lead = parseInt(s.min_preorder_minutes, 10);
+  if (!isFinite(lead)) lead = 45;
+  lead = Math.max(15, Math.min(240, lead));
+  if (wishUtc < Date.now() + lead * 60000 - 60000) {
+    return { ok: false, message: 'Der Wunschtermin muss mindestens ' + lead + ' Minuten in der Zukunft liegen.' };
+  }
+  const maxAhead = (type === 'abholung' ? 7 : 30) * 86400000;
+  if (wishUtc > Date.now() + maxAhead) {
+    return { ok: false, message: type === 'abholung' ? 'Abholung ist maximal 7 Tage im Voraus buchbar.' : 'Bitte wählen Sie einen früheren Termin.' };
+  }
+  const h = berlinHourOf(wishUtc);
+  if (h < 12) return { ok: false, message: 'Wunschtermine sind nur zwischen 12:00 und 00:00 Uhr möglich.' };
+  return { ok: true, wishUtc };
+}
+
 // Liefergebiet serverseitig prüfen (Nominatim-Geocoding + OSRM-Fahrstrecke).
 // Ergebnis: { km } (km=null -> unverifiziert, fail-open) oder { km, noRoute:true } (keine Fahrstrecke -> nicht lieferbar)
 // Zonen kommen aus den Einstellungen (Admin pflegbar), siehe delivery.js
@@ -76,7 +115,7 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { name, email, phone, address, city, zip, notes, items, discount_code, orderType } = req.body;
+    const { name, phone, address, city, zip, notes, items, discount_code, orderType } = req.body;
     const payment = req.body.payment === 'online' ? 'online' : 'bar';
 
     if (!isValidPhone(phone)) {
@@ -85,6 +124,15 @@ router.post('/', async (req, res) => {
 
     const parsedItems = typeof items === 'string' ? JSON.parse(items) : items;
     const type = orderType === 'abholung' ? 'abholung' : 'lieferung';
+    const email = (req.body.email || '').trim();
+
+    // Wunschtermin prüfen (null = so schnell wie möglich)
+    let wishIso = null;
+    if (req.body.wish_time) {
+      const check = validateWishTime(req.body.wish_time, type, res.locals.settings);
+      if (!check.ok) return res.status(400).json({ success: false, message: check.message });
+      wishIso = new Date(check.wishUtc).toISOString();
+    }
 
     // Liefergebiet + Zonenpreise serverseitig prüfen (nur Lieferung; Abholung bleibt immer möglich)
     const zones = getDeliveryZones(res.locals.settings);
@@ -372,11 +420,11 @@ router.post('/', async (req, res) => {
 
     // Online-Zahlung: Bestellung parken (kein Druck/Ton), erst Webhook gibt sie frei
     const isOnline = payment === 'online';
-    const ins = await db.run(`INSERT INTO orders (order_number, customer_name, customer_email, customer_phone, delivery_address, delivery_city, delivery_zip, notes, items, subtotal, delivery_fee, discount, discount_code, total, payment_method, payment_status, order_status, order_type, vat7, vat19)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) RETURNING id`,
+    const ins = await db.run(`INSERT INTO orders (order_number, customer_name, customer_email, customer_phone, delivery_address, delivery_city, delivery_zip, notes, items, subtotal, delivery_fee, discount, discount_code, total, payment_method, payment_status, order_status, order_type, vat7, vat19, wish_time)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21) RETURNING id`,
       [orderNumber, name, email, phone, address, city, zip, notes,
       JSON.stringify(parsedItems), calculatedSubtotal, calculatedDelivery, calculatedDiscount, validCode, calculatedTotal,
-      payment, isOnline ? 'ausstehend' : 'bar', isOnline ? 'wartet_auf_zahlung' : 'neu', type, vat7, vat19]
+      payment, isOnline ? 'ausstehend' : 'bar', isOnline ? 'wartet_auf_zahlung' : 'neu', type, vat7, vat19, wishIso]
     );
     const orderId = ins.rows && ins.rows[0] ? ins.rows[0].id : null;
 
