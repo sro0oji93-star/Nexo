@@ -1511,6 +1511,8 @@ async function initialize() {
     ['font_family', 'Inter'],
     ['commission_per_order', '0.40'],
     ['min_preorder_minutes', '45'],
+    ['min_preorder_minutes_delivery', '45'],
+    ['min_preorder_minutes_pickup', '15'],
     ['impressum_company', 'NEXO'],
     ['impressum_owner', 'Khaled Owaes'],
     ['impressum_legal_form', ''],

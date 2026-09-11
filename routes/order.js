@@ -45,8 +45,11 @@ function validateWishTime(wishTime, type, settings) {
   const wishUtc = berlinToUtcMs(+m[1], +m[2], +m[3], +m[4], +m[5]);
   if (!isFinite(wishUtc)) return { ok: false, message: 'Ungültiger Wunschtermin.' };
   const s = settings || {};
-  let lead = parseInt(s.min_preorder_minutes, 10);
-  if (!isFinite(lead)) lead = 45;
+  let lead = parseInt(type === 'abholung' ? s.min_preorder_minutes_pickup : s.min_preorder_minutes_delivery, 10);
+  if (!isFinite(lead)) {
+    lead = parseInt(s.min_preorder_minutes, 10); // Fallback: alter Einzelwert
+    if (!isFinite(lead)) lead = (type === 'abholung' ? 15 : 45);
+  }
   lead = Math.max(15, Math.min(240, lead));
   if (wishUtc < Date.now() + lead * 60000 - 60000) {
     return { ok: false, message: 'Der Wunschtermin muss mindestens ' + lead + ' Minuten in der Zukunft liegen.' };

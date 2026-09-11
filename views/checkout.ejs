@@ -55,7 +55,7 @@
             </div>
             <p id="pickupOnlyNote" style="display:none;margin-top:10px;padding:10px 14px;background:#fff5f5;border:1px solid var(--primary);border-radius:10px;font-size:13px;color:#9c7c1a;font-weight:600">Hinweis: Der Night Deal ist nur für Abholer – Ihre Bestellung wird als Abholung aufgegeben.</p>
             <div style="margin-top:14px;padding-top:14px;border-top:1px solid #eee">
-              <h4 style="font-size:14px;margin-bottom:10px"><i class="fas fa-clock"></i> Lieferzeit</h4>
+              <h4 id="timeHeading" style="font-size:14px;margin-bottom:10px"><i class="fas fa-clock"></i> Lieferzeit</h4>
               <div class="payment-options">
                 <label class="payment-option">
                   <input type="radio" name="timeMode" value="asap" checked>
@@ -184,7 +184,8 @@
     restaurant_lat: <%- (typeof settings !== 'undefined' && (settings.restaurant_lat || settings.latitude) ? parseFloat(settings.restaurant_lat || settings.latitude) : 53.295344) %>,
     restaurant_lon: <%- (typeof settings !== 'undefined' && (settings.restaurant_lon || settings.longitude) ? parseFloat(settings.restaurant_lon || settings.longitude) : 10.391293) %>,
     max_km: <%- (typeof settings !== 'undefined' && settings.max_delivery_km ? parseFloat(settings.max_delivery_km) : 15) %>,
-    min_preorder_min: <%- (typeof settings !== 'undefined' && settings.min_preorder_minutes ? parseInt(settings.min_preorder_minutes, 10) : 45) %>,
+    min_preorder_min_delivery: <%- (typeof settings !== 'undefined' && settings.min_preorder_minutes_delivery ? parseInt(settings.min_preorder_minutes_delivery, 10) : 45) %>,
+    min_preorder_min_pickup: <%- (typeof settings !== 'undefined' && settings.min_preorder_minutes_pickup ? parseInt(settings.min_preorder_minutes_pickup, 10) : 15) %>,
     phone: '<%= (typeof settings !== 'undefined' && settings.phone) ? settings.phone : '04131 4006817' %>'
   };
   var cartCsrfToken = '<%= csrfToken %>';

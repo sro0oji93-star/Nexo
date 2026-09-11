@@ -337,7 +337,7 @@ router.get('/einstellungen', auth, async (req, res) => {
 });
 
 router.post('/einstellungen', auth, async (req, res) => {
-  const allowed = ['site_name','site_description','address','phone','email','opening_hours','delivery_fee','free_delivery_from','max_delivery_km','restaurant_lat','restaurant_lon','social_instagram','social_facebook','social_tiktok','about_title','about_text','latitude','longitude','primary_color','secondary_color','accent_color','header_bg','hero_theme','logo_url','font_family','impressum_company','impressum_owner','impressum_legal_form','ust_idnr','impressum_register','min_preorder_minutes'];
+  const allowed = ['site_name','site_description','address','phone','email','opening_hours','delivery_fee','free_delivery_from','max_delivery_km','restaurant_lat','restaurant_lon','social_instagram','social_facebook','social_tiktok','about_title','about_text','latitude','longitude','primary_color','secondary_color','accent_color','header_bg','hero_theme','logo_url','font_family','impressum_company','impressum_owner','impressum_legal_form','ust_idnr','impressum_register','min_preorder_minutes_delivery','min_preorder_minutes_pickup'];
   const isHexColor = v => typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v);
   for (const key of allowed) {
     if (req.body[key] !== undefined) {
@@ -350,7 +350,7 @@ router.post('/einstellungen', auth, async (req, res) => {
         }
       }
       if (key === 'hero_theme' && !['black-gold','banner'].includes(val)) continue;
-      if (key === 'min_preorder_minutes') {
+      if (key === 'min_preorder_minutes_delivery' || key === 'min_preorder_minutes_pickup') {
         const n = parseInt(val, 10);
         if (!isFinite(n)) continue;
         val = String(Math.max(15, Math.min(240, n))); // 15–240 Min.

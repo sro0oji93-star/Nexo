@@ -262,8 +262,11 @@ var Cart = (function() {
   // Wunschtermin-Umschalter an der Kasse (Sofort vs. Wunschtermin)
   function minPreorderMin() {
     var c = window.deliveryConfig || {};
-    var n = parseInt(c.min_preorder_min, 10);
-    return (isFinite(n) && n >= 15) ? n : 45;
+    var key = (typeof orderType !== 'undefined' && orderType === 'abholung')
+      ? 'min_preorder_min_pickup' : 'min_preorder_min_delivery';
+    var n = parseInt(c[key], 10);
+    if (!isFinite(n)) n = (key === 'min_preorder_min_pickup' ? 15 : 45);
+    return Math.max(15, Math.min(240, n));
   }
   function pad2(n) { return (n < 10 ? '0' : '') + n; }
   function toLocalInput(d) {
@@ -316,6 +319,10 @@ var Cart = (function() {
     if (card) card.style.display = isPickup ? 'none' : '';
     if (payCard) payCard.style.display = isPickup ? 'none' : '';
     [addr, city, zip].forEach(function(f) { if (f) f.required = !isPickup; });
+    var heading = document.getElementById('timeHeading');
+    if (heading) heading.innerHTML = '<i class="fas fa-clock"></i> ' + (isPickup ? 'Abholzeit' : 'Lieferzeit');
+    var hint = document.getElementById('wishHint');
+    if (hint) hint.textContent = 'Mindestens ' + minPreorderMin() + ' Minuten im Voraus, täglich 12:00–00:00 Uhr.';
   }
 
   // Night Deal o.ä.: Bestellart auf Abholung zwingen
