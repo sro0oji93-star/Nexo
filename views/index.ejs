@@ -107,17 +107,26 @@
   if (slides.length < 2) return;
   var current = 0;
   var interval;
-  function paint(i) {
+  function paint(i, first) {
     slides.forEach(function(s, idx) {
       var on = idx === i;
       s.style.display = 'flex';
       s.style.opacity = on ? '1' : '0';
       s.style.visibility = on ? 'visible' : 'hidden';
       s.style.pointerEvents = on ? 'auto' : 'none';
+      // Einflug-Animation bei jedem Wechsel neu starten (Pizza rotiert von rechts rein)
+      if (on && !first) {
+        var inners = s.querySelectorAll('.hero-slide-inner > div > div:first-child, .hero-slide-inner > div > div:last-child');
+        inners.forEach(function(el) {
+          el.style.animation = 'none';
+          void el.offsetWidth; // Reflow erzwingen
+          el.style.animation = '';
+        });
+      }
     });
     current = i;
   }
-  paint(0);
+  paint(0, true);
   interval = setInterval(function() { paint((current + 1) % slides.length); }, 6000);
 })();
 </script>
