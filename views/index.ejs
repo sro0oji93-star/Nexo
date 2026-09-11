@@ -151,33 +151,38 @@
 })();
 </script>
 
-<div class="mad-section cat-strip-section" style="background:#0a0a0a;padding:34px 0 10px">
+<div class="mad-section cat-bento-section" style="background:#0a0a0a;padding:34px 0 10px">
   <div class="container">
-    <div class="cat-strip">
-    <% categories.forEach(function(c) { %>
+    <div class="cat-bento">
+    <% categories.forEach(function(c, ci) { %>
       <% var cimg = (typeof catImgMap !== 'undefined' && catImgMap[c.id]) ? catImgMap[c.id] : null; %>
-      <a href="/speisekarte/kategorie/<%= c.slug %>" class="cat-circle-item">
+      <a href="/speisekarte/kategorie/<%= c.slug %>" class="cat-tile<%- ci === 0 ? ' cat-tile-hero' : '' %>">
         <% if (cimg) { %>
-        <span class="cat-circle-photo"><img loading="lazy" src="<%= cimg %>" alt="<%= c.name %>"></span>
+        <img loading="lazy" src="<%= cimg %>" alt="<%= c.name %>">
         <% } else { %>
-        <span class="cat-circle-photo cat-circle-fallback"><i class="fas fa-utensils"></i></span>
+        <span class="cat-tile-fallback"><i class="fas fa-utensils"></i></span>
         <% } %>
-        <span class="cat-circle-name"><%= c.name %></span>
+        <span class="cat-tile-ov"></span>
+        <span class="cat-tile-name"><%= c.name %></span>
       </a>
     <% }); %>
     </div>
   </div>
 </div>
 <style>
-  .cat-strip { display:flex;gap:20px;overflow-x:auto;padding:6px 4px 18px;scrollbar-width:thin; }
-  .cat-strip::-webkit-scrollbar { height:6px; }
-  .cat-strip::-webkit-scrollbar-thumb { background:#d4af37;border-radius:3px; }
-  .cat-circle-item { flex:0 0 auto;width:92px;text-align:center;text-decoration:none !important; }
-  .cat-circle-photo { display:flex;align-items:center;justify-content:center;width:84px;height:84px;border-radius:50%;margin:0 auto 8px;border:2px solid #d4af37;overflow:hidden;background:#141414; }
-  .cat-circle-photo img { width:100%;height:100%;object-fit:cover; }
-  .cat-circle-fallback i { font-size:30px;color:#d4af37; }
-  .cat-circle-name { font-size:13px;color:#f5d67b;font-weight:600;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
-  @media (min-width:768px) { .cat-strip { justify-content:center;flex-wrap:wrap;overflow:visible; } }
+  .cat-bento { display:grid;grid-template-columns:repeat(4,1fr);gap:12px; }
+  .cat-tile { position:relative;display:block;height:150px;border-radius:14px;overflow:hidden;border:1px solid rgba(212,175,55,.35);background:#141414;text-decoration:none !important; }
+  .cat-tile-hero { grid-column:span 2;grid-row:span 2;height:100%;min-height:312px; }
+  .cat-tile img { position:absolute;inset:0;width:100%;height:100%;object-fit:cover; }
+  .cat-tile-fallback { position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:34px;color:#d4af37; }
+  .cat-tile-ov { position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.85),rgba(0,0,0,.1) 60%); }
+  .cat-tile-name { position:absolute;left:12px;bottom:10px;font-size:15px;font-weight:700;color:#f5d67b; }
+  .cat-tile-hero .cat-tile-name { font-size:22px;left:16px;bottom:14px; }
+  @media (max-width:767px) {
+    .cat-bento { grid-template-columns:repeat(2,1fr); }
+    .cat-tile { height:130px; }
+    .cat-tile-hero { grid-column:span 2;min-height:170px; }
+  }
 </style>
 
 <!-- Spotlight: rotierende Produkt-Highlights (4 pro Seite) -->
