@@ -177,7 +177,11 @@
 <div class="mad-section" style="background:#0a0a0a">
   <div class="container">
     <h2 class="mad-page-title align-center" style="color:#f5d67b">Entdecke unsere Highlights</h2>
-    <div id="spotGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:24px;transition:opacity .5s ease"></div>
+    <div id="spotGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:24px;transition:opacity .5s ease">
+      <% for (var _sk = 0; _sk < 4; _sk++) { %>
+      <div class="spot-card spot-skeleton" aria-hidden="true"><div class="skel-img"></div><div class="skel-line" style="width:60%"></div><div class="skel-line" style="width:35%"></div></div>
+      <% } %>
+    </div>
     <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-top:18px">
       <button type="button" id="spotPrev" aria-label="Zurück" style="background:none;border:1px solid #d4af37;color:#d4af37;border-radius:50%;width:38px;height:38px;cursor:pointer;font-size:18px">‹</button>
       <div id="spotDots" style="display:flex;gap:8px"></div>
@@ -191,6 +195,11 @@
   .spot-card h4 { color:#fff;font-size:15px;margin:10px 8px 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
   .spot-card .spot-price { color:#d4af37;font-weight:700;font-size:15px; }
   .spot-card a.spot-btn { display:inline-block;margin:10px 0 14px;padding:7px 20px;border-radius:20px;background:linear-gradient(135deg,#f5d67b,#d4af37);color:#0a0a0a;font-weight:700;font-size:13px;text-decoration:none; }
+  .spot-skeleton { border-color:rgba(255,255,255,.08) !important; }
+  .skel-img { height:170px;background:linear-gradient(90deg,#1c1c1c 25%,#2a2a2a 50%,#1c1c1c 75%);background-size:200% 100%;animation:skelShimmer 1.2s ease-in-out infinite; }
+  .skel-line { height:12px;margin:10px auto 0;border-radius:6px;background:linear-gradient(90deg,#1c1c1c 25%,#2a2a2a 50%,#1c1c1c 75%);background-size:200% 100%;animation:skelShimmer 1.2s ease-in-out infinite; }
+  .skel-line:last-child { margin-bottom:14px; }
+  @keyframes skelShimmer { 0% { background-position:200% 0; } 100% { background-position:-200% 0; } }
   @media (max-width:900px) { #spotGrid { grid-template-columns:repeat(2,1fr) !important; } }
   @media (max-width:560px) { #spotGrid { grid-template-columns:1fr !important; } .spot-card img { height:200px; } }
 </style>

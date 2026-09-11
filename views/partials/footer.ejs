@@ -88,6 +88,34 @@
   <span id="cartToastMsg">Zum Warenkorb hinzugefügt!</span>
 </div>
 
+<!-- Sticky mobile Bestell-Button (nur Smartphone, nicht im Warenkorb/Kasse) -->
+<a href="/speisekarte" id="stickyOrderBtn" aria-label="Jetzt bestellen">
+  <i class="fas fa-shopping-bag"></i> Jetzt bestellen
+</a>
+<style>
+  #stickyOrderBtn { display:none; }
+  @media (max-width:767px) {
+    #stickyOrderBtn {
+      display:flex;align-items:center;justify-content:center;gap:8px;
+      position:fixed;left:12px;right:12px;bottom:12px;z-index:999;
+      padding:14px;border-radius:14px;text-decoration:none;
+      font-weight:700;font-size:16px;color:#0a0a0a;
+      background:linear-gradient(135deg,#f5d67b,#d4af37);
+      box-shadow:0 4px 16px rgba(0,0,0,.45);
+    }
+    body { padding-bottom:76px; }
+  }
+</style>
+<script>
+(function() {
+  var p = window.location.pathname || '';
+  if (p.indexOf('/warenkorb') === 0 || p.indexOf('/bestellung') === 0) {
+    var b = document.getElementById('stickyOrderBtn');
+    if (b) b.style.display = 'none';
+  }
+})();
+</script>
+
 <!-- Vendor JS (CDN) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/owl.carousel.min.js"></script>
