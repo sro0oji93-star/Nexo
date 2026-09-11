@@ -46,15 +46,17 @@ async function optimizeUpload(buffer, mimetype) {
   }
 }
 
-// Für Bestandsdaten: Data-URIs über maxBytes aggressiv verkleinern (max 1000px)
-async function shrinkDataUri(uri, maxBytes) {
+// Für Bestandsdaten: Data-URIs über maxBytes verkleinern (Standard: 300KB / 1000px / Q65)
+async function shrinkDataUri(uri, maxBytes, maxWidth, quality) {
   if (!uri || typeof uri !== 'string') return uri;
   maxBytes = maxBytes || 300 * 1024;
+  maxWidth = maxWidth || 1000;
+  quality = quality || 65;
   const m = uri.match(/^data:(image\/[a-z0-9+.-]+);base64,([\s\S]+)$/i);
   if (!m) return uri;
   if (Math.floor(m[2].length * 0.75) <= maxBytes) return uri;
   try {
-    const out = await optimizeBuffer(Buffer.from(m[2], 'base64'), m[1], 1000, 65);
+    const out = await optimizeBuffer(Buffer.from(m[2], 'base64'), m[1], maxWidth, quality);
     if (!out) return uri;
     const smaller = toDataUri(out.buffer, out.mimetype);
     return smaller.length < uri.length ? smaller : uri;

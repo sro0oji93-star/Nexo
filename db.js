@@ -817,8 +817,9 @@ async function initialize() {
     console.error('Pasta-Deluxe-Fix übersprungen:', e.message);
   }
 
-  // Auto-Migration Bild-Komprimierung 2026-09-06: riesige Data-URI-Bilder
-  // (z.B. per Datei-Upload) verkleinern, damit die Seiten schnell laden (idempotent)
+  // Auto-Migration Bild-Komprimierung: riesige Data-URI-Bilder
+  // (z.B. per Datei-Upload) verkleinern, damit die Seiten schnell laden (idempotent).
+  // Nur Komprimierung, KEINE Verkleinerung der Abmessungen (maxWidth 5000 = Originalgröße).
   try {
     const { shrinkDataUri } = require('./image');
     const jobs = [
@@ -829,8 +830,8 @@ async function initialize() {
     for (const [table, col] of jobs) {
       const rows = await all(`SELECT id, ${col} AS val FROM ${table} WHERE ${col} LIKE 'data:image%'`);
       for (const r of rows) {
-        if (!r.val || r.val.length < 400 * 1024) continue;
-        const smaller = await shrinkDataUri(r.val);
+        if (!r.val || r.val.length < 120 * 1024) continue;
+        const smaller = await shrinkDataUri(r.val, 120 * 1024, 5000, 70);
         if (smaller && smaller !== r.val) {
           await query(`UPDATE ${table} SET ${col}=$1 WHERE id=$2`, [smaller, r.id]);
           console.log(`Bild komprimiert: ${table}.${col} id=${r.id} (${Math.round(r.val.length / 1024)}KB -> ${Math.round(smaller.length / 1024)}KB)`);
