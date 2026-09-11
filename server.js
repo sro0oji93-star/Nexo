@@ -3,6 +3,7 @@ const express = require('express');
 const session = require('express-session');
 const path = require('path');
 const helmet = require('helmet');
+const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 
 // Brute-Force-Schutz: max. 5 Login-Versuche / 15 Min. je IP
@@ -45,6 +46,11 @@ app.post('/bestellung/stripe-webhook', express.raw({ type: 'application/json' })
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+// gzip für HTML/CSS/JS (vor static registrieren)
+app.use(compression());
+
+// Bilder: 1 Jahr immutable cachen (Dateinamen sind versioniert bzw. selten geändert)
+app.use('/images', express.static(path.join(__dirname, 'public', 'images'), { maxAge: '1y', immutable: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(session({

@@ -61,10 +61,10 @@
         </div>
         <div style="flex:1;min-width:350px;max-width:700px;position:relative;min-height:550px;display:flex;align-items:center;justify-content:center">
           <div style="position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center">
-            <img src="<%= slide.main_image || '/images/revolution/75ec1-big1.png' %>" alt="" style="max-width:100%;max-height:550px;object-fit:contain;animation:gentleFloat 3.5s ease-in-out infinite">
-            <% if (slide.drink_tl) { %><img src="<%= slide.drink_tl %>" alt="" style="position:absolute;top:24%;left:-2%;width:22%;animation:revFloat 3.5s ease-in-out infinite"><% } %>
-            <% if (slide.drink_tr) { %><img src="<%= slide.drink_tr %>" alt="" style="position:absolute;top:28%;right:-3%;width:20%;animation:revFloat 3.5s ease-in-out infinite 0.3s"><% } %>
-            <% if (slide.drink_br) { %><img src="<%= slide.drink_br %>" alt="" style="position:absolute;bottom:0;right:0;width:20%;animation:revFloat 3.5s ease-in-out infinite 0.6s"><% } %>
+            <img src="<%= slide.main_image || '/images/revolution/75ec1-big1.png' %>" alt="" <%- idx === 0 ? 'fetchpriority="high" decoding="async"' : 'loading="lazy" decoding="async"' %> style="max-width:100%;max-height:550px;object-fit:contain;animation:gentleFloat 3.5s ease-in-out infinite">
+            <% if (slide.drink_tl) { %><img src="<%= slide.drink_tl %>" alt="" <%- idx === 0 ? 'decoding="async"' : 'loading="lazy" decoding="async"' %> style="position:absolute;top:24%;left:-2%;width:22%;animation:revFloat 3.5s ease-in-out infinite"><% } %>
+            <% if (slide.drink_tr) { %><img src="<%= slide.drink_tr %>" alt="" <%- idx === 0 ? 'decoding="async"' : 'loading="lazy" decoding="async"' %> style="position:absolute;top:28%;right:-3%;width:20%;animation:revFloat 3.5s ease-in-out infinite 0.3s"><% } %>
+            <% if (slide.drink_br) { %><img src="<%= slide.drink_br %>" alt="" <%- idx === 0 ? 'decoding="async"' : 'loading="lazy" decoding="async"' %> style="position:absolute;bottom:0;right:0;width:20%;animation:revFloat 3.5s ease-in-out infinite 0.6s"><% } %>
           </div>
         </div>
       </div>
