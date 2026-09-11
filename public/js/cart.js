@@ -272,23 +272,47 @@ var Cart = (function() {
   function toLocalInput(d) {
     return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + 'T' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
   }
+  // Wunschtermin je Bestellart (verschachtelt): zwei sichtbare Gruppen, ein gemeinsamer Zustand
+  var wishState = { mode: 'asap', value: '' };
+  function timeGroupEls(sfx) {
+    return {
+      radios: document.querySelectorAll('input[name="timeMode' + sfx + '"]'),
+      input: document.getElementById('wish_time_' + sfx.toLowerCase()),
+      hint: document.getElementById('wishHint' + sfx),
+      block: document.querySelector('.time-sub[data-for="' + (sfx === 'L' ? 'lieferung' : 'abholung') + '"]')
+    };
+  }
+  function paintTimeGroups() {
+    ['L', 'A'].forEach(function(sfx) {
+      var g = timeGroupEls(sfx);
+      var active = (sfx === 'L' ? 'lieferung' : 'abholung') === orderType;
+      if (g.block) g.block.style.display = active ? '' : 'none';
+      g.radios.forEach(function(r) { r.checked = (r.value === wishState.mode); });
+      if (g.input) {
+        if (g.input.value !== wishState.value) g.input.value = wishState.value;
+        var row = g.input.closest('.wish-row');
+        if (row) row.style.display = wishState.mode === 'wish' ? '' : 'none';
+        g.input.min = toLocalInput(new Date(Date.now() + minPreorderMin() * 60000));
+      }
+      if (g.hint) g.hint.textContent = 'Mindestens ' + minPreorderMin() + ' Minuten im Voraus, täglich 12:00–00:00 Uhr.';
+    });
+  }
   function bindTimeMode() {
-    var radios = document.querySelectorAll('input[name="timeMode"]');
-    if (!radios.length) return;
-    var wrap = document.getElementById('wishWrap');
-    var input = document.getElementById('wish_time');
-    var hint = document.getElementById('wishHint');
-    radios.forEach(function(r) {
-      r.addEventListener('change', function() {
-        var wish = document.querySelector('input[name="timeMode"]:checked');
-        var isWish = wish && wish.value === 'wish';
-        if (wrap) wrap.style.display = isWish ? '' : 'none';
-        if (isWish && input) {
-          input.min = toLocalInput(new Date(Date.now() + minPreorderMin() * 60000));
-          if (hint) hint.textContent = 'Mindestens ' + minPreorderMin() + ' Minuten im Voraus, täglich 12:00–00:00 Uhr.';
-        }
+    if (!document.querySelector('input[name="timeModeL"]')) return;
+    ['L', 'A'].forEach(function(sfx) {
+      var g = timeGroupEls(sfx);
+      g.radios.forEach(function(r) {
+        r.addEventListener('change', function() {
+          wishState.mode = this.value;
+          paintTimeGroups();
+        });
+      });
+      if (g.input) g.input.addEventListener('input', function() {
+        wishState.value = this.value;
+        paintTimeGroups();
       });
     });
+    paintTimeGroups();
   }
 
   // Bestellart-Umschalter an der Kasse (Abholung blendet Lieferadresse aus)
@@ -319,10 +343,7 @@ var Cart = (function() {
     if (card) card.style.display = isPickup ? 'none' : '';
     if (payCard) payCard.style.display = isPickup ? 'none' : '';
     [addr, city, zip].forEach(function(f) { if (f) f.required = !isPickup; });
-    var heading = document.getElementById('timeHeading');
-    if (heading) heading.innerHTML = '<i class="fas fa-clock"></i> ' + (isPickup ? 'Abholzeit' : 'Lieferzeit');
-    var hint = document.getElementById('wishHint');
-    if (hint) hint.textContent = 'Mindestens ' + minPreorderMin() + ' Minuten im Voraus, täglich 12:00–00:00 Uhr.';
+    paintTimeGroups();
   }
 
   // Night Deal o.ä.: Bestellart auf Abholung zwingen
@@ -895,30 +916,26 @@ document.addEventListener('DOMContentLoaded', function() {
       }
 
       // Wunschtermin prüfen (mind. Mindestvorlauf, 12:00–00:00 Uhr, max. Vorausbuchung)
-      var timeModeEl = document.querySelector('input[name="timeMode"]:checked');
-      var timeMode = timeModeEl ? timeModeEl.value : 'asap';
       var wishTime = null;
-      if (timeMode === 'wish') {
-        var wishInput = document.getElementById('wish_time');
-        var wd = wishInput && wishInput.value ? new Date(wishInput.value) : null;
+      if (wishState.mode === 'wish') {
+        var wd = wishState.value ? new Date(wishState.value) : null;
         var need = minPreorderMin();
         if (!wd || isNaN(wd.getTime()) || wd.getTime() < Date.now() + need * 60000 - 60000) {
           alert('Bitte wählen Sie einen Wunschtermin mindestens ' + need + ' Minuten in der Zukunft.');
-          if (wishInput) wishInput.focus();
+          var wi = document.querySelector('.time-sub:not([style*="none"]) input[type="datetime-local"]');
+          if (wi) wi.focus();
           return;
         }
         if (wd.getHours() < 12) {
           alert('Wunschtermine sind nur zwischen 12:00 und 00:00 Uhr möglich.');
-          if (wishInput) wishInput.focus();
           return;
         }
         var maxAhead = (Cart.getOrderType() === 'abholung' ? 7 : 30) * 86400000;
         if (wd.getTime() > Date.now() + maxAhead) {
           alert(Cart.getOrderType() === 'abholung' ? 'Abholung ist maximal 7 Tage im Voraus buchbar.' : 'Bitte wählen Sie einen früheren Termin.');
-          if (wishInput) wishInput.focus();
           return;
         }
-        wishTime = wishInput.value; // "YYYY-MM-DDTHH:MM" (wird serverseitig als Berlin-Zeit geprüft)
+        wishTime = wishState.value; // "YYYY-MM-DDTHH:MM" (wird serverseitig als Berlin-Zeit geprüft)
       }
 
       var data = {

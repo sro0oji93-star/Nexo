@@ -42,6 +42,14 @@
                   </div>
                 </div>
               </label>
+              <div class="time-sub" data-for="lieferung" style="margin:-2px 0 10px 26px;padding:10px 12px;border-left:2px solid var(--primary);background:rgba(212,175,55,.06);border-radius:0 10px 10px 0">
+                <label class="time-choice"><input type="radio" name="timeModeL" value="asap" checked> So schnell wie möglich liefern</label>
+                <label class="time-choice"><input type="radio" name="timeModeL" value="wish"> Wunschtermin</label>
+                <div class="wish-row" style="display:none;margin-top:8px">
+                  <input type="datetime-local" id="wish_time_l" aria-label="Wunschtermin Lieferung">
+                  <p id="wishHintL" style="font-size:12px;color:#7a7879;margin-top:6px"></p>
+                </div>
+              </div>
               <label class="payment-option">
                 <input type="radio" name="orderType" value="abholung">
                 <div class="payment-option-content">
@@ -52,39 +60,16 @@
                   </div>
                 </div>
               </label>
+              <div class="time-sub" data-for="abholung" style="display:none;margin:-2px 0 10px 26px;padding:10px 12px;border-left:2px solid var(--primary);background:rgba(212,175,55,.06);border-radius:0 10px 10px 0">
+                <label class="time-choice"><input type="radio" name="timeModeA" value="asap" checked> So schnell wie möglich abholen</label>
+                <label class="time-choice"><input type="radio" name="timeModeA" value="wish"> Wunschtermin</label>
+                <div class="wish-row" style="display:none;margin-top:8px">
+                  <input type="datetime-local" id="wish_time_a" aria-label="Wunschtermin Abholung">
+                  <p id="wishHintA" style="font-size:12px;color:#7a7879;margin-top:6px"></p>
+                </div>
+              </div>
             </div>
             <p id="pickupOnlyNote" style="display:none;margin-top:10px;padding:10px 14px;background:#fff5f5;border:1px solid var(--primary);border-radius:10px;font-size:13px;color:#9c7c1a;font-weight:600">Hinweis: Der Night Deal ist nur für Abholer – Ihre Bestellung wird als Abholung aufgegeben.</p>
-            <div style="margin-top:14px;padding-top:14px;border-top:1px solid #eee">
-              <h4 id="timeHeading" style="font-size:14px;margin-bottom:10px"><i class="fas fa-clock"></i> Lieferzeit</h4>
-              <div class="payment-options">
-                <label class="payment-option">
-                  <input type="radio" name="timeMode" value="asap" checked>
-                  <div class="payment-option-content">
-                    <i class="fas fa-bolt"></i>
-                    <div>
-                      <strong>So schnell wie möglich</strong>
-                      <span>Wir starten sofort mit Ihrer Bestellung</span>
-                    </div>
-                  </div>
-                </label>
-                <label class="payment-option">
-                  <input type="radio" name="timeMode" value="wish">
-                  <div class="payment-option-content">
-                    <i class="fas fa-calendar-alt"></i>
-                    <div>
-                      <strong>Wunschtermin</strong>
-                      <span>Lieferung / Abholung zu einer Uhrzeit</span>
-                    </div>
-                  </div>
-                </label>
-              </div>
-              <div id="wishWrap" style="display:none;margin-top:10px">
-                <div class="form-group">
-                  <input type="datetime-local" id="wish_time" name="wish_time" aria-label="Wunschtermin">
-                </div>
-                <p id="wishHint" style="font-size:12px;color:#7a7879;margin-top:6px"></p>
-              </div>
-            </div>
           </div>
 
           <div class="checkout-card" id="addressCard">
@@ -196,6 +181,8 @@
 .addr-suggest-item:last-child{border-bottom:none}
 .addr-suggest-item:hover{background:#f5f1e6}
 .addr-suggest-item small{color:#7a7879}
+.time-choice{display:block;margin:7px 0;font-size:14px;cursor:pointer}
+.time-choice input{margin-right:8px;accent-color:#d4af37}
 </style>
 <script src="/js/checkout-address.js?v=20260905b"></script>
 
