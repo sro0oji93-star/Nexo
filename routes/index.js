@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const { swapProductImages } = require('../image');
 
 router.get('/', async (req, res) => {
   res.set('Cache-Control', 'no-store');
@@ -13,6 +14,7 @@ router.get('/', async (req, res) => {
   const testimonials = await db.all('SELECT * FROM testimonials WHERE active = 1 ORDER BY RANDOM() LIMIT 3');
   const heroSlides = await db.all('SELECT * FROM hero_slides WHERE active = 1 ORDER BY sort_order');
   const settings = res.locals.settings;
+  swapProductImages(products); // Data-URIs -> /produkt-bild/:id (kleines HTML, Cache)
   
   res.render('index', {
     title: settings.site_name + ' – ' + settings.site_description,

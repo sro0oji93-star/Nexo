@@ -11,6 +11,32 @@ function toDataUri(buffer, mimetype) {
   return 'data:' + mimetype + ';base64,' + buffer.toString('base64');
 }
 
+function isDataUri(s) {
+  return typeof s === 'string' && s.indexOf('data:image') === 0;
+}
+
+// Data-URI parsen -> { mime, buffer } oder null
+function parseDataUri(uri) {
+  if (!isDataUri(uri)) return null;
+  const m = uri.match(/^data:(image\/[a-z0-9+.-]+);base64,([\s\S]+)$/i);
+  if (!m) return null;
+  try {
+    return { mime: m[1], buffer: Buffer.from(m[2], 'base64') };
+  } catch (e) {
+    return null;
+  }
+}
+
+// Produkt-Data-URIs durch Cache-fähige Bild-URLs ersetzen (spart HTML-Bytes).
+// Nur für Kunden-Seiten; Admin bleibt unverändert (braucht Original für Vorschau/Edit).
+function swapProductImages(list) {
+  if (!Array.isArray(list)) return list;
+  for (const p of list) {
+    if (p && p.id && isDataUri(p.image)) p.image = '/produkt-bild/' + p.id;
+  }
+  return list;
+}
+
 // Buffer -> optimierter Buffer (maxBreite px, Format beibehalten wo sinnvoll)
 async function optimizeBuffer(buffer, mimetype, maxWidth, quality) {
   if (!sharp) return null;
@@ -65,4 +91,4 @@ async function shrinkDataUri(uri, maxBytes, maxWidth, quality) {
   }
 }
 
-module.exports = { optimizeUpload, shrinkDataUri, toDataUri };
+module.exports = { optimizeUpload, shrinkDataUri, toDataUri, isDataUri, parseDataUri, swapProductImages };

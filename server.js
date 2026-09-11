@@ -133,6 +133,7 @@ app.use('/kontakt', contactRoutes);
 app.use('/admin/login', (req, res, next) => (req.method === 'POST' ? loginLimiter(req, res, next) : next()));
 app.use('/admin', adminRoutes);
 app.use('/eigentuemer', ownerRoutes);
+app.use(require('./routes/images')); // /produkt-bild/:id (DB-Bilder mit Cache)
 
 app.use((req, res) => {
   res.status(404).render('404', { title: 'Seite nicht gefunden' });
