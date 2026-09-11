@@ -151,39 +151,27 @@
 })();
 </script>
 
-<div class="mad-section cat-bento-section" style="background:#0a0a0a;padding:34px 0 10px">
-  <div class="container">
-    <div class="cat-bento">
-    <% categories.forEach(function(c, ci) { %>
-      <% var cimg = (typeof catImgMap !== 'undefined' && catImgMap[c.id]) ? catImgMap[c.id] : null; %>
-      <a href="/speisekarte/kategorie/<%= c.slug %>" class="cat-tile<%- ci === 0 ? ' cat-tile-hero' : '' %>">
-        <% if (cimg) { %>
-        <img loading="lazy" src="<%= cimg %>" alt="<%= c.name %>">
-        <% } else { %>
-        <span class="cat-tile-fallback"><i class="fas fa-utensils"></i></span>
-        <% } %>
-        <span class="cat-tile-ov"></span>
-        <span class="cat-tile-name"><%= c.name %></span>
+<div class="container">
+
+  <!-- Category Icons -->
+  <div class="mad-menu-box with-slide-top">
+    <% categories.forEach(function(c) { %>
+    <div class="mad-col">
+      <a href="/speisekarte/kategorie/<%= c.slug %>" class="mad-menu-item">
+        <i class="mad-menu-icon">
+          <%
+            var icons = { pizza:'fa-pizza-slice', burger:'fa-hamburger', croque:'fa-bread-slice', salat:'fa-leaf', pasta:'fa-utensils', schnitzel:'fa-drumstick-bite', snacks:'fa-cookie', getraenke:'fa-wine-glass-alt', 'snack-rolls':'fa-egg-roll', 'saucen-dips':'fa-tint', dessert:'fa-ice-cream', beilagen:'fa-cheese', 'nexo-box':'fa-box', 'kids-menue':'fa-child', milkshake:'fa-cocktail' };
+            var icon = icons[c.slug] || 'fa-utensils';
+          %>
+          <i class="fas <%= icon %>" style="font-size:32px;color:var(--primary)"></i>
+        </i>
+        <h6 class="mad-menu-title"><%= c.name %></h6>
       </a>
-    <% }); %>
     </div>
+    <% }); %>
   </div>
+
 </div>
-<style>
-  .cat-bento { display:grid;grid-template-columns:repeat(4,1fr);gap:12px; }
-  .cat-tile { position:relative;display:block;height:150px;border-radius:14px;overflow:hidden;border:1px solid rgba(212,175,55,.35);background:#141414;text-decoration:none !important; }
-  .cat-tile-hero { grid-column:span 2;grid-row:span 2;height:100%;min-height:312px; }
-  .cat-tile img { position:absolute;inset:0;width:100%;height:100%;object-fit:cover; }
-  .cat-tile-fallback { position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:34px;color:#d4af37; }
-  .cat-tile-ov { position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.85),rgba(0,0,0,.1) 60%); }
-  .cat-tile-name { position:absolute;left:12px;bottom:10px;font-size:15px;font-weight:700;color:#f5d67b; }
-  .cat-tile-hero .cat-tile-name { font-size:22px;left:16px;bottom:14px; }
-  @media (max-width:767px) {
-    .cat-bento { grid-template-columns:repeat(2,1fr); }
-    .cat-tile { height:130px; }
-    .cat-tile-hero { grid-column:span 2;min-height:170px; }
-  }
-</style>
 
 <!-- Spotlight: rotierende Produkt-Highlights (4 pro Seite) -->
 <div class="mad-section" style="background:#0a0a0a">
