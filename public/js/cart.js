@@ -9,6 +9,8 @@ var Cart = (function() {
   var MENUE_DRINKS = ['Coca-Cola', 'Fanta', 'Sprite', 'Mezzo Mix', 'Coca-Cola Zero'];
   // Bowls-Saucen: 1× inklusive, jede weitere +0,80 €
   var BOWL_SAUCE_PRICE = 0.80;
+  // Anmerkung: manuell geöffnete (leere) Notizboxen – überlebt Re-Render (nur Speicher, kein LocalStorage)
+  var openNotes = {};
 
   function makeKey(id, size, extras, menue, sauce, sauces, box, chocos, deal, pasta) {
     var base = size && size.label ? id + '-' + size.label : String(id);
@@ -64,7 +66,35 @@ var Cart = (function() {
     });
     document.addEventListener('input', function(e) {
       var n = e.target && e.target.closest ? e.target.closest('.co-note') : null;
-      if (n) setItemNote(n.getAttribute('data-key'), n.value);
+      if (n) {
+        setItemNote(n.getAttribute('data-key'), n.value);
+        var wrap = n.closest('.co-note-wrap');
+        var tog = wrap ? wrap.querySelector('.co-note-toggle') : null;
+        if (tog) {
+          var has = String(n.value || '').trim().length > 0;
+          tog.classList.toggle('has-note', has);
+          tog.textContent = '✎ Anmerkung' + (has ? ' ✓' : '');
+        }
+      }
+    });
+    // Anmerkung aufklappen/zuklappen (bleibt zu, bis man draufklickt)
+    document.addEventListener('click', function(e) {
+      var t = e.target && e.target.closest ? e.target.closest('.co-note-toggle') : null;
+      if (!t) return;
+      var wrap = t.closest('.co-note-wrap');
+      var ta = wrap ? wrap.querySelector('.co-note') : null;
+      if (!ta) return;
+      var key = t.getAttribute('data-key');
+      if (ta.hasAttribute('hidden')) {
+        ta.removeAttribute('hidden');
+        openNotes[key] = true;
+        t.classList.add('open');
+        ta.focus();
+      } else {
+        ta.setAttribute('hidden', '');
+        delete openNotes[key];
+        t.classList.remove('open');
+      }
     });
     if (document.getElementById('cartList')) renderCartPage();
     if (document.getElementById('checkoutItems')) { bindOrderType(); bindTimeMode(); applyPickupRules(); renderCheckoutSummary(); }
@@ -853,7 +883,11 @@ var Cart = (function() {
         }).join('') + '</div>';
       }
       var noteVal = item.note ? escapeHtml(item.note) : '';
-      var noteHtml = '<textarea class="co-note" data-key="' + escapeHtml(item._key) + '" maxlength="200" rows="2" placeholder="Anmerkung, z.B. ohne Zwiebeln, extra scharf…">' + noteVal + '</textarea>';
+      var noteOpen = item.note || openNotes[item._key];
+      var noteHtml = '<div class="co-note-wrap">'
+        + '<button type="button" class="co-note-toggle' + (item.note ? ' has-note' : '') + (noteOpen && !item.note ? ' open' : '') + '" data-key="' + escapeHtml(item._key) + '">✎ Anmerkung' + (item.note ? ' ✓' : '') + '</button>'
+        + '<textarea class="co-note" data-key="' + escapeHtml(item._key) + '" maxlength="200" rows="2" placeholder="Anmerkung, z.B. ohne Zwiebeln, extra scharf…"' + (noteOpen ? '' : ' hidden') + '>' + noteVal + '</textarea>'
+        + '</div>';
       return '<div class="cart-item">' +
         '<div class="cart-item-image"><i class="fas fa-utensils"></i></div>' +
         '<div class="cart-item-info"><h4>' + nameHtml + '</h4>' + extrasHtml + noteHtml + '</div>' +
