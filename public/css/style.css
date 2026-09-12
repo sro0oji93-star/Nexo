@@ -219,7 +219,8 @@ img{max-width:100%}
 .cart-item-total{font-size:16px;font-weight:700;color:var(--primary, var(--primary));min-width:70px;text-align:right}
 .cart-item-remove{background:none;border:none;color:#999;cursor:pointer;padding:8px;transition:.3s;font-size:16px}
 .cart-item-remove:hover{color:var(--primary, var(--primary))}
-.co-note-wrap{margin-top:8px;position:relative;flex:0 0 100%;width:100%;max-width:100%}
+.co-note-wrap{margin-top:8px;position:relative}
+.co-extras-wrap{margin-top:6px;display:flex;flex-wrap:wrap;gap:6px}
 .co-note-trigger{background:none;border:none;padding:6px 2px;font-size:13px;font-weight:600;color:#9a958c;cursor:pointer}
 .co-note-trigger:active{color:#232223}
 .co-note-wrap.has-note .co-note-trigger{color:#8a6d00}
@@ -648,6 +649,12 @@ img{max-width:100%}
   /* Anmerkung auf dem Handy: eigene volle Zeile = langes Rechteck wie Desktop */
   .co-note-wrap {
     flex-basis: 100%;
+  }
+  /* Extras-Chips auf dem Handy: eigene volle Zeile */
+  .co-extras-wrap {
+    flex: 0 0 100%;
+    width: 100%;
+    max-width: 100%;
   }
   .cart-item-image {
     width: 48px;
