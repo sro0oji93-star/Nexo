@@ -54,6 +54,7 @@ var Cart = (function() {
     bindBoxMax();
     bindDrinkToggle();
     bindBurgerMenue();
+    bindLiveAbButtons();
     applyDealWindows();
     bindPhoneSanitizer();
     // Kasse: Extra entfernen + Notiz pro Position (delegiert, einmalig)
@@ -455,6 +456,84 @@ var Cart = (function() {
       refreshBurgerButton(box);
     });
     document.querySelectorAll('.menue-box').forEach(function(b) { refreshBurgerButton(b); });
+  }
+
+  // Live-Preis am Button NUR für variable Produkte (ab-Preis): Größe + Extras + Bowls + Snacks-Menü.
+  // Fixpreis-Buttons (Box/Deal/Choco/Pasta/Sauce-ohne-Größe, Burger) bleiben unangetastet.
+  // Design bleibt gleich – nur der Button-Text bekommt "· X,XX €".
+  function liveBlockOfBtn(btn) {
+    return btn.closest('.mad-spec-info') || btn.closest('.content-element-2') || null;
+  }
+  function liveSizeRadios(block) {
+    var out = [];
+    var all = block.querySelectorAll('input[type="radio"][name^="size_"], input[type="radio"][name="detailSize"]');
+    for (var i = 0; i < all.length; i++) {
+      if (all[i].closest('.menue-box')) continue; // Burger-Menü gehört zu refreshBurgerButton
+      out.push(all[i]);
+    }
+    return out;
+  }
+  function liveIsVariable(block) {
+    if (!block) return false;
+    var vals = {};
+    var n = 0;
+    liveSizeRadios(block).forEach(function(r) { vals[String(r.value)] = true; n++; });
+    if (n === 0) return false;
+    if (Object.keys(vals).length > 1) return true; // mehrere Preise = ab-Preis
+    // Gleicher Preis überall: nur variabel, wenn Extras/Bowls/Snacks-Menü den Total ändern können
+    if (block.querySelector('[data-extras-for]')) return true;
+    if (block.querySelector('[data-bowlsauces-for]')) return true;
+    if (block.querySelector('.snacks-menue')) return true;
+    return false;
+  }
+  function liveTotal(block, btn) {
+    var total = 0;
+    var checked = null;
+    liveSizeRadios(block).forEach(function(r) { if (!checked && r.checked) checked = r; });
+    if (checked) total += parseFloat(checked.value) || 0;
+    else total += parseFloat(btn.getAttribute('data-price')) || 0;
+    var exBox = block.querySelector('[data-extras-for]');
+    if (exBox) {
+      exBox.querySelectorAll('input[type="checkbox"]:checked').forEach(function(cb) {
+        total += parseFloat(cb.getAttribute('data-extra-price')) || 0;
+      });
+    }
+    var bwBox = block.querySelector('[data-bowlsauces-for]');
+    if (bwBox) {
+      var bn = bwBox.querySelectorAll('input[type="checkbox"]:checked').length;
+      if (bn > 1) total += BOWL_SAUCE_PRICE * (bn - 1);
+    }
+    var snBox = block.querySelector('.snacks-menue input.menue-check');
+    if (snBox && snBox.checked) total += MENUE_PRICE;
+    return parseFloat(total.toFixed(2));
+  }
+  function liveFmt(n) { return (parseFloat(n) || 0).toFixed(2).replace('.', ',') + ' €'; }
+  function refreshLiveBtn(btn) {
+    var block = liveBlockOfBtn(btn);
+    if (!block || !liveIsVariable(block)) return;
+    var t = liveTotal(block, btn);
+    var txt = 'In den Warenkorb · ' + liveFmt(t);
+    var span = btn.querySelector('span');
+    if (span) span.textContent = txt; else btn.textContent = txt;
+    var dp = document.getElementById('detailPrice');
+    if (dp && block.closest('.content-element-2')) dp.textContent = liveFmt(t);
+  }
+  function refreshLiveBlock(block) {
+    if (!block) return;
+    var btn = block.querySelector('.add-to-cart[data-has-sizes], .add-to-cart[data-has-snacks-menue], .add-to-cart[data-has-sauce]');
+    if (btn) refreshLiveBtn(btn);
+  }
+  function bindLiveAbButtons() {
+    document.addEventListener('change', function(e) {
+      var t = e.target;
+      if (!t || !t.matches) return;
+      if (t.matches('.size-picker input[type="radio"], .size-picker-detail input[type="radio"], [data-extras-for] input[type="checkbox"], [data-bowlsauces-for] input[type="checkbox"], .snacks-menue input')) {
+        var block = t.closest('.mad-spec-info') || t.closest('.content-element-2');
+        // pizza-extras.js schreibt data-extra-price erst danach – daher deferred lesen
+        setTimeout(function() { refreshLiveBlock(block); }, 0);
+      }
+    });
+    document.querySelectorAll('.add-to-cart[data-has-sizes], .add-to-cart[data-has-snacks-menue], .add-to-cart[data-has-sauce]').forEach(function(b) { refreshLiveBtn(b); });
   }
 
   function bindAddToCart() {
