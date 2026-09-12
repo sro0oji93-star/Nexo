@@ -36,6 +36,23 @@ function swapProductImages(list) {
   }
   return list;
 }
+// Data-URI-Spalten je Tabelle (Whitelist für /db-bild + Swap)
+const DB_IMAGE_COLS = {
+  hero_slides: ['bg_image', 'main_image', 'drink_tl', 'drink_tr', 'drink_br'],
+  banners: ['image'],
+  testimonials: ['image']
+};
+function dbImageUrl(table, col, id) {
+  return '/db-bild/' + table + '/' + col + '/' + id;
+}
+// Data-URIs einer DB-Zeile durch Cache-URLs ersetzen (Original bleibt in DB)
+function swapRowImages(row, table) {
+  if (!row || !DB_IMAGE_COLS[table]) return row;
+  for (const c of DB_IMAGE_COLS[table]) {
+    if (row.id && isDataUri(row[c])) row[c] = dbImageUrl(table, c, row.id);
+  }
+  return row;
+}
 
 // Buffer -> optimierter Buffer (maxBreite px, Format beibehalten wo sinnvoll)
 async function optimizeBuffer(buffer, mimetype, maxWidth, quality) {
@@ -91,4 +108,4 @@ async function shrinkDataUri(uri, maxBytes, maxWidth, quality) {
   }
 }
 
-module.exports = { optimizeUpload, shrinkDataUri, toDataUri, isDataUri, parseDataUri, swapProductImages };
+module.exports = { optimizeUpload, shrinkDataUri, toDataUri, isDataUri, parseDataUri, swapProductImages, swapRowImages, dbImageUrl, DB_IMAGE_COLS };
