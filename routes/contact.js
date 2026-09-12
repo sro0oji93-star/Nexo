@@ -12,10 +12,9 @@ router.get('/', async (req, res) => {
 });
 
 router.post('/', async (req, res) => {
-  const { email, message } = req.body;
-  const name = (req.body.name || '').trim() || 'Gast';
+  const { name, email, message } = req.body;
   try {
-    if (!email || !message) {
+    if (!name || !email || !message) {
       req.session.contactFlash = 'Bitte füllen Sie alle Pflichtfelder aus.';
       return res.redirect('/kontakt');
     }
