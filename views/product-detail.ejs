@@ -46,7 +46,7 @@
                 <% } else if (product.category_name === 'Schnitzel' || product.category_name === 'Bowls') { %>
                 <%- include('partials/croque-sauces', { productId: product.id, sizeData: sizeData, radioName: 'detailSize', boxTitle: '1 Beilage nach Wahl' }) %>
                 <% } else if (product.category_name === 'Burger') { %>
-                <%- include('partials/burger-menue', { productId: product.id, productName: product.name, sizeData: sizeData, radioName: 'detailSize' }) %>
+                <%- include('partials/burger-menue', { productId: product.id, productName: product.name, sizeData: sizeData, basePrice: product.price, radioName: 'detailSize' }) %>
             <% } else if (['crepe-nutella','crepe-frucht','crepe-lotus','crepe-oreo','crepe-bueno','mini-pancakes','mini-waffel'].indexOf(product.slug) !== -1) { %>
             <div class="form-control content-element-6">
               <div class="content-element-2">
