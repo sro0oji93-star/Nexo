@@ -378,14 +378,11 @@ var Cart = (function() {
     });
   }
 
-  // Menü-Getränke (Burger/Snacks, alte Radio-Liste): zweiter Klick auf dieselbe Auswahl hebt sie wieder auf.
-  // Neue Burger-Box (Solo/Menü + Dropdown) ist ausgenommen – sie nutzt data-burger-mode (kein data-label).
+  // Menü-Getränke (Burger/Snacks): zweiter Klick auf dieselbe Auswahl hebt sie wieder auf
   function drinkRadioFromEvent(e) {
     var lab = e.target && e.target.closest ? e.target.closest('.menue-box label, .snacks-menue label') : null;
     if (!lab) return null;
     var r = lab.querySelector('input[type="radio"]');
-    if (!r || r.hasAttribute('data-burger-mode')) return null;
-    if (!r.getAttribute('data-label')) return null;
     return r || null;
   }
   // Box-Auswahl: Checkbox-Maximum erzwingen (z.B. max. 3 Saucen, max. 2 Schoko)
@@ -432,54 +429,32 @@ var Cart = (function() {
     });
   }
 
-  // Burger-Box neu (Solo/Menü + Dropdown): Drink-Zeile togglen + Endpreis + Button live aktualisieren
-  function fmtDE(n) { return (parseFloat(n) || 0).toFixed(2).replace('.', ',') + ' €'; }
-  function refreshBurgerBox(box) {
+  // Burger-Menü (alte Liste): nur Button-Preis live anzeigen, sonst nichts ändern.
+  // Ohne Wahl = Grundpreis, mit Wahl = Menü-Preis. Detailseite-Preis wird mitgeführt.
+  function fmtBurgerDE(n) { return (parseFloat(n) || 0).toFixed(2).replace('.', ',') + ' €'; }
+  function refreshBurgerButton(box) {
     if (!box) return;
-    var pid = box.getAttribute('data-burger-menue');
-    var baseP = parseFloat(box.getAttribute('data-base-price')) || 0;
-    var modeEl = box.querySelector('input[data-burger-mode]:checked');
-    var mode = modeEl ? modeEl.value : 'solo';
-    var row = box.querySelector('[data-burger-drink-row]');
-    if (row) row.style.display = (mode === 'menue') ? '' : 'none';
-    var finalP = baseP;
-    if (mode === 'menue') {
-      var sel = box.querySelector('select[data-burger-drink]');
-      var opt = sel && sel.selectedOptions && sel.selectedOptions[0];
-      finalP = opt ? parseFloat(opt.getAttribute('data-price')) : (baseP + 5);
-      if (!isFinite(finalP)) finalP = baseP + 5;
-    }
-    var finalEl = box.querySelector('[data-burger-final]');
-    if (finalEl) finalEl.textContent = fmtDE(finalP);
-    // Button-Label im gleichen Produkt-Block aktualisieren
     var scope = box.closest('.mad-spec-info') || box.closest('.content-element-2') || document;
     var btn = scope ? scope.querySelector('.add-to-cart[data-has-menue]') : null;
-    if (!btn && pid) {
-      var all = document.querySelectorAll('.add-to-cart[data-has-menue="1"][data-id="' + pid + '"]');
-      if (all.length) btn = all[0];
-    }
-    if (btn) {
-      var span = btn.querySelector('span');
-      var txt = 'In den Warenkorb · ' + fmtDE(finalP);
-      if (span) span.textContent = txt; else btn.textContent = txt;
-    }
-    // Detailseite: Hauptpreis mitführen
+    if (!btn) return;
+    var baseP = parseFloat(btn.getAttribute('data-price')) || 0;
+    var sel = box.querySelector('input[type="radio"]:checked');
+    var finalP = sel ? parseFloat(sel.value) : baseP;
+    if (!isFinite(finalP)) finalP = baseP;
+    var txt = 'In den Warenkorb · ' + fmtBurgerDE(finalP);
+    var span = btn.querySelector('span');
+    if (span) span.textContent = txt; else btn.textContent = txt;
     var dp = document.getElementById('detailPrice');
-    if (dp && box.closest('.content-element-2')) dp.textContent = (mode === 'solo' ? 'ab ' : '') + fmtDE(finalP);
+    if (dp && box.closest('.content-element-2')) dp.textContent = (sel ? '' : 'ab ') + fmtBurgerDE(finalP);
   }
   function bindBurgerMenue() {
     document.addEventListener('change', function(e) {
       var t = e.target;
-      if (!t || !t.matches) return;
-      if (t.matches('input[data-burger-mode]')) {
-        var box = t.closest('[data-burger-menue]');
-        refreshBurgerBox(box);
-      } else if (t.matches('select[data-burger-drink]')) {
-        var box2 = t.closest('[data-burger-menue]');
-        refreshBurgerBox(box2);
-      }
+      if (!t || !t.matches || !t.matches('.menue-box input[type="radio"]')) return;
+      var box = t.closest('.menue-box');
+      refreshBurgerButton(box);
     });
-    document.querySelectorAll('[data-burger-menue]').forEach(function(b) { refreshBurgerBox(b); });
+    document.querySelectorAll('.menue-box').forEach(function(b) { refreshBurgerButton(b); });
   }
 
   function bindAddToCart() {
@@ -536,37 +511,15 @@ var Cart = (function() {
         }
         addItem(id, name, unit, qty, size, extras, pickupOnly, null, null, bowlSauces.length ? bowlSauces : null, null, chocoSel.length ? chocoSel : null);
       } else if (hasMenue) {
-        // Burger: neue Box (Solo vs. Menü + Getränk-Dropdown) oder alte Radio-Liste (Fallback)
+        // Optionales Menü: nur wenn ein Softdrink gewählt wurde, sonst Grundpreis
         var scope = btn.closest('.mad-spec-info') || btn.closest('.content-element-2') || document;
-        var bbox2 = scope ? scope.querySelector('[data-burger-menue="' + id + '"]') : null;
-        if (!bbox2 && document.querySelector('[data-burger-menue="' + id + '"]')) bbox2 = document.querySelector('[data-burger-menue="' + id + '"]');
-        if (bbox2) {
-          var baseP = parseFloat(bbox2.getAttribute('data-base-price')) || parseFloat(btn.getAttribute('data-price')) || 0;
-          var modeEl = bbox2.querySelector('input[data-burger-mode]:checked');
-          var mode = modeEl ? modeEl.value : 'solo';
-          if (mode === 'menue') {
-            var sel = bbox2.querySelector('select[data-burger-drink]');
-            var opt = sel && sel.selectedOptions && sel.selectedOptions[0];
-            var drinkName = sel ? sel.value : '';
-            if (!drinkName) { showToast('Bitte Getränk wählen'); return; }
-            var mprice = opt ? parseFloat(opt.getAttribute('data-price')) : (baseP + 5);
-            var mlabel = (opt && opt.getAttribute('data-label')) || ('Menü mit ' + drinkName);
-            if (!isFinite(mprice)) mprice = baseP + 5;
-            var msize = { label: mlabel, price: parseFloat(mprice.toFixed(2)) };
-            addItem(id, name, msize.price, qty, msize, [], pickupOnly);
-          } else {
-            addItem(id, name, parseFloat(baseP.toFixed(2)), qty, null, [], pickupOnly);
-          }
+        var drink = scope ? scope.querySelector('.menue-box input[type="radio"]:checked') : null;
+        if (drink) {
+          var msize = { label: drink.getAttribute('data-label'), price: parseFloat(drink.value) };
+          addItem(id, name, msize.price, qty, msize, [], pickupOnly);
         } else {
-          // Fallback: alte Menü-Radio-Liste (nur wenn ein Softdrink gewählt wurde, sonst Grundpreis)
-          var drink = scope ? scope.querySelector('.menue-box input[type="radio"]:checked') : null;
-          if (drink) {
-            var msize2 = { label: drink.getAttribute('data-label'), price: parseFloat(drink.value) };
-            addItem(id, name, msize2.price, qty, msize2, [], pickupOnly);
-          } else {
-            var basePrice = btn.getAttribute('data-price');
-            addItem(id, name, basePrice, qty, null, [], pickupOnly);
-          }
+          var basePrice = btn.getAttribute('data-price');
+          addItem(id, name, basePrice, qty, null, [], pickupOnly);
         }
       } else if (hasSnacksMenue) {
         // Snacks: Größe Pflicht, Menü (+4 € mit Softdrink) optional

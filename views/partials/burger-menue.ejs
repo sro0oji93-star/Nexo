@@ -1,29 +1,17 @@
-<% /* Burger-Menü kompakt: Solo vs. Menü (+5 €) + Getränk-Dropdown + Live-Endpreis.
-       Locals: productId, productName, sizeData (Menü-Varianten [{label:'Menü mit X', price}]), basePrice.
-       Ohne Menü-Wahl = Grundpreis. Kompatibel mit cart.js (data-has-menue). */ %>
-<% var basePrice = (typeof basePrice !== 'undefined' && basePrice != null) ? parseFloat(basePrice) : (sizeData && sizeData.length ? parseFloat(sizeData[0].price) - 5 : 0); %>
-<% var drinks = (sizeData || []).map(function(s) { return { name: String(s.label || '').replace(/^Menü mit\s+/, ''), price: parseFloat(s.price), label: s.label }; }).filter(function(d) { return d.name; }); %>
-<% var modeName = 'burger_mode_' + productId; %>
-<div class="menue-box burger-menue-box" data-burger-menue="<%= productId %>" data-base-price="<%= basePrice.toFixed(2) %>" style="margin-top:10px;border:1px dashed #e5c8ce;border-radius:10px;padding:10px 12px;background:#fffdf7">
-  <div style="display:flex;flex-direction:column;gap:6px">
-    <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:6px 8px;border-radius:8px;border:1.5px solid var(--primary);background:#fff">
-      <input type="radio" name="<%= modeName %>" value="solo" data-burger-mode="solo" checked>
-      <span style="flex:1;font-weight:700;color:#232223">Solo</span>
-      <span style="color:var(--primary);font-weight:700;white-space:nowrap"><%= basePrice.toFixed(2).replace('.', ',') %> €</span>
-    </label>
-    <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:6px 8px;border-radius:8px;border:1.5px solid #e5e0d5;background:#fff">
-      <input type="radio" name="<%= modeName %>" value="menue" data-burger-mode="menue">
-      <span style="flex:1;font-weight:700;color:#232223">Menü <span style="font-weight:400;color:#7a7879">+ Pommes + 0,33 l Softdrink (+5,00 €)</span></span>
-      <span style="color:var(--primary);font-weight:700;white-space:nowrap"><%= (basePrice + 5).toFixed(2).replace('.', ',') %> €</span>
-    </label>
-  </div>
-  <div data-burger-drink-row style="display:none;margin-top:8px">
-    <label style="display:block;font-size:12px;font-weight:700;color:#232223;margin-bottom:4px">Getränk wählen</label>
-    <select data-burger-drink="<%= productId %>" style="width:100%;padding:8px 10px;border-radius:8px;border:1.5px solid #e5e0d5;font-size:13px;background:#fff;color:#232223">
-      <% drinks.forEach(function(d, i) { %>
-      <option value="<%= d.name %>" data-price="<%= d.price.toFixed(2) %>" data-label="<%= d.label %>" <%= i === 0 ? 'selected' : '' %>><%= d.name %></option>
+<% /* Burger-Menü (optional) – Locals: productId, productName, sizeData (nur Menü-Varianten), optional radioName. Keine Vorauswahl: ohne Wahl = Grundpreis. */ %>
+<% var radioName = (typeof radioName !== 'undefined' && radioName) ? radioName : ('size_' + productId); %>
+<div class="menue-box" style="margin-top:10px;border:1px dashed #e5c8ce;border-radius:10px;padding:10px 12px;background:#fffdf7">
+  <details>
+    <summary style="cursor:pointer;font-weight:700;font-size:13px;color:#232223">Menü (+5,00 €) <span style="font-weight:400;color:#7a7879;font-size:12px">– mit Pommes + Softdrink wählen (optional)</span></summary>
+    <div style="margin-top:8px;display:flex;flex-direction:column;gap:2px;max-height:220px;overflow-y:auto;padding-right:4px">
+      <% sizeData.forEach(function(s) { %>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:4px 6px;border-radius:8px;border:1.5px solid transparent">
+        <input type="radio" name="<%= radioName %>" value="<%= s.price %>" data-label="<%= s.label %>" data-id="<%= productId %>" data-name="<%= productName %>" style="display:none">
+        <span style="flex:1;font-weight:600;color:#232223"><%= s.label %></span>
+        <span style="color:var(--primary);font-weight:700;white-space:nowrap"><%= s.price.toFixed(2) %>€</span>
+        <span class="sauce-tick" style="display:none;color:#16a34a;font-weight:900;font-size:14px">✓</span>
+      </label>
       <% }); %>
-    </select>
-  </div>
-  <div style="margin-top:8px;font-size:13px;color:#232223">Endpreis: <strong data-burger-final style="color:var(--primary)"><%= basePrice.toFixed(2).replace('.', ',') %> €</strong></div>
+    </div>
+  </details>
 </div>
