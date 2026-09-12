@@ -883,7 +883,7 @@ var Cart = (function() {
       if (item.pasta) nameHtml += '<br><small style="color:#9c7c1a">' + escapeHtml(pastaLines(item.pasta).join(' · ')) + '</small>';
       var extrasHtml = '';
       if (item.extras && item.extras.length) {
-        extrasHtml = '<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px">' + item.extras.map(function(e) {
+        extrasHtml = '<div style="flex:0 0 100%;width:100%;margin-top:2px;display:flex;flex-wrap:wrap;gap:6px">' + item.extras.map(function(e) {
           return '<span style="display:inline-flex;align-items:center;gap:6px;background:#f0fdf4;border:1px solid #22c55e;color:#15803d;border-radius:20px;padding:2px 6px 2px 10px;font-size:12px;font-weight:600;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis">+ ' + escapeHtml(e.name) + ' <button type="button" class="co-extra-x" data-key="' + escapeHtml(item._key) + '" data-extra="' + escapeHtml(e.name) + '" title="Extra entfernen" style="flex-shrink:0;border:none;background:#16a34a;color:#fff;border-radius:50%;width:18px;height:18px;line-height:16px;font-size:12px;cursor:pointer;padding:0">×</button></span>';
         }).join('') + '</div>';
       }
@@ -896,7 +896,7 @@ var Cart = (function() {
         + '</div>';
       return '<div class="cart-item">' +
         '<div class="cart-item-image"><i class="fas fa-utensils"></i></div>' +
-        '<div class="cart-item-info"><h4>' + nameHtml + '</h4>' + extrasHtml + '</div>' +
+        '<div class="cart-item-info"><h4>' + nameHtml + '</h4></div>' +
         '<div class="cart-item-qty">' +
           '<button onclick="Cart.updateQty(\'' + item._key + '\', ' + (item.qty - 1) + ')">−</button>' +
           '<span>' + item.qty + '</span>' +
@@ -904,6 +904,7 @@ var Cart = (function() {
         '</div>' +
         '<div class="cart-item-total">' + formatEUR(item.price * item.qty) + '</div>' +
         '<button class="cart-item-remove" onclick="Cart.removeItem(\'' + item._key + '\')"><i class="fas fa-times"></i></button>' +
+        extrasHtml +
         noteHtml +
       '</div>';
     }).join('');
