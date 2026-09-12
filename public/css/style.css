@@ -220,12 +220,13 @@ img{max-width:100%}
 .cart-item-remove{background:none;border:none;color:#999;cursor:pointer;padding:8px;transition:.3s;font-size:16px}
 .cart-item-remove:hover{color:var(--primary, var(--primary))}
 .co-note-wrap{margin-top:8px;position:relative;flex:0 0 100%;width:100%;max-width:100%}
-.co-note-single{display:block;width:100%!important;max-width:100%;min-width:0;box-sizing:border-box;height:42px;min-height:42px;padding:10px 14px;border:1.5px solid #e8e4de;border-radius:50px;font-size:13.5px;line-height:1.45;color:#232223;background:#fff;resize:none;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-family:inherit;transition:border-color .25s,box-shadow .25s,border-radius .25s,background .25s}
+.co-note-trigger{background:none;border:none;padding:6px 2px;font-size:13px;font-weight:600;color:#9a958c;cursor:pointer}
+.co-note-trigger:active{color:#232223}
+.co-note-wrap.has-note .co-note-trigger{color:#8a6d00}
+.co-note-single{display:block;width:100%!important;max-width:100%;min-width:0;box-sizing:border-box;min-height:66px;height:66px;padding:10px 14px;border:1.5px solid var(--primary);border-radius:12px;font-size:14px;line-height:1.45;color:#232223;background:#fffdf7;resize:none;overflow:auto;white-space:pre-wrap;font-family:inherit}
 .co-note-single::placeholder{color:#a8a29e}
-.co-note-single:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(212,175,55,.22);background:#fff}
-.co-note-single.open{min-height:66px;height:66px;border-radius:12px;white-space:pre-wrap;overflow:auto;resize:none}
-.co-note-wrap.has-note .co-note-single{border-color:var(--primary);background:#fffdf7;padding-right:34px}
-.co-note-wrap.has-note::after{content:'✓';position:absolute;right:14px;top:10px;color:#b8912a;font-weight:900;font-size:14px;pointer-events:none}
+.co-note-single:focus{outline:none;box-shadow:0 0 0 3px rgba(212,175,55,.22);background:#fff}
+.co-note-single[hidden],.co-note-trigger[hidden]{display:none}
 .cart-summary{background:#fff;border-radius:12px;padding:30px;position:sticky;top:100px;border:1px solid #e8e4de;box-shadow:0 2px 20px rgba(0,0,0,.06)}
 .cart-summary h3{font-family:'Josefin Sans',sans-serif;font-size:20px;color:#232223;margin-bottom:20px}
 .summary-row{display:flex;justify-content:space-between;padding:8px 0;font-size:14px;color:#6b6b6b}

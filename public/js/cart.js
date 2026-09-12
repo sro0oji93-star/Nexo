@@ -70,14 +70,36 @@ var Cart = (function() {
         if (wrap0) wrap0.classList.toggle('has-note', String(n.value || '').trim().length > 0);
       }
     });
-    // Anmerkung: ein Element – Fokus = ausklappen an Ort und Stelle, Blur = einklappen
-    document.addEventListener('focusin', function(e) {
-      var n = e.target && e.target.closest ? e.target.closest('.co-note-single') : null;
-      if (n) n.classList.add('open');
+    // Anmerkung: مسكر – الكبس على النص يفتح المستطيل، والخروج يسكره مع ✓ ومعاينة
+    document.addEventListener('click', function(e) {
+      var t = e.target && e.target.closest ? e.target.closest('.co-note-trigger') : null;
+      if (!t) return;
+      var wrap = t.closest('.co-note-wrap');
+      var ta = wrap ? wrap.querySelector('.co-note-single') : null;
+      if (!ta) return;
+      t.setAttribute('hidden', '');
+      ta.removeAttribute('hidden');
+      ta.classList.add('open');
+      ta.focus();
     });
     document.addEventListener('focusout', function(e) {
       var n = e.target && e.target.closest ? e.target.closest('.co-note-single') : null;
-      if (n) n.classList.remove('open');
+      if (!n) return;
+      var wrap = n.closest('.co-note-wrap');
+      var t = wrap ? wrap.querySelector('.co-note-trigger') : null;
+      if (!t) return;
+      var txt = String(n.value || '');
+      if (txt.trim()) {
+        var prev = txt.slice(0, 28) + (txt.length > 28 ? '…' : '');
+        t.textContent = '✓ ' + prev;
+        wrap.classList.add('has-note');
+      } else {
+        t.textContent = '✎ Anmerkung';
+        wrap.classList.remove('has-note');
+      }
+      n.classList.remove('open');
+      n.setAttribute('hidden', '');
+      t.removeAttribute('hidden');
     });
     if (document.getElementById('cartList')) renderCartPage();
     if (document.getElementById('checkoutItems')) { bindOrderType(); bindTimeMode(); applyPickupRules(); renderCheckoutSummary(); }
@@ -862,12 +884,15 @@ var Cart = (function() {
       var extrasHtml = '';
       if (item.extras && item.extras.length) {
         extrasHtml = '<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px">' + item.extras.map(function(e) {
-          return '<span style="display:inline-flex;align-items:center;gap:6px;background:#f0fdf4;border:1px solid #22c55e;color:#15803d;border-radius:20px;padding:2px 6px 2px 10px;font-size:12px;font-weight:600">+ ' + escapeHtml(e.name) + ' <button type="button" class="co-extra-x" data-key="' + escapeHtml(item._key) + '" data-extra="' + escapeHtml(e.name) + '" title="Extra entfernen" style="border:none;background:#16a34a;color:#fff;border-radius:50%;width:18px;height:18px;line-height:16px;font-size:12px;cursor:pointer;padding:0">×</button></span>';
+          return '<span style="display:inline-flex;align-items:center;gap:6px;background:#f0fdf4;border:1px solid #22c55e;color:#15803d;border-radius:20px;padding:2px 6px 2px 10px;font-size:12px;font-weight:600;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis">+ ' + escapeHtml(e.name) + ' <button type="button" class="co-extra-x" data-key="' + escapeHtml(item._key) + '" data-extra="' + escapeHtml(e.name) + '" title="Extra entfernen" style="flex-shrink:0;border:none;background:#16a34a;color:#fff;border-radius:50%;width:18px;height:18px;line-height:16px;font-size:12px;cursor:pointer;padding:0">×</button></span>';
         }).join('') + '</div>';
       }
+      // Anmerkung: مسكر تماماً – نص صغير فقط. الكبس يفتح المستطيل بنفس المكان.
       var noteVal = item.note ? escapeHtml(item.note) : '';
+      var notePreview = item.note ? escapeHtml(String(item.note).slice(0, 28)) + (String(item.note).length > 28 ? '…' : '') : '';
       var noteHtml = '<div class="co-note-wrap' + (item.note ? ' has-note' : '') + '">'
-        + '<textarea class="co-note co-note-single" data-key="' + escapeHtml(item._key) + '" maxlength="200" rows="1" placeholder="✎ Anmerkung hinzufügen…">' + noteVal + '</textarea>'
+        + '<button type="button" class="co-note-trigger" data-key="' + escapeHtml(item._key) + '">' + (item.note ? '✓ ' + notePreview : '✎ Anmerkung') + '</button>'
+        + '<textarea class="co-note co-note-single" data-key="' + escapeHtml(item._key) + '" maxlength="200" rows="1" placeholder="✎ Anmerkung hinzufügen…" hidden>' + noteVal + '</textarea>'
         + '</div>';
       return '<div class="cart-item">' +
         '<div class="cart-item-image"><i class="fas fa-utensils"></i></div>' +
