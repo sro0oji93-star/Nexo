@@ -11,7 +11,7 @@
   <img src="/images/11.png" alt="" style="width:100%;height:auto;display:block">
 </div>
 
-<div class="mad-content no-pd" id="produkte">
+<div class="mad-content no-pd" id="produkte" style="scroll-margin-top:90px">
   <div class="container">
     <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:30px 0 10px 0">
       <a href="/speisekarte" class="btn btn-small <%= !activeCategory ? 'btn-style-3' : 'btn-outline' %>">Alle</a>
@@ -247,12 +247,19 @@
 }
 </style>
 <script>
-<% if (activeCategory) { %>
 window.addEventListener('load', function(){
   var el = document.getElementById('produkte');
-  if (el) el.scrollIntoView({ behavior:'smooth', block:'start' });
-});
+  if (!el) return;
+<% if (activeCategory) { %>
+  el.scrollIntoView({ behavior:'smooth', block:'start' });
+<% } else { %>
+  // Banner zuerst zeigen, dann nach kurzer Pause sanft zu den Produkten scrollen.
+  // Abbrechen, wenn der Nutzer selbst schon gescrollt hat.
+  setTimeout(function(){
+    if ((window.scrollY || 0) < 60) el.scrollIntoView({ behavior:'smooth', block:'start' });
+  }, 1400);
 <% } %>
+});
 </script>
 <script>
 document.querySelectorAll('.size-picker').forEach(function(picker) {
