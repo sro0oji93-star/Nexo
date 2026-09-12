@@ -34,7 +34,7 @@
     <tbody>
       <% orders.forEach(function(o) { %>
       <tr>
-        <td><a href="/admin/bestellungen/<%= o.id %>"><%= o.order_number %></a><% if (o.wish_time) { %><br><span class="badge" style="background:#e8f5e9;color:#15803d;border:1px solid #15803d">Wunsch: <%= new Date(String(o.wish_time).replace(' ', 'T') + 'Z').toLocaleString('de-DE', { timeZone: 'Europe/Berlin', weekday: 'short', hour: '2-digit', minute: '2-digit' }) %></span><% } %></td>
+        <td><a href="/admin/bestellungen/<%= o.id %>"><%= o.order_number %></a><% if (o.wish_display) { %><br><span class="badge" style="background:#e8f5e9;color:#15803d;border:1px solid #15803d">Wunsch: <%= o.wish_display %></span><% } %></td>
         <td><%= o.customer_name %></td>
         <td><%= o.customer_email %></td>
         <td><strong><%= parseFloat(o.total).toFixed(2) %> €</strong></td>

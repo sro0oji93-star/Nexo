@@ -25,8 +25,27 @@ async function all(text, params) {
 }
 
 async function run(text, params) {
-  const result = await query(text, params);
+  const result = await pool.query(text, params);
   return result;
+}
+
+// Wunschtermin-Anzeige: Date ODER String robust nach Europe/Berlin formatieren.
+// Gibt null zurück wenn leer/ungültig (Templates blenden dann nichts ein).
+function formatWishDisplay(v) {
+  if (!v) return null;
+  let d = null;
+  if (v instanceof Date) {
+    if (!isNaN(v)) d = v;
+  } else {
+    const s = String(v).trim().replace(' ', 'T');
+    d = new Date(/Z|[+-]\d{2}:?\d{2}$/.test(s) ? s : s + 'Z');
+    if (isNaN(d)) return null;
+  }
+  try {
+    return d.toLocaleString('de-DE', { timeZone: 'Europe/Berlin', weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  } catch (e) {
+    return null;
+  }
 }
 
 // Hero als Single Source für Anzeige-Preise (nur deal-Produkte):
@@ -1583,4 +1602,4 @@ async function initialize() {
   }
 }
 
-module.exports = { query, get, all, run, pool, initialize, syncDealPricesFromSlide };
+module.exports = { query, get, all, run, pool, initialize, syncDealPricesFromSlide, formatWishDisplay };

@@ -118,6 +118,7 @@ router.get('/bestellungen', requireOwner, async (req, res) => {
   const rate = commissionRate(res.locals.settings);
   const orders = await db.all('SELECT * FROM orders WHERE created_at::date = $1 ORDER BY created_at DESC', [datum]);
   orders.forEach(parseItems);
+  orders.forEach(o => { o.wish_display = db.formatWishDisplay(o.wish_time); });
   const received = orders.length;
   const deleted = orders.filter(o => o.is_deleted).length;
   const revenue = orders.filter(o => o.order_status !== 'storniert').reduce((s, o) => s + parseFloat(o.total || 0), 0);

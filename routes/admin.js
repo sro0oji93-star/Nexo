@@ -180,6 +180,7 @@ router.get('/bestellungen', auth, async (req, res) => {
   }
   const dayCount = orders.length;
   const dayRevenue = orders.filter(o => o.order_status !== 'storniert').reduce((s, o) => s + parseFloat(o.total || 0), 0);
+  orders.forEach(o => { o.wish_display = db.formatWishDisplay(o.wish_time); });
   res.render('admin/orders', { title: 'Bestellungen – Admin', orders, currentStatus: status, datum, dayCount, dayRevenue });
 });
 
@@ -200,7 +201,7 @@ router.get('/api/neue-bestellungen', auth, async (req, res) => {
     const orders = rows.map(o => {
       let items = [];
       try { items = JSON.parse(o.items); } catch (e) { items = []; }
-      return { ...o, items };
+      return { ...o, items, wish_display: db.formatWishDisplay(o.wish_time) };
     });
     const maxIdRow = await db.get('SELECT COALESCE(MAX(id), 0) as max_id FROM orders');
     res.json({ success: true, orders, max_id: maxIdRow ? maxIdRow.max_id : lastId });
@@ -226,6 +227,7 @@ router.get('/bestellungen/:id/bon', auth, async (req, res) => {
   const order = await db.get('SELECT * FROM orders WHERE id = $1 AND COALESCE(is_deleted,0) = 0', [req.params.id]);
   if (!order) return res.status(404).send('Bestellung nicht gefunden');
   try { order.items = JSON.parse(order.items); } catch (e) { order.items = []; }
+  order.wish_display = db.formatWishDisplay(order.wish_time);
   const settings = res.locals.settings;
   res.render('admin/bon', { order, settings });
 });
@@ -234,6 +236,7 @@ router.get('/bestellungen/:id', auth, async (req, res) => {
   const order = await db.get('SELECT * FROM orders WHERE id = $1 AND COALESCE(is_deleted,0) = 0', [req.params.id]);
   if (!order) return res.status(404).send('Bestellung nicht gefunden');
   order.items = JSON.parse(order.items);
+  order.wish_display = db.formatWishDisplay(order.wish_time);
   const settings = res.locals.settings;
   res.render('admin/order-detail', { title: 'Bestellung ' + order.order_number, order, settings });
 });

@@ -480,6 +480,7 @@ router.post('/rabatt-pruefen', async (req, res) => {
 router.get('/bestellung/:orderNumber', async (req, res) => {
   const order = await db.get('SELECT * FROM orders WHERE order_number = $1', [req.params.orderNumber]);
   if (!order) return res.status(404).render('404', { title: 'Bestellung nicht gefunden' });
+  order.wish_display = db.formatWishDisplay(order.wish_time);
   
   const settings = res.locals.settings;
   

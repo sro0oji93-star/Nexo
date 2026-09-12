@@ -45,11 +45,11 @@
           <strong><%= order.payment_method === 'bar' ? 'Barzahlung' : (order.payment_method === 'karte' ? 'Kartenzahlung' : 'Online-Zahlung') %></strong>
         </div>
       </div>
-      <% if (order.wish_time) { %>
+      <% if (order.wish_display) { %>
       <div class="delivery-time-box" style="border-color:#15803d">
         <i class="fas fa-calendar-check" style="color:#15803d"></i>
         <div>
-          <strong>Gewünschter Termin: <%= new Date(String(order.wish_time).replace(' ', 'T') + 'Z').toLocaleString('de-DE', { timeZone: 'Europe/Berlin', weekday: 'long', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) %> Uhr</strong>
+          <strong>Gewünschter Termin: <%= order.wish_display %> Uhr</strong>
           <span><%= order.order_type === 'abholung' ? 'Ihre Bestellung ist zum Wunschtermin fertig zur Abholung.' : 'Ihre Bestellung wird zum Wunschtermin heiß geliefert.' %></span>
         </div>
       </div>
