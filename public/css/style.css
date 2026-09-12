@@ -219,8 +219,8 @@ img{max-width:100%}
 .cart-item-total{font-size:16px;font-weight:700;color:var(--primary, var(--primary));min-width:70px;text-align:right}
 .cart-item-remove{background:none;border:none;color:#999;cursor:pointer;padding:8px;transition:.3s;font-size:16px}
 .cart-item-remove:hover{color:var(--primary, var(--primary))}
-.co-note-wrap{margin-top:8px;position:relative}
-.co-note-single{display:block;width:100%;height:42px;min-height:42px;padding:10px 14px;border:1.5px solid #e8e4de;border-radius:50px;font-size:13.5px;line-height:1.45;color:#232223;background:#fff;resize:none;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-family:inherit;transition:border-color .25s,box-shadow .25s,border-radius .25s,background .25s}
+.co-note-wrap{margin-top:8px;position:relative;flex:0 0 100%;width:100%;max-width:100%}
+.co-note-single{display:block;width:100%!important;max-width:100%;min-width:0;box-sizing:border-box;height:42px;min-height:42px;padding:10px 14px;border:1.5px solid #e8e4de;border-radius:50px;font-size:13.5px;line-height:1.45;color:#232223;background:#fff;resize:none;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-family:inherit;transition:border-color .25s,box-shadow .25s,border-radius .25s,background .25s}
 .co-note-single::placeholder{color:#a8a29e}
 .co-note-single:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(212,175,55,.22);background:#fff}
 .co-note-single.open{min-height:66px;height:66px;border-radius:12px;white-space:pre-wrap;overflow:auto;resize:none}

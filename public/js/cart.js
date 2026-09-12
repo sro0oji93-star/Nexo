@@ -871,7 +871,7 @@ var Cart = (function() {
         + '</div>';
       return '<div class="cart-item">' +
         '<div class="cart-item-image"><i class="fas fa-utensils"></i></div>' +
-        '<div class="cart-item-info"><h4>' + nameHtml + '</h4>' + extrasHtml + noteHtml + '</div>' +
+        '<div class="cart-item-info"><h4>' + nameHtml + '</h4>' + extrasHtml + '</div>' +
         '<div class="cart-item-qty">' +
           '<button onclick="Cart.updateQty(\'' + item._key + '\', ' + (item.qty - 1) + ')">−</button>' +
           '<span>' + item.qty + '</span>' +
@@ -879,6 +879,7 @@ var Cart = (function() {
         '</div>' +
         '<div class="cart-item-total">' + formatEUR(item.price * item.qty) + '</div>' +
         '<button class="cart-item-remove" onclick="Cart.removeItem(\'' + item._key + '\')"><i class="fas fa-times"></i></button>' +
+        noteHtml +
       '</div>';
     }).join('');
 
