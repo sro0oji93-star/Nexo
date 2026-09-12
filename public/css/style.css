@@ -219,14 +219,13 @@ img{max-width:100%}
 .cart-item-total{font-size:16px;font-weight:700;color:var(--primary, var(--primary));min-width:70px;text-align:right}
 .cart-item-remove{background:none;border:none;color:#999;cursor:pointer;padding:8px;transition:.3s;font-size:16px}
 .cart-item-remove:hover{color:var(--primary, var(--primary))}
-.co-note-wrap{margin-top:8px}
-.co-note-toggle{border:1.5px solid #e8e4de;background:#fff;border-radius:50px;padding:5px 14px;font-size:12.5px;font-weight:600;color:#6b6b6b;cursor:pointer;transition:.25s}
-.co-note-toggle:hover{border-color:var(--primary);color:#232223}
-.co-note-toggle.open,.co-note-toggle.has-note{border-color:var(--primary);color:#232223;background:#fffdf7}
-.co-note[hidden]{display:none}
-.co-note{display:block;margin-top:8px;width:100%;min-height:56px;padding:10px 12px;border:1.5px solid #e8e4de;border-radius:10px;font-size:14px;line-height:1.45;color:#232223;background:#fffdf7;resize:vertical;font-family:inherit}
-.co-note::placeholder{color:#a8a29e}
-.co-note:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(212,175,55,.22);background:#fff}
+.co-note-wrap{margin-top:8px;position:relative}
+.co-note-single{display:block;width:100%;height:42px;min-height:42px;padding:10px 14px;border:1.5px solid #e8e4de;border-radius:50px;font-size:13.5px;line-height:1.45;color:#232223;background:#fff;resize:none;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-family:inherit;transition:border-color .25s,box-shadow .25s,border-radius .25s,background .25s}
+.co-note-single::placeholder{color:#a8a29e}
+.co-note-single:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(212,175,55,.22);background:#fff}
+.co-note-single.open{min-height:66px;border-radius:12px;white-space:pre-wrap;overflow:auto;resize:vertical}
+.co-note-wrap.has-note .co-note-single{border-color:var(--primary);background:#fffdf7;padding-right:34px}
+.co-note-wrap.has-note::after{content:'✓';position:absolute;right:14px;top:10px;color:#b8912a;font-weight:900;font-size:14px;pointer-events:none}
 .cart-summary{background:#fff;border-radius:12px;padding:30px;position:sticky;top:100px;border:1px solid #e8e4de;box-shadow:0 2px 20px rgba(0,0,0,.06)}
 .cart-summary h3{font-family:'Josefin Sans',sans-serif;font-size:20px;color:#232223;margin-bottom:20px}
 .summary-row{display:flex;justify-content:space-between;padding:8px 0;font-size:14px;color:#6b6b6b}
