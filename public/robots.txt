@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /eigentuemer
+Disallow: /bestellung/stripe-webhook
+
+Sitemap: https://www.nexofood.de/sitemap.xml

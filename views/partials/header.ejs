@@ -23,7 +23,10 @@
   <meta property="og:title" content="<%= typeof title !== 'undefined' ? title : 'Ammaya' %>">
   <meta property="og:description" content="<%= typeof settings !== 'undefined' && settings.site_description ? settings.site_description : 'Ammaya Restaurant' %>">
   <meta property="og:type" content="website">
+  <meta property="og:url" content="<%= (typeof site_url !== 'undefined' ? site_url : '') + (typeof currentUrl !== 'undefined' ? currentUrl : '/') %>">
+  <meta property="og:image" content="<%= (typeof site_url !== 'undefined' ? site_url : '') %>/images/spot-pizza.jpg">
   <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="<%= (typeof site_url !== 'undefined' ? site_url : '') %>/images/spot-pizza.jpg">
 <style>
 :root {
   --primary: <%= typeof settings !== 'undefined' && settings.primary_color ? settings.primary_color : '#d4af37' %>;

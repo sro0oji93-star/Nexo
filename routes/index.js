@@ -62,4 +62,24 @@ router.get('/agb', async (req, res) => {
   });
 });
 
+// Sitemap (SEO): statische Seiten + Kategorien + Produkte, immer aktuell aus der DB.
+// Nur lesend, keine Bilder/Uploads betroffen.
+router.get('/sitemap.xml', async (req, res) => {
+  try {
+    const base = (res.locals.site_url || ('https://' + req.get('host'))).replace(/\/$/, '');
+    const urls = ['/', '/speisekarte', '/kontakt', '/warenkorb', '/bestellung'];
+    const cats = await db.all('SELECT slug FROM categories WHERE active = 1 ORDER BY sort_order');
+    cats.forEach(c => urls.push('/speisekarte/kategorie/' + c.slug));
+    const prods = await db.all("SELECT slug FROM products WHERE is_available = 1 AND slug NOT IN ('deal-grosse-pizza-getraenke','deal-mix-match','deal-grosse-hamburger-getraenk','deal-night-abholung') GROUP BY slug");
+    prods.forEach(p => urls.push('/speisekarte/produkt/' + p.slug));
+    const today = new Date().toISOString().slice(0, 10);
+    res.type('application/xml');
+    res.send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+      + urls.map(u => '<url><loc>' + base + u + '</loc><lastmod>' + today + '</lastmod></url>').join('')
+      + '</urlset>');
+  } catch (e) {
+    res.status(500).type('text/plain').send('sitemap error');
+  }
+});
+
 module.exports = router;
