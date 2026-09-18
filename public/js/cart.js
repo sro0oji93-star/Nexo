@@ -892,7 +892,17 @@ var Cart = (function() {
       if (item.sauce) nameHtml += '<br><small style="color:#9c7c1a">+ Sauce: ' + escapeHtml(item.sauce) + '</small>';
       if (item.sauces && item.sauces.length) nameHtml += '<br><small style="color:#9c7c1a">+ Saucen: ' + escapeHtml(item.sauces.join(', ')) + '</small>';
       if (item.chocos && item.chocos.length) nameHtml += '<br><small style="color:#9c7c1a">+ Schoko: ' + escapeHtml(item.chocos.join(', ')) + '</small>';
-      if (item.box) nameHtml += '<br><small style="color:#9c7c1a">' + escapeHtml(boxLines(item.box).join(' · ')) + '</small>';
+      // Box-Details: mobil volle Zeile mit unzerbrechlichen Stücken (gold, keine Badges),
+      // Desktop klassisch in der Info-Spalte.
+      var boxHtml = '';
+      var boxDesktop = '';
+      if (item.box) {
+        boxHtml = '<div style="flex:0 0 100%;width:100%;margin-top:4px;font-size:12.5px;color:#9c7c1a;font-weight:600">'
+          + boxLines(item.box).map(function(l) { return '<span style="display:inline-block;white-space:nowrap;">' + escapeHtml(l) + '</span>'; }).join('<span> · </span>')
+          + '</div>';
+        boxDesktop = '<br><small style="color:#9c7c1a">' + escapeHtml(boxLines(item.box).join(' · ')) + '</small>';
+      }
+      if (item.box) { /* Box steht in eigener Zeile (boxHtml mobil / boxDesktop Desktop) */ }
       if (item.deal) nameHtml += '<br><small style="color:#9c7c1a">' + escapeHtml(dealLines(item.deal).join(' · ')) + '</small>';
       if (item.pasta) nameHtml += '<br><small style="color:#9c7c1a">' + escapeHtml(pastaLines(item.pasta).join(' · ')) + '</small>';
       var extrasHtml = '';
@@ -913,7 +923,7 @@ var Cart = (function() {
       var isMobileLayout = !!(window.matchMedia && window.matchMedia('(max-width: 768px)').matches);
       return '<div class="cart-item">' +
         '<div class="cart-item-image"><i class="fas fa-utensils"></i></div>' +
-        '<div class="cart-item-info"><h4>' + nameHtml + '</h4>' + (isMobileLayout ? '' : extrasHtml + noteHtml) + '</div>' +
+        '<div class="cart-item-info"><h4>' + nameHtml + '</h4>' + (isMobileLayout ? '' : boxDesktop + extrasHtml + noteHtml) + '</div>' +
         '<div class="cart-item-qty">' +
           '<button onclick="Cart.updateQty(\'' + item._key + '\', ' + (item.qty - 1) + ')">−</button>' +
           '<span>' + item.qty + '</span>' +
@@ -921,7 +931,7 @@ var Cart = (function() {
         '</div>' +
         '<div class="cart-item-total">' + formatEUR(item.price * item.qty) + '</div>' +
         '<button class="cart-item-remove" onclick="Cart.removeItem(\'' + item._key + '\')"><i class="fas fa-times"></i></button>' +
-        (isMobileLayout ? extrasHtml + noteHtml : '') +
+        (isMobileLayout ? boxHtml + extrasHtml + noteHtml : '') +
       '</div>';
     }).join('');
 
