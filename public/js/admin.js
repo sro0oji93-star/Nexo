@@ -12,9 +12,10 @@ var CHOICE_PRESETS = {
   dressings: ['Knoblauch', 'Hausdressing', 'Yoghurt', 'American', 'Kräuter'],
   beilagen: ['Reis', 'Pommes'],
   drinks: ['Coca-Cola', 'Fanta', 'Sprite', 'Mezzo Mix', 'Coca-Cola Zero'],
-  stk612: ['6 Stk.', '12 Stk.']
+  stk612: ['6 Stk.', '12 Stk.'],
+  pizza: ['26 cm', '30 cm', 'Familien Pizza', 'Party 60x40']
 };
-var CHOICE_PREFIX = { sauces: 'Sauce: ', dressings: 'Dressing: ', beilagen: 'Beilage: ', drinks: 'Menü mit ', stk612: '' };
+var CHOICE_PREFIX = { sauces: 'Sauce: ', dressings: 'Dressing: ', beilagen: 'Beilage: ', drinks: 'Menü mit ', stk612: '', pizza: '' };
 function fillPreset(kind, builderId) {
   var builder = document.getElementById(builderId);
   var form = builder.closest('form');
@@ -30,6 +31,7 @@ function fillPreset(kind, builderId) {
     var price = base;
     if (kind === 'drinks') price = parseFloat((base + 5).toFixed(2));
     if (kind === 'stk612' && idx === 1) price = parseFloat((base + 4).toFixed(2));
+    // Pizza: Labels exakt (Extras-Preise hängen daran), Preise bitte prüfen/anpassen
     addSizeRow(rows, CHOICE_PREFIX[kind] + nm, price);
   });
 }
