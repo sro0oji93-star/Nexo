@@ -100,6 +100,10 @@
       <% if (cat.description) { %>
       <p class="align-center" style="color:#7a7879;font-size:1.05rem;max-width:700px;margin:0 auto 10px auto"><%= cat.description %></p>
       <% } %>
+      <% var isLazyShell = (typeof lazyMode !== 'undefined' && lazyMode) && (typeof firstCategory !== 'undefined' && cat.slug !== firstCategory); %>
+      <% if (isLazyShell) { %>
+      <div class="content-element-7"><div class="lazy-section" data-url="/speisekarte/kategorie/<%= cat.slug %>" data-slug="<%= cat.slug %>"><p class="align-center" style="color:#7a7879;font-size:1rem;padding:26px 0">lädt…</p></div></div>
+      <% } else { %>
       <div class="content-element-7">
         <% if (catProducts.length === 0) { %>
         <p class="align-center" style="color:#7a7879;font-size:1.1rem;padding:20px 0">Bald verfügbar</p>
@@ -228,6 +232,7 @@
           </div>
         <% } %>
       </div>
+      <% } %>
     </div>
   </div>
   <% }); %>
@@ -268,7 +273,8 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 </script>
 <script>
-document.querySelectorAll('.size-picker').forEach(function(picker) {
+// Größen-Picker anmalen – global, damit auch nachgeladene (Lazy-Tabs) Picker gleich aussehen.
+window.paintMenuPicker = function(picker) {
   function paintSelected(label) {
     label.style.borderColor = 'var(--primary)';
     label.style.background = '#2a230f';
@@ -281,6 +287,8 @@ document.querySelectorAll('.size-picker').forEach(function(picker) {
     l.style.boxShadow = '0 1px 4px rgba(0,0,0,0.4)';
     delete l.dataset.selected;
   }
+  if (picker.dataset.painted === '1') return;
+  picker.dataset.painted = '1';
   var first = picker.querySelector('input[type="radio"]');
   if (first) {
     var label = first.closest('.size-option');
@@ -302,7 +310,8 @@ document.querySelectorAll('.size-picker').forEach(function(picker) {
       if (!this.dataset.selected) { this.style.borderColor = '#3a3a41'; }
     });
   });
-});
+};
+document.querySelectorAll('.size-picker').forEach(function(picker) { window.paintMenuPicker(picker); });
 </script>
 <script>
 // Instant-Tabs (nur Hauptseite mit allen Kategorien): Klick blendet um ohne Reload.
@@ -329,6 +338,52 @@ document.querySelectorAll('.size-picker').forEach(function(picker) {
     var el = document.getElementById('produkte');
     if (el) el.scrollIntoView({ block: 'start' });
   }
+  // Lazy: Kategorie-Inhalt einmalig nachladen (Hauptseite rendert nur 1. Kategorie).
+  function afterInject(sec) {
+    sec.querySelectorAll('.size-picker').forEach(function(p) {
+      if (window.paintMenuPicker) window.paintMenuPicker(p);
+    });
+    if (window.refreshPizzaExtras) window.refreshPizzaExtras();
+    if (window.refreshInjectedMenu) window.refreshInjectedMenu(sec);
+  }
+  function ensureLoaded(slug, done) {
+    if (!slug) { done && done(); return; }
+    var sec = document.querySelector('.mad-section[data-category="' + slug + '"]');
+    if (!sec) { done && done(); return; }
+    if (sec.getAttribute('data-loaded') === '1') { done && done(); return; }
+    var shell = sec.querySelector('.lazy-section');
+    if (!shell) { sec.setAttribute('data-loaded', '1'); done && done(); return; }
+    if (shell.getAttribute('data-loading') === '1') {
+      var iv = setInterval(function() {
+        if (sec.getAttribute('data-loaded') === '1') { clearInterval(iv); done && done(); }
+      }, 200);
+      return;
+    }
+    shell.setAttribute('data-loading', '1');
+    fetch(shell.getAttribute('data-url'), { headers: { 'X-Requested-With': 'fetch' } })
+      .then(function(r) { return r.text(); })
+      .then(function(html) {
+        var doc = new DOMParser().parseFromString(html, 'text/html');
+        var src = doc.querySelector('.mad-section[data-category="' + slug + '"] .content-element-7');
+        if (src) {
+          var host = shell.closest('.content-element-7') || shell.parentNode;
+          host.innerHTML = src.innerHTML;
+          sec.setAttribute('data-loaded', '1');
+          afterInject(sec);
+        } else {
+          shell.innerHTML = '<p class="align-center" style="color:#7a7879;padding:20px 0">Konnte nicht geladen werden – <a href="' + shell.getAttribute('data-url') + '">direkt öffnen</a></p>';
+        }
+        done && done();
+      })
+      .catch(function() {
+        shell.innerHTML = '<p class="align-center" style="color:#7a7879;padding:20px 0">Konnte nicht geladen werden – <a href="' + shell.getAttribute('data-url') + '">direkt öffnen</a></p>';
+        done && done();
+      });
+  }
+  // Erste Kategorie ist schon da (Server), Rest steht auf data-loaded.
+  sections.forEach(function(s) {
+    if (!s.querySelector('.lazy-section')) s.setAttribute('data-loaded', '1');
+  });
   btns.forEach(function(b) {
     b.addEventListener('click', function(e) {
       e.preventDefault();
@@ -337,6 +392,10 @@ document.querySelectorAll('.size-picker').forEach(function(picker) {
       setActive(slug, true);
       // Direkt springen (kein smooth: Layout verschiebt sich beim Nachladen der Bilder noch).
       anchorProdukte();
+      ensureLoaded(slug, function() {
+        // Nach Laden erneut verankern, falls Tab noch aktiv.
+        if (currentTab === slug) anchorProdukte();
+      });
       // Nach Layout-Shift (lazy Bilder) erneut verankern, falls Tab noch aktiv.
       setTimeout(function() {
         if (currentTab === slug) anchorProdukte();
@@ -347,7 +406,7 @@ document.querySelectorAll('.size-picker').forEach(function(picker) {
   if (h && h !== 'alle') {
     var exists = false;
     sections.forEach(function(s) { if (s.getAttribute('data-category') === h) exists = true; });
-    if (exists) setActive(h, false);
+    if (exists) { setActive(h, false); currentTab = h; ensureLoaded(h); }
   }
 })();
 </script>

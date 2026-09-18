@@ -40,13 +40,17 @@ async function loadDealLists() {
 }
 
 router.get('/', async (req, res) => {
-  // Unabhängige Queries parallel – statt 4 Roundtrips nacheinander nur noch einer.
-  const [categories, products, boxLists, dealLists] = await Promise.all([
+  // Hauptseite bewusst schlank: nur Kategorien + ERSTE Kategorie voll rendern.
+  // Restliche Kategorien lädt der Browser bei Klick (Instant-Tabs) – sonst 1,3 MB / 5 s.
+  const [categories, boxLists, dealLists] = await Promise.all([
     db.all('SELECT * FROM categories WHERE active = 1 ORDER BY sort_order'),
-    db.all("SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id IN (SELECT MIN(id) FROM products GROUP BY name) AND p.slug NOT IN ('deal-grosse-pizza-getraenke','deal-mix-match','deal-grosse-hamburger-getraenk','deal-night-abholung') ORDER BY c.sort_order, p.sort_order"),
     loadBoxLists(),
     loadDealLists()
   ]);
+  const firstCat = categories[0] || null;
+  const products = firstCat
+    ? await db.all("SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id IN (SELECT MIN(id) FROM products WHERE category_id = $1 GROUP BY name) AND p.slug NOT IN ('deal-grosse-pizza-getraenke','deal-mix-match','deal-grosse-hamburger-getraenk','deal-night-abholung') ORDER BY p.sort_order", [firstCat.id])
+    : [];
   const settings = res.locals.settings;
   attachBoxGroups(products, boxLists);
   swapProductImages(products); // Data-URIs -> /produkt-bild/:id (kleines HTML, Cache)
@@ -57,6 +61,8 @@ router.get('/', async (req, res) => {
     products,
     settings,
     activeCategory: null,
+    lazyMode: true,
+    firstCategory: firstCat ? firstCat.slug : null,
     pizzaExtras,
     dealLists
   });

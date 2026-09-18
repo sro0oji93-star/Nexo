@@ -585,6 +585,13 @@ var Cart = (function() {
     document.querySelectorAll('.add-to-cart[data-has-sizes], .add-to-cart[data-has-snacks-menue], .add-to-cart[data-has-sauce]').forEach(function(b) { refreshLiveBtn(b); });
   }
 
+  // Für nachgeladene Menü-Inhalte (Lazy-Tabs): Button-Preise initial auffrischen
+  window.refreshInjectedMenu = function(root) {
+    if (!root || !root.querySelectorAll) return;
+    root.querySelectorAll('.add-to-cart[data-has-sizes], .add-to-cart[data-has-snacks-menue], .add-to-cart[data-has-sauce]').forEach(function(b) { refreshLiveBtn(b); });
+    root.querySelectorAll('.menue-box').forEach(function(b) { refreshBurgerButton(b); });
+  };
+
   function bindAddToCart() {
     document.addEventListener('click', function(e) {
       var btn = e.target.closest('.add-to-cart');
