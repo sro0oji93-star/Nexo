@@ -14,9 +14,9 @@
 <div class="mad-content no-pd" id="produkte" style="scroll-margin-top:90px">
   <div class="container">
     <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:30px 0 10px 0">
-      <a href="/speisekarte" data-cat="" class="cat-tab btn btn-small <%= !activeCategory ? 'btn-style-3' : 'btn-outline' %>">Alle</a>
+      <a href="/speisekarte" class="btn btn-small <%= !activeCategory ? 'btn-style-3' : 'btn-outline' %>">Alle</a>
       <% categories.forEach(function(cat) { %>
-      <a href="/speisekarte/kategorie/<%= cat.slug %>" data-cat="<%= cat.slug %>" class="cat-tab btn btn-small <%= activeCategory === cat.slug ? 'btn-style-3' : 'btn-outline' %>"><%= cat.name %></a>
+      <a href="/speisekarte/kategorie/<%= cat.slug %>" class="btn btn-small <%= activeCategory === cat.slug ? 'btn-style-3' : 'btn-outline' %>"><%= cat.name %></a>
       <% }); %>
     </div>
   </div>
@@ -94,16 +94,12 @@
   <% categories.forEach(function(cat, ci) { %>
   <% if (activeCategory && activeCategory !== cat.slug) return; %>
   <% var catProducts = products.filter(function(p) { return p.category_id === cat.id; }); %>
-  <div class="mad-section" id="kat-<%= cat.slug %>" data-category="<%= cat.slug %>">
+  <div class="mad-section">
     <div class="container">
       <h2 class="mad-page-title align-center"><%= cat.name %></h2>
       <% if (cat.description) { %>
       <p class="align-center" style="color:#7a7879;font-size:1.05rem;max-width:700px;margin:0 auto 10px auto"><%= cat.description %></p>
       <% } %>
-      <% var isLazyShell = (typeof lazyMode !== 'undefined' && lazyMode) && (typeof firstCategory !== 'undefined' && cat.slug !== firstCategory); %>
-      <% if (isLazyShell) { %>
-      <div class="content-element-7"><div class="lazy-section" data-url="/speisekarte/kategorie/<%= cat.slug %>" data-slug="<%= cat.slug %>"><p class="align-center" style="color:#7a7879;font-size:1rem;padding:26px 0">lädt…</p></div></div>
-      <% } else { %>
       <div class="content-element-7">
         <% if (catProducts.length === 0) { %>
         <p class="align-center" style="color:#7a7879;font-size:1.1rem;padding:20px 0">Bald verfügbar</p>
@@ -232,7 +228,6 @@
           </div>
         <% } %>
       </div>
-      <% } %>
     </div>
   </div>
   <% }); %>
@@ -273,8 +268,7 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 </script>
 <script>
-// Größen-Picker anmalen – global, damit auch nachgeladene (Lazy-Tabs) Picker gleich aussehen.
-window.paintMenuPicker = function(picker) {
+document.querySelectorAll('.size-picker').forEach(function(picker) {
   function paintSelected(label) {
     label.style.borderColor = 'var(--primary)';
     label.style.background = '#2a230f';
@@ -287,8 +281,6 @@ window.paintMenuPicker = function(picker) {
     l.style.boxShadow = '0 1px 4px rgba(0,0,0,0.4)';
     delete l.dataset.selected;
   }
-  if (picker.dataset.painted === '1') return;
-  picker.dataset.painted = '1';
   var first = picker.querySelector('input[type="radio"]');
   if (first) {
     var label = first.closest('.size-option');
@@ -310,158 +302,6 @@ window.paintMenuPicker = function(picker) {
       if (!this.dataset.selected) { this.style.borderColor = '#3a3a41'; }
     });
   });
-};
-document.querySelectorAll('.size-picker').forEach(function(picker) { window.paintMenuPicker(picker); });
-</script>
-<script>
-// Instant-Tabs (nur Hauptseite mit allen Kategorien): Klick blendet um ohne Reload.
-// Fallback: ohne JS funktionieren die Links normal weiter (Server-Seiten für Google/Share bleiben).
-(function() {
-  var btns = document.querySelectorAll('.cat-tab');
-  var sections = document.querySelectorAll('.mad-section[data-category]');
-  if (!btns.length || sections.length < 2) return;
-  function setActive(slug, push) {
-    sections.forEach(function(s) {
-      s.style.display = (!slug || s.getAttribute('data-category') === slug) ? '' : 'none';
-    });
-    btns.forEach(function(b) {
-      var on = (b.getAttribute('data-cat') || '') === (slug || '');
-      b.classList.toggle('btn-style-3', on);
-      b.classList.toggle('btn-outline', !on);
-    });
-    if (push) {
-      try { history.replaceState(null, '', '#kat-' + (slug || 'alle')); } catch (e) {}
-    }
-  }
-  var currentTab = null;
-  function anchorProdukte() {
-    var el = document.getElementById('produkte');
-    if (el) el.scrollIntoView({ block: 'start' });
-  }
-  // Lazy: Kategorie-Inhalt einmalig nachladen (Hauptseite rendert nur 1. Kategorie).
-  function afterInject(sec) {
-    sec.querySelectorAll('.size-picker').forEach(function(p) {
-      if (window.paintMenuPicker) window.paintMenuPicker(p);
-    });
-    if (window.refreshPizzaExtras) window.refreshPizzaExtras();
-    if (window.refreshInjectedMenu) window.refreshInjectedMenu(sec);
-  }
-  function ensureLoaded(slug, done) {
-    if (!slug) { done && done(); return; }
-    var sec = document.querySelector('.mad-section[data-category="' + slug + '"]');
-    if (!sec) { done && done(); return; }
-    if (sec.getAttribute('data-loaded') === '1') { done && done(); return; }
-    var shell = sec.querySelector('.lazy-section');
-    if (!shell) { sec.setAttribute('data-loaded', '1'); done && done(); return; }
-    if (shell.getAttribute('data-loading') === '1') {
-      var iv = setInterval(function() {
-        if (sec.getAttribute('data-loaded') === '1') { clearInterval(iv); done && done(); }
-      }, 200);
-      return;
-    }
-    shell.setAttribute('data-loading', '1');
-    var failed = false;
-    var failTimer = null;
-    function armTimer() {
-      if (failTimer) clearTimeout(failTimer);
-      failTimer = setTimeout(function() { failed = true; showLoadError(); }, 12000);
-    }
-    function showLoadError() {
-      shell.removeAttribute('data-loading');
-      shell.innerHTML = '<div class="align-center" style="padding:26px 10px">'
-        + '<p style="color:#7a7879;margin-bottom:12px">Konnte nicht geladen werden.</p>'
-        + '<button type="button" class="btn btn-small btn-style-3" data-retry-for="' + slug + '">Erneut laden</button> '
-        + '<a class="btn btn-small btn-outline" href="' + shell.getAttribute('data-url') + '">Direkt öffnen</a></div>';
-    }
-    function doFetch() {
-      failed = false;
-      armTimer();
-      fetch(shell.getAttribute('data-url'), { headers: { 'X-Requested-With': 'fetch' } })
-        .then(function(r) { return r.text(); })
-        .then(function(html) {
-          if (failed) return;
-          if (failTimer) clearTimeout(failTimer);
-          var doc = new DOMParser().parseFromString(html, 'text/html');
-          var src = doc.querySelector('.mad-section[data-category="' + slug + '"] .content-element-7');
-          if (src) {
-            var host = shell.closest('.content-element-7') || shell.parentNode;
-            host.innerHTML = src.innerHTML;
-            sec.setAttribute('data-loaded', '1');
-            afterInject(sec);
-          } else {
-            showLoadError();
-          }
-          done && done();
-        })
-        .catch(function() {
-          if (failTimer) clearTimeout(failTimer);
-          if (!failed) showLoadError();
-          done && done();
-        });
-    }
-    document.addEventListener('click', function retryHandler(e) {
-      var rb = e.target && e.target.closest ? e.target.closest('[data-retry-for="' + slug + '"]') : null;
-      if (!rb) return;
-      shell.setAttribute('data-loading', '1');
-      shell.innerHTML = '<p class="align-center" style="color:#7a7879;font-size:1rem;padding:26px 0">lädt…</p>';
-      doFetch();
-    });
-    doFetch();
-  }
-  // Alle: sichtbare/bevorstehende Lazy-Sektionen automatisch nachladen (IntersectionObserver).
-  var lazyObserver = null;
-  function observeLazy() {
-    var shells = document.querySelectorAll('.lazy-section');
-    if (!shells.length) return;
-    if (!('IntersectionObserver' in window)) {
-      shells.forEach(function(sh) {
-        var sc = sh.closest('.mad-section');
-        if (sc && sc.getAttribute('data-loaded') !== '1') ensureLoaded(sh.getAttribute('data-slug'));
-      });
-      return;
-    }
-    if (!lazyObserver) {
-      lazyObserver = new IntersectionObserver(function(entries) {
-        entries.forEach(function(en) {
-          if (en.isIntersecting) {
-            var sh = en.target;
-            lazyObserver.unobserve(sh);
-            ensureLoaded(sh.getAttribute('data-slug'));
-          }
-        });
-      }, { rootMargin: '500px 0px' });
-    }
-    shells.forEach(function(sh) {
-      var sc = sh.closest('.mad-section');
-      if (sc && sc.getAttribute('data-loaded') !== '1' && sh.getAttribute('data-loading') !== '1') lazyObserver.observe(sh);
-    });
-  }
-  observeLazy();
-  btns.forEach(function(b) {
-    b.addEventListener('click', function(e) {
-      e.preventDefault();
-      var slug = b.getAttribute('data-cat') || '';
-      currentTab = slug;
-      setActive(slug, true);
-      // Direkt springen (kein smooth: Layout verschiebt sich beim Nachladen der Bilder noch).
-      anchorProdukte();
-      if (!slug) observeLazy();
-      ensureLoaded(slug, function() {
-        // Nach Laden erneut verankern, falls Tab noch aktiv.
-        if (currentTab === slug) anchorProdukte();
-      });
-      // Nach Layout-Shift (lazy Bilder) erneut verankern, falls Tab noch aktiv.
-      setTimeout(function() {
-        if (currentTab === slug) anchorProdukte();
-      }, 350);
-    });
-  });
-  var h = (location.hash || '').replace('#kat-', '');
-  if (h && h !== 'alle') {
-    var exists = false;
-    sections.forEach(function(s) { if (s.getAttribute('data-category') === h) exists = true; });
-    if (exists) { setActive(h, false); currentTab = h; ensureLoaded(h); }
-  }
-})();
+});
 </script>
 <%- include('partials/footer') %>
