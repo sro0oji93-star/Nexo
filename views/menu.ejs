@@ -324,12 +324,23 @@ document.querySelectorAll('.size-picker').forEach(function(picker) {
       try { history.replaceState(null, '', '#kat-' + (slug || 'alle')); } catch (e) {}
     }
   }
+  var currentTab = null;
+  function anchorProdukte() {
+    var el = document.getElementById('produkte');
+    if (el) el.scrollIntoView({ block: 'start' });
+  }
   btns.forEach(function(b) {
     b.addEventListener('click', function(e) {
       e.preventDefault();
-      setActive(b.getAttribute('data-cat') || '', true);
-      var el = document.getElementById('produkte');
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      var slug = b.getAttribute('data-cat') || '';
+      currentTab = slug;
+      setActive(slug, true);
+      // Direkt springen (kein smooth: Layout verschiebt sich beim Nachladen der Bilder noch).
+      anchorProdukte();
+      // Nach Layout-Shift (lazy Bilder) erneut verankern, falls Tab noch aktiv.
+      setTimeout(function() {
+        if (currentTab === slug) anchorProdukte();
+      }, 350);
     });
   });
   var h = (location.hash || '').replace('#kat-', '');
