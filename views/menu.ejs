@@ -360,25 +360,53 @@ document.querySelectorAll('.size-picker').forEach(function(picker) { window.pain
       return;
     }
     shell.setAttribute('data-loading', '1');
-    fetch(shell.getAttribute('data-url'), { headers: { 'X-Requested-With': 'fetch' } })
-      .then(function(r) { return r.text(); })
-      .then(function(html) {
-        var doc = new DOMParser().parseFromString(html, 'text/html');
-        var src = doc.querySelector('.mad-section[data-category="' + slug + '"] .content-element-7');
-        if (src) {
-          var host = shell.closest('.content-element-7') || shell.parentNode;
-          host.innerHTML = src.innerHTML;
-          sec.setAttribute('data-loaded', '1');
-          afterInject(sec);
-        } else {
-          shell.innerHTML = '<p class="align-center" style="color:#7a7879;padding:20px 0">Konnte nicht geladen werden – <a href="' + shell.getAttribute('data-url') + '">direkt öffnen</a></p>';
-        }
-        done && done();
-      })
-      .catch(function() {
-        shell.innerHTML = '<p class="align-center" style="color:#7a7879;padding:20px 0">Konnte nicht geladen werden – <a href="' + shell.getAttribute('data-url') + '">direkt öffnen</a></p>';
-        done && done();
-      });
+    var failed = false;
+    var failTimer = null;
+    function armTimer() {
+      if (failTimer) clearTimeout(failTimer);
+      failTimer = setTimeout(function() { failed = true; showLoadError(); }, 12000);
+    }
+    function showLoadError() {
+      shell.removeAttribute('data-loading');
+      shell.innerHTML = '<div class="align-center" style="padding:26px 10px">'
+        + '<p style="color:#7a7879;margin-bottom:12px">Konnte nicht geladen werden.</p>'
+        + '<button type="button" class="btn btn-small btn-style-3" data-retry-for="' + slug + '">Erneut laden</button> '
+        + '<a class="btn btn-small btn-outline" href="' + shell.getAttribute('data-url') + '">Direkt öffnen</a></div>';
+    }
+    function doFetch() {
+      failed = false;
+      armTimer();
+      fetch(shell.getAttribute('data-url'), { headers: { 'X-Requested-With': 'fetch' } })
+        .then(function(r) { return r.text(); })
+        .then(function(html) {
+          if (failed) return;
+          if (failTimer) clearTimeout(failTimer);
+          var doc = new DOMParser().parseFromString(html, 'text/html');
+          var src = doc.querySelector('.mad-section[data-category="' + slug + '"] .content-element-7');
+          if (src) {
+            var host = shell.closest('.content-element-7') || shell.parentNode;
+            host.innerHTML = src.innerHTML;
+            sec.setAttribute('data-loaded', '1');
+            afterInject(sec);
+          } else {
+            showLoadError();
+          }
+          done && done();
+        })
+        .catch(function() {
+          if (failTimer) clearTimeout(failTimer);
+          if (!failed) showLoadError();
+          done && done();
+        });
+    }
+    document.addEventListener('click', function retryHandler(e) {
+      var rb = e.target && e.target.closest ? e.target.closest('[data-retry-for="' + slug + '"]') : null;
+      if (!rb) return;
+      shell.setAttribute('data-loading', '1');
+      shell.innerHTML = '<p class="align-center" style="color:#7a7879;font-size:1rem;padding:26px 0">lädt…</p>';
+      doFetch();
+    });
+    doFetch();
   }
   // Erste Kategorie ist schon da (Server), Rest steht auf data-loaded.
   sections.forEach(function(s) {
