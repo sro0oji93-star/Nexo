@@ -14,9 +14,9 @@
 <div class="mad-content no-pd" id="produkte" style="scroll-margin-top:90px">
   <div class="container">
     <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:30px 0 10px 0">
-      <a href="/speisekarte" class="btn btn-small <%= !activeCategory ? 'btn-style-3' : 'btn-outline' %>">Alle</a>
+      <a href="/speisekarte" data-cat="" class="cat-tab btn btn-small <%= !activeCategory ? 'btn-style-3' : 'btn-outline' %>">Alle</a>
       <% categories.forEach(function(cat) { %>
-      <a href="/speisekarte/kategorie/<%= cat.slug %>" class="btn btn-small <%= activeCategory === cat.slug ? 'btn-style-3' : 'btn-outline' %>"><%= cat.name %></a>
+      <a href="/speisekarte/kategorie/<%= cat.slug %>" data-cat="<%= cat.slug %>" class="cat-tab btn btn-small <%= activeCategory === cat.slug ? 'btn-style-3' : 'btn-outline' %>"><%= cat.name %></a>
       <% }); %>
     </div>
   </div>
@@ -94,7 +94,7 @@
   <% categories.forEach(function(cat, ci) { %>
   <% if (activeCategory && activeCategory !== cat.slug) return; %>
   <% var catProducts = products.filter(function(p) { return p.category_id === cat.id; }); %>
-  <div class="mad-section">
+  <div class="mad-section" id="kat-<%= cat.slug %>" data-category="<%= cat.slug %>">
     <div class="container">
       <h2 class="mad-page-title align-center"><%= cat.name %></h2>
       <% if (cat.description) { %>
@@ -303,5 +303,41 @@ document.querySelectorAll('.size-picker').forEach(function(picker) {
     });
   });
 });
+</script>
+<script>
+// Instant-Tabs (nur Hauptseite mit allen Kategorien): Klick blendet um ohne Reload.
+// Fallback: ohne JS funktionieren die Links normal weiter (Server-Seiten für Google/Share bleiben).
+(function() {
+  var btns = document.querySelectorAll('.cat-tab');
+  var sections = document.querySelectorAll('.mad-section[data-category]');
+  if (!btns.length || sections.length < 2) return;
+  function setActive(slug, push) {
+    sections.forEach(function(s) {
+      s.style.display = (!slug || s.getAttribute('data-category') === slug) ? '' : 'none';
+    });
+    btns.forEach(function(b) {
+      var on = (b.getAttribute('data-cat') || '') === (slug || '');
+      b.classList.toggle('btn-style-3', on);
+      b.classList.toggle('btn-outline', !on);
+    });
+    if (push) {
+      try { history.replaceState(null, '', '#kat-' + (slug || 'alle')); } catch (e) {}
+    }
+  }
+  btns.forEach(function(b) {
+    b.addEventListener('click', function(e) {
+      e.preventDefault();
+      setActive(b.getAttribute('data-cat') || '', true);
+      var el = document.getElementById('produkte');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+  var h = (location.hash || '').replace('#kat-', '');
+  if (h && h !== 'alle') {
+    var exists = false;
+    sections.forEach(function(s) { if (s.getAttribute('data-category') === h) exists = true; });
+    if (exists) setActive(h, false);
+  }
+})();
 </script>
 <%- include('partials/footer') %>
