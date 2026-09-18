@@ -408,10 +408,35 @@ document.querySelectorAll('.size-picker').forEach(function(picker) { window.pain
     });
     doFetch();
   }
-  // Erste Kategorie ist schon da (Server), Rest steht auf data-loaded.
-  sections.forEach(function(s) {
-    if (!s.querySelector('.lazy-section')) s.setAttribute('data-loaded', '1');
-  });
+  // Alle: sichtbare/bevorstehende Lazy-Sektionen automatisch nachladen (IntersectionObserver).
+  var lazyObserver = null;
+  function observeLazy() {
+    var shells = document.querySelectorAll('.lazy-section');
+    if (!shells.length) return;
+    if (!('IntersectionObserver' in window)) {
+      shells.forEach(function(sh) {
+        var sc = sh.closest('.mad-section');
+        if (sc && sc.getAttribute('data-loaded') !== '1') ensureLoaded(sh.getAttribute('data-slug'));
+      });
+      return;
+    }
+    if (!lazyObserver) {
+      lazyObserver = new IntersectionObserver(function(entries) {
+        entries.forEach(function(en) {
+          if (en.isIntersecting) {
+            var sh = en.target;
+            lazyObserver.unobserve(sh);
+            ensureLoaded(sh.getAttribute('data-slug'));
+          }
+        });
+      }, { rootMargin: '500px 0px' });
+    }
+    shells.forEach(function(sh) {
+      var sc = sh.closest('.mad-section');
+      if (sc && sc.getAttribute('data-loaded') !== '1' && sh.getAttribute('data-loading') !== '1') lazyObserver.observe(sh);
+    });
+  }
+  observeLazy();
   btns.forEach(function(b) {
     b.addEventListener('click', function(e) {
       e.preventDefault();
@@ -420,6 +445,7 @@ document.querySelectorAll('.size-picker').forEach(function(picker) { window.pain
       setActive(slug, true);
       // Direkt springen (kein smooth: Layout verschiebt sich beim Nachladen der Bilder noch).
       anchorProdukte();
+      if (!slug) observeLazy();
       ensureLoaded(slug, function() {
         // Nach Laden erneut verankern, falls Tab noch aktiv.
         if (currentTab === slug) anchorProdukte();
