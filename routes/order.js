@@ -22,6 +22,10 @@ const TIME_DEALS = {
   'deal-night-abholung': { from: 21 * 60, to: 24 * 60, message: 'Der Night Deal ist erst ab 21:00 Uhr bestellbar (nur Abholer).' }
 };
 
+// Wert des im Menü/Deal enthaltenen Softdrinks (0,33 l = 3,50 €). Dieser Anteil
+// unterliegt 19 % MwSt (Getränk), der Rest der Speisen 7 %.
+const BEVERAGE_19 = 3.50;
+
 // "YYYY-MM-DDTHH:MM" als Berlin-Wandzeit -> UTC-Millis (Client-Zeit kann manipuliert sein)
 function berlinToUtcMs(y, mo, d, h, mi) {
   const guess = Date.UTC(y, mo - 1, d, h, mi, 0);
@@ -213,6 +217,8 @@ router.post('/', async (req, res) => {
         return res.status(400).json({ success: false, message: rule.message });
       }
       let realPrice;
+      // Getränkeanteil im Menü/Deal (19 % MwSt) – wird pro Position gesetzt
+      let beveragePart = 0;
       // NEXO Box: Konfiguration serverseitig prüfen (alles inklusive, Preis fix)
       if (item.box && item.box.slug && BOX_SLUGS.includes(item.box.slug)) {
         const found = await db.get('SELECT id, price FROM products WHERE id = $1 AND slug = $2', [item.id, item.box.slug]);
@@ -244,6 +250,8 @@ router.post('/', async (req, res) => {
         }
         realPrice = parseFloat(found.price);
         item.extras = check.lines;
+        // Deal enthält ein Getränk 0,33 l -> 19 %-Anteil abtrennen (nur wenn Dealpreis den Wert deckt)
+        beveragePart = Math.min(BEVERAGE_19, realPrice);
         delete item.deal;
         delete item.size;
         delete item.menue;
@@ -267,14 +275,23 @@ router.post('/', async (req, res) => {
         } catch (e) {
           return res.status(400).json({ success: false, message: 'Ungültige Extras für: ' + item.name });
         }
-        // Snacks-Menü (+4 € mit Softdrink): nur für Snacks, Drink aus fester Liste
+        // Menü-Aufpreise mit Softdrink: Snacks (+4 €) und Burger (+5 €, per catsslug 'burger').
+        // Der Getränkanteil (0,33 l = 3,50 €) unterliegt 19 % MwSt, der Rest 7 %.
         if (item.menue && item.menue.drink) {
           const menueDrinks = ['Coca-Cola', 'Fanta', 'Sprite', 'Mezzo Mix', 'Coca-Cola Zero'];
-          if (product.catslug !== 'snacks' || !menueDrinks.includes(item.menue.drink)) {
+          const isSnacksMenue = product.catslug === 'snacks' && menueDrinks.includes(item.menue.drink);
+          // Burger-Menü: Client sendet { drink: true }; catsslug muss 'burger' sein
+          const isBurgerMenue = product.catslug === 'burger' && item.menue.drink === true;
+          if (!isSnacksMenue && !isBurgerMenue) {
             return res.status(400).json({ success: false, message: 'Ungültiges Menü für: ' + item.name });
           }
-          item.extras.push({ name: 'Menü mit ' + item.menue.drink, price: 4.00 });
-          realPrice = parseFloat((realPrice + 4).toFixed(2));
+          if (isSnacksMenue) {
+            item.extras.push({ name: 'Menü mit ' + item.menue.drink, price: 4.00 });
+            realPrice = parseFloat((realPrice + 4).toFixed(2));
+          } else {
+            item.extras.push({ name: 'Menü mit Pommes + Softdrink', price: 0 });
+          }
+          beveragePart = Math.min(BEVERAGE_19, realPrice);
           delete item.menue;
         } else {
           delete item.menue;
@@ -371,9 +388,14 @@ router.post('/', async (req, res) => {
       item.price = realPrice;
       item.qty = qty;
       calculatedSubtotal += realPrice * qty;
-      // MwSt-Basis je Satz sammeln (Getränke 19 %, alles andere inkl. Milkshakes 7 %)
-      if (product.catslug === 'getraenke') gross19 += realPrice * qty;
-      else gross7 += realPrice * qty;
+      // MwSt-Basis je Satz sammeln (Getränke 19 %, alles andere inkl. Milkshakes 7 %).
+      // beveragePart (z.B. 3,50 € Softdrink im Menü/Deal) zählt zu 19 %.
+      if (product.catslug === 'getraenke') {
+        gross19 += realPrice * qty;
+      } else {
+        gross19 += beveragePart * qty;
+        gross7 += (realPrice - beveragePart) * qty;
+      }
     }
     
     const settings = res.locals.settings;

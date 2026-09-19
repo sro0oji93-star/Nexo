@@ -644,7 +644,8 @@ var Cart = (function() {
         var drink = scope ? scope.querySelector('.menue-box input[type="radio"]:checked') : null;
         if (drink) {
           var msize = { label: drink.getAttribute('data-label'), price: parseFloat(drink.value) };
-          addItem(id, name, msize.price, qty, msize, [], pickupOnly);
+          // Menü enthält Softdrink -> Server trennt 19% MwSt für den Getränkanteil
+          addItem(id, name, msize.price, qty, msize, [], pickupOnly, { drink: true });
         } else {
           var basePrice = btn.getAttribute('data-price');
           addItem(id, name, basePrice, qty, null, [], pickupOnly);
