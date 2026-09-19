@@ -272,9 +272,9 @@ document.addEventListener('DOMContentLoaded', function(){
 <script>
 document.querySelectorAll('.size-picker').forEach(function(picker) {
   function paintSelected(label) {
-    label.style.borderColor = 'var(--primary)';
-    label.style.background = '#2a230f';
-    label.style.boxShadow = '0 0 0 3px rgba(212,175,55,0.25)';
+    label.style.borderColor = '#d4af37';
+    label.style.background = '#4a3a08';
+    label.style.boxShadow = '0 0 0 3px #d4af37, 0 0 16px rgba(212,175,55,.6)';
     label.dataset.selected = '1';
   }
   function paintPlain(l) {
