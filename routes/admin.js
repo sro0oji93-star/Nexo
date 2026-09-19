@@ -14,12 +14,12 @@ const csrfAfterUpload = (req, res, next) => {
 };
 
 const storage = multer.memoryStorage();
-const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 const fileFilter = (req, file, cb) => {
   if (allowedMimes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Nur Bilder (JPEG, PNG, GIF, WebP, SVG) sind erlaubt'), false);
+    cb(new Error('Nur Bilder (JPEG, PNG, GIF, WebP) sind erlaubt'), false);
   }
 };
 const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024, fieldSize: 10 * 1024 * 1024 }, fileFilter });

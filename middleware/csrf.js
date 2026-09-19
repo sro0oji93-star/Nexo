@@ -4,6 +4,12 @@ function generateToken() {
   return crypto.randomBytes(32).toString('hex');
 }
 
+// Konstanter Zeit-Vergleich (timing-safe), damit Token nicht schrittweise erraten werden können.
+function tokensMatch(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string' || !a || !b || a.length !== b.length) return false;
+  try { return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b)); } catch (e) { return false; }
+}
+
 function csrfProtection(req, res, next) {
   if (!req.session.csrfToken) {
     req.session.csrfToken = generateToken();
@@ -16,7 +22,7 @@ function csrfProtection(req, res, next) {
   }
 
   const token = req.body._csrf || req.headers['x-csrf-token'];
-  if (!token || token !== req.session.csrfToken) {
+  if (!tokensMatch(token, req.session.csrfToken)) {
     console.error('CSRF validation failed');
     if (req.xhr || req.headers['content-type'] === 'application/json') {
       return res.status(403).json({ success: false, message: 'Ungültige Anfrage (CSRF)' });
@@ -31,7 +37,7 @@ function csrfProtection(req, res, next) {
 // bei multipart/form-data erst dann gefüllt ist. Antwortet direkt bei Fehler.
 function verifyCsrf(req, res) {
   const token = req.body._csrf || req.headers['x-csrf-token'];
-  if (!token || token !== req.session.csrfToken) {
+  if (!tokensMatch(token, req.session.csrfToken)) {
     console.error('CSRF validation failed (multipart) for path:', req.originalUrl);
     if (req.xhr || (req.headers['content-type'] && req.headers['content-type'].includes('application/json'))) {
       res.status(403).json({ success: false, message: 'Ungültige Anfrage (CSRF)' });
@@ -43,4 +49,4 @@ function verifyCsrf(req, res) {
   return true;
 }
 
-module.exports = { csrfProtection, generateToken, verifyCsrf };
+module.exports = { csrfProtection, generateToken, verifyCsrf, tokensMatch };

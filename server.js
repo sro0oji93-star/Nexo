@@ -49,7 +49,24 @@ app.get('/ping', (req, res) => {
 });
 
 app.use(helmet({
-  contentSecurityPolicy: false,
+  contentSecurityPolicy: {
+    useDefaults: true,
+    directives: {
+      'default-src': ["'self'"],
+      'script-src': ["'self'", "'unsafe-inline'"],
+      'script-src-attr': ["'unsafe-inline'"],
+      'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://cdnjs.cloudflare.com'],
+      'font-src': ["'self'", 'data:', 'https://fonts.gstatic.com', 'https://cdnjs.cloudflare.com'],
+      'img-src': ["'self'", 'data:', 'https:'],
+      'connect-src': ["'self'", 'https://router.project-osrm.org', 'https://photon.komoot.io'],
+      'frame-src': ["'self'"],
+      'object-src': ["'none'"],
+      'base-uri': ["'self'"],
+      'form-action': ["'self'", 'https://checkout.stripe.com'],
+      'frame-ancestors': ["'self'"],
+      'upgrade-insecure-requests': []
+    }
+  },
   crossOriginEmbedderPolicy: false,
   crossOriginResourcePolicy: { policy: 'cross-origin' }
 }));
@@ -70,8 +87,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(session({
   store: new PgSession({ pool: db.pool, tableName: 'session', createTableIfMissing: true }),
   secret: process.env.SESSION_SECRET || require('crypto').randomBytes(64).toString('hex'),
-  resave: true,
-  saveUninitialized: true,
+  resave: false,
+  saveUninitialized: false,
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
@@ -100,7 +117,7 @@ const orderRoutes = require('./routes/order');
 const contactRoutes = require('./routes/contact');
 const adminRoutes = require('./routes/admin');
 const ownerRoutes = require('./routes/owner');
-const { csrfProtection, generateToken } = require('./middleware/csrf');
+const { csrfProtection, generateToken, tokensMatch } = require('./middleware/csrf');
 
 // CSRF-Schutz für ALLE Routen (inkl. admin/owner).
 // Ausnahmen:
@@ -144,7 +161,7 @@ app.use((req, res, next) => {
   }
 
   const token = req.body._csrf || req.headers['x-csrf-token'];
-  if (!token || token !== req.session.csrfToken) {
+  if (!tokensMatch(token, req.session.csrfToken)) {
     console.error('CSRF validation failed for path:', req.path);
     if (req.xhr || (req.headers['content-type'] && req.headers['content-type'].includes('application/json'))) {
       return res.status(403).json({ success: false, message: 'Ungültige Anfrage (CSRF)' });
