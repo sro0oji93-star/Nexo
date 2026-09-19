@@ -26,6 +26,18 @@ const orderLimiter = rateLimit({
   handler: (req, res) => res.status(429).json({ success: false, message: 'Zu viele Bestellungen – bitte später erneut versuchen.' })
 });
 
+// Spam-Schutz: max. 10 Kontaktnachrichten / Stunde je IP
+const contactLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    req.session.contactFlash = 'Zu viele Nachrichten – bitte versuchen Sie es später erneut.';
+    res.redirect('/kontakt');
+  }
+});
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -151,6 +163,7 @@ app.use('/speisekarte', menuRoutes);
 app.use('/warenkorb', cartRoutes);
 app.post('/bestellung', orderLimiter);
 app.use('/bestellung', orderRoutes);
+app.use('/kontakt', (req, res, next) => (req.method === 'POST' ? contactLimiter(req, res, next) : next()));
 app.use('/kontakt', contactRoutes);
 app.use('/admin/login', (req, res, next) => (req.method === 'POST' ? loginLimiter(req, res, next) : next()));
 app.use('/admin', adminRoutes);

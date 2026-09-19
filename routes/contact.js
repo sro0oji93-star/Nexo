@@ -18,7 +18,17 @@ router.post('/', async (req, res) => {
       req.session.contactFlash = 'Bitte füllen Sie alle Pflichtfelder aus.';
       return res.redirect('/kontakt');
     }
-    await db.run('INSERT INTO contact_messages (name, email, message) VALUES ($1, $2, $3)', [name, email, message]);
+    // Einfache E-Mail-Plausibilitätsprüfung (Zeichen, @, Domain mit Punkt)
+    const emailOk = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/.test(String(email).trim());
+    if (!emailOk) {
+      req.session.contactFlash = 'Bitte geben Sie eine gültige E-Mail-Adresse an.';
+      return res.redirect('/kontakt');
+    }
+    if (String(name).length > 100 || String(email).length > 150 || String(message).length > 5000) {
+      req.session.contactFlash = 'Ihre Nachricht ist zu lang. Bitte kürzen Sie die Eingabe.';
+      return res.redirect('/kontakt');
+    }
+    await db.run('INSERT INTO contact_messages (name, email, message) VALUES ($1, $2, $3)', [String(name).trim(), String(email).trim(), String(message).trim()]);
     req.session.contactFlash = 'Vielen Dank für Ihre Nachricht! Wir werden uns schnellstmöglich bei Ihnen melden.';
   } catch (err) {
     console.error('Fehler beim Speichern der Kontaktnachricht:', err);
