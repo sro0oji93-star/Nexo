@@ -91,12 +91,24 @@ const ownerRoutes = require('./routes/owner');
 const { csrfProtection, generateToken } = require('./middleware/csrf');
 
 // CSRF-Schutz für ALLE Routen (inkl. admin/owner).
-// Ausnahmen: Login/Setup (vor Session) und der Druck-Marker (unschädlicher POST aus dem Kiosk-JS).
-const CSRF_EXEMPT = [
+// Ausnahmen:
+//  - Login/Setup (vor Session) und Druck-Marker (unschädlicher POST aus dem Kiosk-JS)
+//  - Multipart-Routen (Bild-Upload): CSRF wird dort NACH multer geprüft (siehe verifyCsrf in admin.js),
+//    da req.body bei multipart/form-data erst nach multer gefüllt ist.
+const CSRF_EXEMPT_EXACT = [
   '/admin/login',
   '/eigentuemer/login',
   '/eigentuemer/setup',
-  '/admin/api/bestellungen'
+  '/admin/produkte',
+  '/admin/banner',
+  '/admin/testimonials',
+  '/admin/einstellungen/hero-slides'
+];
+const CSRF_EXEMPT_PREFIX = [
+  '/admin/api/bestellungen',            // Druck-Marker (Kiosk-POST ohne Token)
+  '/admin/produkte/bearbeiten/',        // multipart (Bild-Upload)
+  '/admin/testimonials/bearbeiten/',    // multipart (Bild-Upload)
+  '/admin/einstellungen/hero-slides/'   // multipart (Erstellen/Bearbeiten)
 ];
 app.use((req, res, next) => {
   if (!req.session.csrfToken) {
@@ -107,7 +119,10 @@ app.use((req, res, next) => {
   }
   res.locals.csrfToken = req.session.csrfToken;
 
-  if (CSRF_EXEMPT.some(p => req.path.startsWith(p))) {
+  if (req.method === 'POST' && CSRF_EXEMPT_EXACT.includes(req.path)) {
+    return next();
+  }
+  if (CSRF_EXEMPT_PREFIX.some(p => req.path.startsWith(p))) {
     return next();
   }
 

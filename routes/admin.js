@@ -6,6 +6,12 @@ const multer = require('multer');
 const slugify = require('slugify');
 const auth = require('../middleware/auth');
 const { optimizeUpload } = require('../image');
+const { verifyCsrf } = require('../middleware/csrf');
+
+// Middleware-Variante: prüft CSRF nach multer (req.body ist dann gefüllt).
+const csrfAfterUpload = (req, res, next) => {
+  if (verifyCsrf(req, res)) return next();
+};
 
 const storage = multer.memoryStorage();
 const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
@@ -87,7 +93,7 @@ router.get('/produkte', auth, async (req, res) => {
   res.render('admin/products', { title: 'Produkte – Admin', products, categories, duplicate: req.query.duplicate === '1', toggled: req.query.toggled || null, toggledState: req.query.state || null });
 });
 
-router.post('/produkte', auth, upload.single('image'), async (req, res) => {
+router.post('/produkte', auth, upload.single('image'), csrfAfterUpload, async (req, res) => {
   const { category_id, description, price, old_price, ingredients, allergene, zusatzstoffe, is_featured, is_available, sort_order, sizes } = req.body;
   const name = (req.body.name || '').trim();
   const slug = slugify(name, { lower: true, strict: true });
@@ -108,7 +114,7 @@ router.post('/produkte', auth, upload.single('image'), async (req, res) => {
   res.redirect('/admin/produkte');
 });
 
-router.post('/produkte/bearbeiten/:id', auth, upload.single('image'), async (req, res) => {
+router.post('/produkte/bearbeiten/:id', auth, upload.single('image'), csrfAfterUpload, async (req, res) => {
   const { category_id, description, price, old_price, ingredients, allergene, zusatzstoffe, is_featured, is_available, sort_order, sizes } = req.body;
   const name = (req.body.name || '').trim();
   const product = await db.get('SELECT * FROM products WHERE id = $1', [req.params.id]);
@@ -273,7 +279,7 @@ router.get('/banner', auth, async (req, res) => {
   res.render('admin/banners', { title: 'Banner – Admin', banners });
 });
 
-router.post('/banner', auth, upload.single('image'), async (req, res) => {
+router.post('/banner', auth, upload.single('image'), csrfAfterUpload, async (req, res) => {
   const { title, subtitle, link, sort_order } = req.body;
   const image = req.file ? await optimizeUpload(req.file.buffer, req.file.mimetype) : null;
   await db.run('INSERT INTO banners (title, subtitle, image, link, sort_order) VALUES ($1, $2, $3, $4, $5)',
@@ -291,7 +297,7 @@ router.get('/testimonials', auth, async (req, res) => {
   res.render('admin/testimonials', { title: 'Testimonials – Admin', testimonials });
 });
 
-router.post('/testimonials', auth, upload.single('image'), async (req, res) => {
+router.post('/testimonials', auth, upload.single('image'), csrfAfterUpload, async (req, res) => {
   const { name, text, rating } = req.body;
   const image = req.file ? await optimizeUpload(req.file.buffer, req.file.mimetype) : null;
   await db.run('INSERT INTO testimonials (name, text, rating, image) VALUES ($1, $2, $3, $4)',
@@ -299,7 +305,7 @@ router.post('/testimonials', auth, upload.single('image'), async (req, res) => {
   res.redirect('/admin/testimonials');
 });
 
-router.post('/testimonials/bearbeiten/:id', auth, upload.single('image'), async (req, res) => {
+router.post('/testimonials/bearbeiten/:id', auth, upload.single('image'), csrfAfterUpload, async (req, res) => {
   const { name, text, rating, active } = req.body;
   const t = await db.get('SELECT * FROM testimonials WHERE id = $1', [req.params.id]);
   if (!t) return res.status(404).send('Testimonial nicht gefunden');
@@ -423,7 +429,7 @@ async function imgVal(files, field, textVal) {
   return textVal || '';
 }
 
-router.post('/einstellungen/hero-slides', auth, hsUpload, async (req, res) => {
+router.post('/einstellungen/hero-slides', auth, hsUpload, csrfAfterUpload, async (req, res) => {
   const { line1, line2, line3, preis1, preis1_tag, preis2, preis2_tag, description, button_text, button_link, sort_order } = req.body;
   const p1 = parseSlidePreis(preis1), p2 = parseSlidePreis(preis2);
   const price1 = p1.zahl, price1_cents = p1.cents, price2 = p2.zahl, price2_cents = p2.cents;
@@ -445,7 +451,7 @@ router.post('/einstellungen/hero-slides', auth, hsUpload, async (req, res) => {
   req.session.save(() => res.redirect('/admin/einstellungen'));
 });
 
-router.post('/einstellungen/hero-slides/bearbeiten/:id', auth, hsUpload, async (req, res) => {
+router.post('/einstellungen/hero-slides/bearbeiten/:id', auth, hsUpload, csrfAfterUpload, async (req, res) => {
   const slide = await db.get('SELECT * FROM hero_slides WHERE id = $1', [req.params.id]);
   if (!slide) return res.status(404).send('Slide nicht gefunden');
   const { line1, line2, line3, preis1, preis1_tag, preis2, preis2_tag, description, button_text, button_link, sort_order, active, remove_bg_image, remove_main_image, remove_drink_tl, remove_drink_tr, remove_drink_br } = req.body;

@@ -27,4 +27,20 @@ function csrfProtection(req, res, next) {
   next();
 }
 
-module.exports = { csrfProtection, generateToken };
+// CSRF-Prüfung für Multipart-Routen: wird NACH multer eingesetzt, da req.body
+// bei multipart/form-data erst dann gefüllt ist. Antwortet direkt bei Fehler.
+function verifyCsrf(req, res) {
+  const token = req.body._csrf || req.headers['x-csrf-token'];
+  if (!token || token !== req.session.csrfToken) {
+    console.error('CSRF validation failed (multipart) for path:', req.originalUrl);
+    if (req.xhr || (req.headers['content-type'] && req.headers['content-type'].includes('application/json'))) {
+      res.status(403).json({ success: false, message: 'Ungültige Anfrage (CSRF)' });
+    } else {
+      res.status(403).render('403', { title: 'Anfrage abgelehnt' });
+    }
+    return false;
+  }
+  return true;
+}
+
+module.exports = { csrfProtection, generateToken, verifyCsrf };
