@@ -100,7 +100,7 @@ async function seed() {
     [5, 'NEXO Signature', 'nexo-signature', 'Hähnchen, Mais, Brokkoli, Sahnesauce', 12.90, null, '/images/products/img11.jpg', 'Hähnchen, Mais, Brokkoli, Sahnesauce', 0, 14, null],
     [6, 'Schnitzel Wiener Art', 'schnitzel-wiener-art', 'Schnitzel, Zitrone', 13.90, null, '/images/products/img16.jpg', 'Schnitzel, Zitrone', 1, 1, null],
     [6, 'Jägerschnitzel', 'jaegerschnitzel', 'Schnitzel, Champignons, Jägersauce', 15.90, null, '/images/products/img17.jpg', 'Schnitzel, Champignons, Jägersauce', 0, 2, null],
-    [6, 'Zigeunerschnitzel', 'zigeunerschnitzel', 'Schnitzel, Paprika, Zwiebeln, Paprikasauce', 15.90, null, '/images/products/img18.jpg', 'Schnitzel, Paprika, Zwiebeln, Paprikasauce', 0, 3, null],
+    [6, 'Paprikaschnitzel', 'paprikaschnitzel', 'Schnitzel, Paprika, Zwiebeln, Paprikasauce', 15.90, null, '/images/products/img18.jpg', 'Schnitzel, Paprika, Zwiebeln, Paprikasauce', 0, 3, null],
     [6, 'Schnitzel Hollandaise', 'schnitzel-hollandaise', 'Schnitzel, Brokkoli, Sauce Hollandaise', 16.90, null, '/images/products/img16.jpg', 'Schnitzel, Brokkoli, Sauce Hollandaise', 1, 4, null],
     [7, 'Currywurst mit Pommes', 'currywurst-pommes', 'Mit Pommes', 8.90, null, '/images/products/img7.jpg', 'Wurst, Curry, Pommes', 1, 1, null],
     [7, 'Chicken Nuggets', 'chicken-nuggets', '6 oder 12 Stück', 6.90, null, '/images/products/img8.jpg', 'Hähnchen, Panade', 1, 2, '[{"label":"6 Stk.","price":6.9},{"label":"12 Stk.","price":10.9}]'],

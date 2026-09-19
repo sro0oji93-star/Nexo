@@ -90,6 +90,8 @@ router.get('/kategorie/:slug', async (req, res) => {
 });
 
 router.get('/produkt/:slug', async (req, res) => {
+  // Alter Slug nach Umbenennung dauerhaft umleiten (SEO/Bookmarks)
+  if (req.params.slug === 'zigeunerschnitzel') return res.redirect(301, '/speisekarte/produkt/paprikaschnitzel');
   const product = await db.get('SELECT p.*, c.name as category_name, c.slug as category_slug FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.slug = $1', [req.params.slug]);
   if (!product) return res.status(404).render('404', { title: 'Produkt nicht gefunden' });
   
