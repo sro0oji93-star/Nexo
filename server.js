@@ -90,13 +90,15 @@ const adminRoutes = require('./routes/admin');
 const ownerRoutes = require('./routes/owner');
 const { csrfProtection, generateToken } = require('./middleware/csrf');
 
-// CSRF for public routes only (admin + owner routes skip validation, use session token)
+// CSRF-Schutz für ALLE Routen (inkl. admin/owner).
+// Ausnahmen: Login/Setup (vor Session) und der Druck-Marker (unschädlicher POST aus dem Kiosk-JS).
+const CSRF_EXEMPT = [
+  '/admin/login',
+  '/eigentuemer/login',
+  '/eigentuemer/setup',
+  '/admin/api/bestellungen'
+];
 app.use((req, res, next) => {
-  if (req.path.startsWith('/admin') || req.path.startsWith('/eigentuemer')) {
-    if (!req.session.csrfToken) req.session.csrfToken = generateToken();
-    res.locals.csrfToken = req.session.csrfToken;
-    return next();
-  }
   if (!req.session.csrfToken) {
     req.session.csrfToken = generateToken();
     req.session.save(err => {
@@ -104,6 +106,10 @@ app.use((req, res, next) => {
     });
   }
   res.locals.csrfToken = req.session.csrfToken;
+
+  if (CSRF_EXEMPT.some(p => req.path.startsWith(p))) {
+    return next();
+  }
 
   const safeMethods = ['GET', 'HEAD', 'OPTIONS'];
   if (safeMethods.includes(req.method)) {

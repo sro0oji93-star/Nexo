@@ -8,6 +8,7 @@
 <% } %>
 
 <form method="POST" action="/admin/einstellungen" class="settings-form">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
   <div class="settings-card">
     <h3>Allgemein</h3>
     <div class="form-grid">
@@ -277,6 +278,7 @@ document.getElementById('header_bg_picker').addEventListener('input', function()
   <div id="newSlideForm" style="display:none;background:#f8f9fa;padding:20px;border-radius:8px;margin-bottom:20px">
     <h4>Neuen Slide erstellen</h4>
     <form method="POST" action="/admin/einstellungen/hero-slides" enctype="multipart/form-data">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <div class="form-grid">
         <div class="form-group"><label>Zeile 1</label><input name="line1" value="1 GROSSE"></div>
         <div class="form-group"><label>Zeile 2</label><input name="line2" value="PIZZA"></div>
@@ -327,6 +329,7 @@ document.getElementById('header_bg_picker').addEventListener('input', function()
         <td>
           <button class="btn btn-small btn-secondary" onclick="editSlide(<%= s.id %>)">Bearbeiten</button>
           <form method="POST" action="/admin/einstellungen/hero-slides/loeschen/<%= s.id %>" style="display:inline" onsubmit="return confirm('Wirklich löschen?')">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <button class="btn btn-small btn-danger">Löschen</button>
           </form>
         </td>
@@ -342,6 +345,7 @@ document.getElementById('header_bg_picker').addEventListener('input', function()
 <div id="editForm<%= s.id %>" style="display:none;background:#f8f9fa;padding:20px;border-radius:8px;margin-bottom:20px" class="settings-card">
   <h4>Slide bearbeiten #<%= s.id %></h4>
   <form method="POST" action="/admin/einstellungen/hero-slides/bearbeiten/<%= s.id %>" enctype="multipart/form-data">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
     <div class="form-grid">
       <div class="form-group"><label>Zeile 1</label><input name="line1" value="<%= s.line1 || '' %>"></div>
       <div class="form-group"><label>Zeile 2</label><input name="line2" value="<%= s.line2 || '' %>"></div>
