@@ -86,6 +86,8 @@
     'vanille':'/images/products/img22.jpg','schokolade':'/images/products/img22.jpg','banane':'/images/products/img22.jpg',
     'erdbeere':'/images/products/img22.jpg','mix-milkshake':'/images/products/img22.jpg'
   }; %>
+  <% /* Panorama-Bilder (z.B. Brötchen Käse 1280x698) im Quadrat füllen statt Mini: cover statt contain */ %>
+  <% var productImgFit = { 'pizza-broetchen-kaese': 'cover' }; %>
   <% var dealWindows = {
     'nexo-mittag-deal': { from: 720, to: 900, hint: 'Nur 12:00–15:00 Uhr bestellbar' },
     'nexo-night-deal': { from: 1260, to: 1440, hint: 'Ab 21:00 Uhr bestellbar · nur Abholer' }
@@ -110,16 +112,16 @@
             <% catProducts.slice(0, half).forEach(function(p) { %>
             <div class="mad-spec-item" style="display:flex;margin-bottom:2rem">
               <figure style="max-width:110px;min-width:110px;width:100%;margin-right:1.5rem;border-radius:24px;overflow:hidden;height:110px;background:#fff;display:flex;align-items:center;justify-content:center">
-                <img src="<%= p.image || productImgMap[p.slug] || '/images/products/img1.jpg' %>" alt="<%= p.name %>" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:contain">
+                <img src="<%= p.image || productImgMap[p.slug] || '/images/products/img1.jpg' %>" alt="<%= p.name %>" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:<%= productImgFit[p.slug] || 'contain' %>">
               </figure>
               <div class="mad-spec-info" style="flex:1<%= p.is_available ? '' : ';opacity:.55' %>">
                 <div class="mad-spec-header" style="display:flex;font-family:'Josefin Sans',sans-serif;font-weight:bold;font-size:1.5rem;line-height:2rem;color:#232223;justify-content:space-between;margin:0 -1.5rem">
-                  <div class="mad-spec-title" style="padding:0 1.5rem"><%= p.name %><% if (p.is_featured) { %> <span style="display:inline-block;font-size:11px;font-weight:700;color:#0a0a0a;background:linear-gradient(135deg,#f5d67b,#d4af37);border-radius:50px;padding:2px 10px;vertical-align:middle;white-space:nowrap">⭐ Empfohlen</span><% } %></div>
+                  <div class="mad-spec-title" style="padding:0 1.5rem;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><%= p.name %><% if (p.is_featured) { %> <span style="display:inline-block;font-size:11px;font-weight:700;color:#0a0a0a;background:linear-gradient(135deg,#f5d67b,#d4af37);border-radius:50px;padding:2px 10px;vertical-align:middle;white-space:nowrap">⭐ Empfohlen</span><% } %></div>
                   <div class="mad-line" style="flex:1;border-bottom:2px dotted #7a7879;height:1.4rem;margin:0 0.25rem"></div>
                   <% if (p.sizes) { var sz = JSON.parse(p.sizes); var minP = Math.min.apply(null, sz.map(function(s){return s.price})); var maxP = Math.max.apply(null, sz.map(function(s){return s.price})); %>
-                  <div class="mad-spec-price" style="padding:0 1.5rem;color:var(--primary);white-space:nowrap"><%= cat.slug === 'burger' ? ('ab ' + p.price.toFixed(2)) : ((minP === maxP ? '' : 'ab ') + minP.toFixed(2)) %> €</div>
+                  <div class="mad-spec-price" style="padding:0 1.5rem;color:var(--primary);white-space:nowrap;flex-shrink:0"><%= cat.slug === 'burger' ? ('ab ' + p.price.toFixed(2)) : ((minP === maxP ? '' : 'ab ') + minP.toFixed(2)) %> €</div>
                   <% } else { %>
-                  <div class="mad-spec-price" style="padding:0 1.5rem;color:var(--primary);white-space:nowrap"><%= p.price.toFixed(2) %> €</div>
+                  <div class="mad-spec-price" style="padding:0 1.5rem;color:var(--primary);white-space:nowrap;flex-shrink:0"><%= p.price.toFixed(2) %> €</div>
                   <% } %>
                 </div>
                 <div class="mad-spec-tags" style="font-size:1rem;line-height:1.5rem;color:#7a7879;margin-top:0.25rem">
@@ -170,16 +172,16 @@
             <% catProducts.slice(half).forEach(function(p) { %>
             <div class="mad-spec-item" style="display:flex;margin-bottom:2rem">
               <figure style="max-width:110px;min-width:110px;width:100%;margin-right:1.5rem;border-radius:24px;overflow:hidden;height:110px;background:#fff;display:flex;align-items:center;justify-content:center">
-                <img src="<%= p.image || productImgMap[p.slug] || '/images/products/img1.jpg' %>" alt="<%= p.name %>" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:contain">
+                <img src="<%= p.image || productImgMap[p.slug] || '/images/products/img1.jpg' %>" alt="<%= p.name %>" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:<%= productImgFit[p.slug] || 'contain' %>">
               </figure>
               <div class="mad-spec-info" style="flex:1<%= p.is_available ? '' : ';opacity:.55' %>">
                 <div class="mad-spec-header" style="display:flex;font-family:'Josefin Sans',sans-serif;font-weight:bold;font-size:1.5rem;line-height:2rem;color:#232223;justify-content:space-between;margin:0 -1.5rem">
-                  <div class="mad-spec-title" style="padding:0 1.5rem"><%= p.name %><% if (p.is_featured) { %> <span style="display:inline-block;font-size:11px;font-weight:700;color:#0a0a0a;background:linear-gradient(135deg,#f5d67b,#d4af37);border-radius:50px;padding:2px 10px;vertical-align:middle;white-space:nowrap">⭐ Empfohlen</span><% } %></div>
+                  <div class="mad-spec-title" style="padding:0 1.5rem;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><%= p.name %><% if (p.is_featured) { %> <span style="display:inline-block;font-size:11px;font-weight:700;color:#0a0a0a;background:linear-gradient(135deg,#f5d67b,#d4af37);border-radius:50px;padding:2px 10px;vertical-align:middle;white-space:nowrap">⭐ Empfohlen</span><% } %></div>
                   <div class="mad-line" style="flex:1;border-bottom:2px dotted #7a7879;height:1.4rem;margin:0 0.25rem"></div>
                   <% if (p.sizes) { var sz = JSON.parse(p.sizes); var minP = Math.min.apply(null, sz.map(function(s){return s.price})); var maxP = Math.max.apply(null, sz.map(function(s){return s.price})); %>
-                  <div class="mad-spec-price" style="padding:0 1.5rem;color:var(--primary);white-space:nowrap"><%= cat.slug === 'burger' ? ('ab ' + p.price.toFixed(2)) : ((minP === maxP ? '' : 'ab ') + minP.toFixed(2)) %> €</div>
+                  <div class="mad-spec-price" style="padding:0 1.5rem;color:var(--primary);white-space:nowrap;flex-shrink:0"><%= cat.slug === 'burger' ? ('ab ' + p.price.toFixed(2)) : ((minP === maxP ? '' : 'ab ') + minP.toFixed(2)) %> €</div>
                   <% } else { %>
-                  <div class="mad-spec-price" style="padding:0 1.5rem;color:var(--primary);white-space:nowrap"><%= p.price.toFixed(2) %> €</div>
+                  <div class="mad-spec-price" style="padding:0 1.5rem;color:var(--primary);white-space:nowrap;flex-shrink:0"><%= p.price.toFixed(2) %> €</div>
                   <% } %>
                 </div>
                 <div class="mad-spec-tags" style="font-size:1rem;line-height:1.5rem;color:#7a7879;margin-top:0.25rem">
