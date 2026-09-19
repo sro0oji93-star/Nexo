@@ -88,7 +88,8 @@ router.get('/produkte', auth, async (req, res) => {
 });
 
 router.post('/produkte', auth, upload.single('image'), async (req, res) => {
-  const { name, category_id, description, price, old_price, ingredients, allergene, zusatzstoffe, is_featured, is_available, sort_order, sizes } = req.body;
+  const { category_id, description, price, old_price, ingredients, allergene, zusatzstoffe, is_featured, is_available, sort_order, sizes } = req.body;
+  const name = (req.body.name || '').trim();
   const slug = slugify(name, { lower: true, strict: true });
   const image = req.file ? await optimizeUpload(req.file.buffer, req.file.mimetype) : null;
   const existing = await db.get('SELECT id FROM products WHERE name = $1', [name]);
@@ -108,7 +109,8 @@ router.post('/produkte', auth, upload.single('image'), async (req, res) => {
 });
 
 router.post('/produkte/bearbeiten/:id', auth, upload.single('image'), async (req, res) => {
-  const { name, category_id, description, price, old_price, ingredients, allergene, zusatzstoffe, is_featured, is_available, sort_order, sizes } = req.body;
+  const { category_id, description, price, old_price, ingredients, allergene, zusatzstoffe, is_featured, is_available, sort_order, sizes } = req.body;
+  const name = (req.body.name || '').trim();
   const product = await db.get('SELECT * FROM products WHERE id = $1', [req.params.id]);
   if (!product) return res.status(404).send('Produkt nicht gefunden');
   const slug = product.slug; // Slug bleibt stabil (Box-/Deal-/Größen-Logik hängt am exakten Slug)
@@ -148,7 +150,8 @@ router.get('/kategorien', auth, async (req, res) => {
 });
 
 router.post('/kategorien', auth, async (req, res) => {
-  const { name, description, sort_order } = req.body;
+  const { description, sort_order } = req.body;
+  const name = (req.body.name || '').trim();
   const slug = slugify(name, { lower: true, strict: true }) + '-' + Date.now();
   await db.run('INSERT INTO categories (name, slug, description, sort_order) VALUES ($1, $2, $3, $4)',
     [name, slug, description, sort_order || 0]);
@@ -156,7 +159,8 @@ router.post('/kategorien', auth, async (req, res) => {
 });
 
 router.post('/kategorien/bearbeiten/:id', auth, async (req, res) => {
-  const { name, description, sort_order, active } = req.body;
+  const { description, sort_order, active } = req.body;
+  const name = (req.body.name || '').trim();
   await db.run('UPDATE categories SET name=$1, description=$2, sort_order=$3, active=$4 WHERE id=$5',
     [name, description, sort_order || 0, active ? 1 : 0, req.params.id]);
   res.redirect('/admin/kategorien');
