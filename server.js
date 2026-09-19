@@ -154,6 +154,9 @@ app.use('/bestellung', orderRoutes);
 app.use('/kontakt', contactRoutes);
 app.use('/admin/login', (req, res, next) => (req.method === 'POST' ? loginLimiter(req, res, next) : next()));
 app.use('/admin', adminRoutes);
+// Brute-Force-Schutz auch für den Eigentümer-Login und die Ersteinrichtung
+app.use('/eigentuemer/login', (req, res, next) => (req.method === 'POST' ? loginLimiter(req, res, next) : next()));
+app.use('/eigentuemer/setup', (req, res, next) => (req.method === 'POST' ? loginLimiter(req, res, next) : next()));
 app.use('/eigentuemer', ownerRoutes);
 app.use(require('./routes/images')); // /produkt-bild/:id (DB-Bilder mit Cache)
 

@@ -1165,7 +1165,7 @@ document.addEventListener('DOMContentLoaded', function() {
           localStorage.removeItem('feinCart');
           localStorage.removeItem('feinDiscount');
           if (result.stripeUrl) { window.location.href = result.stripeUrl; return; }
-          window.location.href = '/bestellung/bestellung/' + result.orderNumber;
+          window.location.href = '/bestellung/bestellung/' + result.orderNumber + (result.confirmToken ? '?t=' + result.confirmToken : '');
         } else {
           alert(result.message || 'Fehler bei der Bestellung');
           if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = '<i class="fas fa-check"></i> Zahlungspflichtig bestellen'; }

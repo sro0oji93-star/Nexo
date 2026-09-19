@@ -32,7 +32,7 @@ async function createCheckoutSession(order, req) {
       quantity: 1
     }],
     metadata: { order_id: String(order.id), order_number: order.order_number },
-    success_url: base + '/bestellung/bestellung/' + order.order_number + '?bezahlt=1',
+    success_url: base + '/bestellung/bestellung/' + order.order_number + '?bezahlt=1' + (order.confirm_token ? '&t=' + order.confirm_token : ''),
     cancel_url: base + '/bestellung?abgebrochen=1',
     expires_at: Math.floor(Date.now() / 1000) + 30 * 60
   });

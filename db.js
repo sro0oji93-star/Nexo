@@ -874,6 +874,19 @@ async function initialize() {
     console.error('Eigentümer-Migration übersprungen:', e.message);
   }
 
+  // Bestell-Bestätigung: geheimer Token schützt die Bestellübersicht vor Übernahme (IDOR).
+  // Bestehende Bestellungen erhalten einen generierten Token. Idempotent.
+  try {
+    await query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS confirm_token TEXT');
+    const { randomBytes } = require('crypto');
+    const missing = await all("SELECT id FROM orders WHERE confirm_token IS NULL OR confirm_token = ''");
+    for (const r of missing) {
+      await query('UPDATE orders SET confirm_token = $1 WHERE id = $2', [randomBytes(32).toString('hex'), r.id]);
+    }
+  } catch (e) {
+    console.error('Bestell-Token-Migration übersprungen:', e.message);
+  }
+
   // Auto-Migration Croque-Saucen 2026-09-06: 1 Sauce nach Wahl (inklusive) als Auswahl.
   // Saucenliste kommt aus der Kategorie Saucen & Dips (nur setzen, wenn noch keine Auswahl da ist).
   try {

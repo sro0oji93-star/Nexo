@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const crypto = require('crypto');
 const { validateExtras } = require('../extras');
 
 // Tageszeit-Angebote: Bestellfenster in Europe/Berlin (Server auf Render läuft in UTC!)
@@ -420,14 +421,16 @@ router.post('/', async (req, res) => {
     const vat19 = Math.round((base19 - base19 / 1.19) * 100) / 100;
 
     const orderNumber = 'FEIN-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+    // Geheimer Token: schützt die Bestellübersicht (kein Fremdzugriff über die Bestellnummer)
+    const confirmToken = crypto.randomBytes(32).toString('hex');
 
     // Online-Zahlung: Bestellung parken (kein Druck/Ton), erst Webhook gibt sie frei
     const isOnline = payment === 'online';
-    const ins = await db.run(`INSERT INTO orders (order_number, customer_name, customer_email, customer_phone, delivery_address, delivery_city, delivery_zip, notes, items, subtotal, delivery_fee, discount, discount_code, total, payment_method, payment_status, order_status, order_type, vat7, vat19, wish_time)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21) RETURNING id`,
+    const ins = await db.run(`INSERT INTO orders (order_number, customer_name, customer_email, customer_phone, delivery_address, delivery_city, delivery_zip, notes, items, subtotal, delivery_fee, discount, discount_code, total, payment_method, payment_status, order_status, order_type, vat7, vat19, wish_time, confirm_token)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22) RETURNING id`,
       [orderNumber, name, email, phone, address, city, zip, notes,
       JSON.stringify(parsedItems), calculatedSubtotal, calculatedDelivery, calculatedDiscount, validCode, calculatedTotal,
-      payment, isOnline ? 'ausstehend' : 'bar', isOnline ? 'wartet_auf_zahlung' : 'neu', type, vat7, vat19, wishIso]
+      payment, isOnline ? 'ausstehend' : 'bar', isOnline ? 'wartet_auf_zahlung' : 'neu', type, vat7, vat19, wishIso, confirmToken]
     );
     const orderId = ins.rows && ins.rows[0] ? ins.rows[0].id : null;
 
@@ -439,9 +442,9 @@ router.post('/', async (req, res) => {
       try {
         const { createCheckoutSession } = require('./stripe');
         const session = await createCheckoutSession(
-          { id: orderId, order_number: orderNumber, total: calculatedTotal, customer_email: email, items: parsedItems }, req
+          { id: orderId, order_number: orderNumber, total: calculatedTotal, customer_email: email, items: parsedItems, confirm_token: confirmToken }, req
         );
-        return res.json({ success: true, orderNumber, stripeUrl: session.url, message: 'Weiter zur Zahlung' });
+        return res.json({ success: true, orderNumber, confirmToken, stripeUrl: session.url, message: 'Weiter zur Zahlung' });
       } catch (err) {
         console.error('Stripe-Session Fehler:', err.message);
         if (orderId) await db.run("UPDATE orders SET order_status = 'storniert' WHERE id = $1", [orderId]);
@@ -449,7 +452,7 @@ router.post('/', async (req, res) => {
       }
     }
 
-    res.json({ success: true, orderNumber, message: 'Bestellung erfolgreich aufgegeben!' });
+    res.json({ success: true, orderNumber, confirmToken, message: 'Bestellung erfolgreich aufgegeben!' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: 'Fehler bei der Bestellung' });
@@ -480,10 +483,18 @@ router.post('/rabatt-pruefen', async (req, res) => {
 router.get('/bestellung/:orderNumber', async (req, res) => {
   const order = await db.get('SELECT * FROM orders WHERE order_number = $1', [req.params.orderNumber]);
   if (!order) return res.status(404).render('404', { title: 'Bestellung nicht gefunden' });
+  // Schutz vor Fremdzugriff (IDOR): nur mit gültigem Bestätigungs-Token sichtbar
+  const token = req.query.t || '';
+  const expected = order.confirm_token || '';
+  let tokenOk = false;
+  if (token && expected && token.length === expected.length) {
+    try { tokenOk = crypto.timingSafeEqual(Buffer.from(token), Buffer.from(expected)); } catch (e) { tokenOk = false; }
+  }
+  if (!tokenOk) return res.status(404).render('404', { title: 'Bestellung nicht gefunden' });
   order.wish_display = db.formatWishDisplay(order.wish_time);
-  
+
   const settings = res.locals.settings;
-  
+
   res.render('order-confirmation', {
     title: 'Bestellung ' + order.order_number + ' – ' + settings.site_name,
     order,
