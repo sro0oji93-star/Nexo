@@ -2,6 +2,7 @@
 // Ablauf: Bestellung wird als wartet_auf_zahlung angelegt (kein Druck/Ton),
 // nach erfolgreicher Zahlung setzt der Webhook sie auf neu/bezahlt.
 const db = require('../db');
+const events = require('../events');
 
 function client() {
   const key = process.env.STRIPE_SECRET_KEY;
@@ -55,11 +56,16 @@ async function webhookHandler(req, res) {
     const session = event.data.object || {};
     const orderId = session.metadata && session.metadata.order_id;
     if (event.type === 'checkout.session.completed' && orderId) {
-      await db.run(
+      const upd = await db.run(
         "UPDATE orders SET order_status = 'neu', payment_status = 'bezahlt' WHERE id = $1 AND order_status = 'wartet_auf_zahlung'",
         [orderId]
       );
       console.log('Stripe bezahlt, Bestellung freigegeben:', orderId);
+      // Admin-Push (SSE): nur bei tatsächlichem Statuswechsel melden,
+      // damit Webhook-Retries keinen Doppel-Ton/-Druck auslösen.
+      if (upd && upd.rowCount > 0) {
+        try { events.emit('order:new', { id: parseInt(orderId, 10) }); } catch (e) { /* still */ }
+      }
     } else if (event.type === 'checkout.session.expired' && orderId) {
       await db.run(
         "UPDATE orders SET order_status = 'storniert' WHERE id = $1 AND order_status = 'wartet_auf_zahlung'",

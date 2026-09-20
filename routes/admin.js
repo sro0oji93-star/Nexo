@@ -7,6 +7,7 @@ const slugify = require('slugify');
 const auth = require('../middleware/auth');
 const { optimizeUpload } = require('../image');
 const { verifyCsrf } = require('../middleware/csrf');
+const events = require('../events');
 
 // Middleware-Variante: prüft CSRF nach multer (req.body ist dann gefüllt).
 const csrfAfterUpload = (req, res, next) => {
@@ -200,7 +201,8 @@ router.post('/bestellungen/status/:id', auth, async (req, res) => {
   res.redirect('/admin/bestellungen');
 });
 
-// --- Auto-Print + Sound: neue Bestellungen seit last_id abfragen (Admin-PC pollt alle paar Sekunden) ---
+// --- Auto-Print + Sound: Catch-up für verpasste Bestellungen (nur bei SSE-Reconnect/Recovery).
+// Der Live-Betrieb läuft über SSE (/api/orders-stream) – kein Intervall-Polling mehr.
 router.get('/api/neue-bestellungen', auth, async (req, res) => {
   try {
     const lastId = parseInt(req.query.last_id, 10) || 0;
@@ -219,6 +221,62 @@ router.get('/api/neue-bestellungen', auth, async (req, res) => {
     console.error('neue-bestellungen error:', err);
     res.status(500).json({ success: false, message: 'Fehler beim Abrufen' });
   }
+});
+
+// --- Server-Sent Events: neue Bestellungen sofort an offene Admin-Seiten pushen.
+// Ersetzt das 12s-Polling. Kein DB-Query solange keine neue Bestellung eintrifft.
+// Heartbeat alle 25s hält die Verbindung (Render/Proxy) offen – ohne DB-Zugriff.
+// /api/neue-bestellungen bleibt als Catch-up beim (Re-)Connect bestehen.
+function sseOrderPayload(order) {
+  let items = [];
+  try { items = JSON.parse(order.items); } catch (e) { items = []; }
+  return { ...order, items, wish_display: db.formatWishDisplay(order.wish_time) };
+}
+
+async function sendNewOrders(res, sinceId) {
+  const rows = await db.all(
+    "SELECT * FROM orders WHERE id > $1 AND order_status = 'neu' AND COALESCE(is_deleted,0) = 0 AND COALESCE(printed,0) = 0 ORDER BY id ASC LIMIT 20",
+    [sinceId]
+  );
+  for (const o of rows) {
+    res.write('id: ' + o.id + '\nevent: order\ndata: ' + JSON.stringify(sseOrderPayload(o)) + '\n\n');
+  }
+}
+
+router.get('/api/orders-stream', auth, async (req, res) => {
+  res.set({
+    'Content-Type': 'text/event-stream; charset=utf-8',
+    'Cache-Control': 'no-cache, no-transform',
+    'Connection': 'keep-alive',
+    'X-Accel-Buffering': 'no'
+  });
+  res.flushHeaders();
+  res.write('retry: 3000\n\n');
+
+  // Catch-up: bereits vorhandene, noch nicht gedruckte Bestellungen einmalig senden.
+  const sinceId = parseInt(req.query.last_id, 10) || 0;
+  try { await sendNewOrders(res, sinceId); } catch (e) { /* still */ }
+
+  // Heartbeat ohne DB-Zugriff – hält die Verbindung offen.
+  const heartbeat = setInterval(() => {
+    try { res.write(': ping\n\n'); } catch (e) { /* Verbindung tot */ }
+  }, 25000);
+
+  const onNewOrder = async (payload) => {
+    try {
+      const order = await db.get('SELECT * FROM orders WHERE id = $1 AND COALESCE(is_deleted,0) = 0', [payload.id]);
+      if (!order) return;
+      if (order.order_status !== 'neu' || order.printed) return;
+      res.write('id: ' + order.id + '\nevent: order\ndata: ' + JSON.stringify(sseOrderPayload(order)) + '\n\n');
+    } catch (e) { /* still */ }
+  };
+  events.on('order:new', onNewOrder);
+
+  // Aufräumen: Listener + Heartbeat entfernen (kein Memory-Leak bei Reconnects).
+  req.on('close', () => {
+    clearInterval(heartbeat);
+    events.removeListener('order:new', onNewOrder);
+  });
 });
 
 // Als gedruckt markieren (damit kein Doppel-Druck bei mehreren Tabs/PCs)

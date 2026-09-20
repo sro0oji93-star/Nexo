@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const crypto = require('crypto');
+const events = require('../events');
 const { validateExtras } = require('../extras');
 
 // Tageszeit-Angebote: Bestellfenster in Europe/Berlin (Server auf Render läuft in UTC!)
@@ -472,6 +473,12 @@ router.post('/', async (req, res) => {
         if (orderId) await db.run("UPDATE orders SET order_status = 'storniert' WHERE id = $1", [orderId]);
         return res.status(500).json({ success: false, message: 'Online-Zahlung derzeit nicht möglich – bitte Barzahlung wählen.' });
       }
+    }
+
+    // Admin-Push (SSE): offene Admin-Seiten sofort benachrichtigen (kein Polling nötig).
+    // Fire-and-forget: Die Bestellantwort darf nie am Event-Bus scheitern.
+    if (orderId) {
+      try { events.emit('order:new', { id: orderId }); } catch (e) { /* still */ }
     }
 
     res.json({ success: true, orderNumber, confirmToken, message: 'Bestellung erfolgreich aufgegeben!' });

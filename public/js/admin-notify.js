@@ -1,8 +1,8 @@
 // Neue-Bestellungen-Wächter: Sound + Auto-Bon-Druck (TM-T88V, 80mm)
 // Funktioniert mit Render-Server + lokalem Drucker-PC: diese Seite läuft auf dem
-// PC, an dem der Bondrucker hängt. Pollt alle 12s nach neuen Bestellungen.
+// PC, an dem der Bondrucker hängt. Live-Betrieb über SSE (/admin/api/orders-stream);
+// /admin/api/neue-bestellungen dient nur als Catch-up bei (Re-)Connect – kein Polling.
 (function () {
-  var POLL_MS = 12000;
   var LS_LAST = 'nexo_last_order_id';
   var LS_SOUND = 'nexo_sound_on';
   var audioCtx = null;
@@ -107,31 +107,105 @@
     document.body.appendChild(f);
   }
 
-  async function poll() {
+  // Bereits gesehene Bestell-IDs (schützt vor Doppel-Ton/-Druck, wenn SSE-Catch-up
+  // des Servers und unser Client-Catch-up dieselbe Bestellung liefern).
+  var seenIds = {};
+  function isSeen(id) { return !!seenIds[id]; }
+  function markSeen(id) { seenIds[id] = 1; }
+
+  // Listen-Aktualisierung entprellt bündeln (SSE liefert Bestellungen einzeln,
+  // früher kamen sie als Batch aus einem Poll) – weiterhin max. 1 HTML-Fetch / 6s.
+  var refreshTimer = null;
+  var pendingRefreshIds = [];
+  function scheduleListRefresh(id) {
+    pendingRefreshIds.push(id);
+    if (refreshTimer) return;
+    refreshTimer = setTimeout(function () {
+      refreshTimer = null;
+      var ids = pendingRefreshIds;
+      pendingRefreshIds = [];
+      refreshLists(ids);
+    }, 6000);
+  }
+
+  function handleNewOrder(o) {
+    if (!o || !o.id) return;
+    if (isSeen(o.id)) return;
+    markSeen(o.id);
+    ringLoop(o);
+    printBon(o);
+    if (o.id > lastId()) setLastId(o.id);
+    // Liste live aktualisieren (ohne Seiten-Reload, damit der Druckdialog nicht abbricht)
+    scheduleListRefresh(o.id);
+  }
+
+  // Catch-up NUR bei (wieder-)hergestellter SSE-Verbindung – niemals auf 'error',
+  // damit eine Störung keine Request-Schleife erzeugt (EventSource verbindet
+  // sich selbstständig neu per Server-`retry: 3000`). Schutz gegen Mehrfachlauf:
+  // In-Flight-Sperre + Mindestabstand zwischen zwei Catch-ups.
+  var catchUpInFlight = false;
+  var lastCatchUpAt = 0;
+  var CATCHUP_MIN_GAP_MS = 5000;
+  async function catchUp() {
+    var now = Date.now();
+    if (catchUpInFlight) return;
+    if (now - lastCatchUpAt < CATCHUP_MIN_GAP_MS) return;
+    catchUpInFlight = true;
+    lastCatchUpAt = now;
+    // Zeigerstand zu Beginn merken: Erster Catch-up überhaupt initialisiert nur
+    // den Zeiger und druckt NIEMALS alte Bestellungen (gleiche Semantik wie früher).
+    var firstInit = !localStorage.getItem(LS_LAST);
     try {
       var r = await fetch('/admin/api/neue-bestellungen?last_id=' + lastId(), { credentials: 'same-origin' });
       if (!r.ok) return;
       var j = await r.json();
       if (!j.success) return;
-      // Erster Poll überhaupt: nur Zeiger initialisieren, NIEMALS alte Bestellungen drucken
-      if (!localStorage.getItem(LS_LAST)) {
+      if (firstInit) {
+        if (j.orders) j.orders.forEach(function (o) { if (o && o.id) markSeen(o.id); });
         setLastId(j.max_id || 0);
         return;
       }
       if (j.orders && j.orders.length) {
-        j.orders.forEach(function (o) {
-          ringLoop(o);
-          printBon(o);
-        });
-        var max = Math.max.apply(null, j.orders.map(function (o) { return o.id; }));
-        setLastId(Math.max(lastId(), max, j.max_id || 0));
-        // Liste live aktualisieren (ohne Seiten-Reload, damit der Druckdialog nicht abbricht)
-        var ids = j.orders.map(function (o) { return o.id; });
-        setTimeout(function () { refreshLists(ids); }, 6000);
+        j.orders.forEach(function (o) { handleNewOrder(o); });
+        if (j.max_id && j.max_id > lastId()) setLastId(j.max_id);
       } else if (j.max_id && j.max_id > lastId()) {
         setLastId(j.max_id);
       }
-    } catch (e) { /* offline -> still weitermachen */ }
+    } catch (e) { /* offline -> SSE-Reconnect übernimmt */ }
+    finally { catchUpInFlight = false; }
+  }
+
+  function connectSSE() {
+    var es;
+    try {
+      es = new EventSource('/admin/api/orders-stream?last_id=' + lastId());
+    } catch (e) { return; }
+    // Listener ZUERST registrieren, damit keine Bestellung verloren geht,
+    // erst danach läuft der Catch-up (auf 'open').
+    es.addEventListener('order', function (ev) {
+      var o;
+      try { o = JSON.parse(ev.data); } catch (e) { return; }
+      if (!o || !o.id) return;
+      if (isSeen(o.id)) return;
+      markSeen(o.id);
+      // Erster Kontakt überhaupt: nur Zeiger initialisieren, NIEMALS alte drucken.
+      if (!localStorage.getItem(LS_LAST)) {
+        if (o.id > lastId()) setLastId(o.id);
+        return;
+      }
+      ringLoop(o);
+      printBon(o);
+      if (o.id > lastId()) setLastId(o.id);
+      scheduleListRefresh(o.id);
+    });
+    es.onopen = function () {
+      // Verbindung steht (Erstaufbau oder Reconnect): Lücke per Catch-up schließen.
+      catchUp();
+    };
+    es.onerror = function () {
+      // Absichtlich KEIN Fetch hier: EventSource verbindet sich automatisch neu
+      // (Server-`retry`). Der Catch-up läuft beim nächsten 'open'.
+    };
   }
 
   // Bestellliste still aktualisieren: Seite neu laden (als HTML) und nur
@@ -188,6 +262,5 @@
   }
 
   addControls();
-  poll();
-  setInterval(poll, POLL_MS);
+  connectSSE();
 })();
