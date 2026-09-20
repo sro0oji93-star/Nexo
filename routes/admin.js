@@ -131,7 +131,11 @@ router.post('/produkte/bearbeiten/:id', auth, upload.single('image'), csrfAfterU
     is_featured ? 1 : 0, is_available ? 1 : 0, sort_order || 0, sizesJson, req.params.id]
   );
   // Preis + Größen + Kennzeichnung für alle Namens-Duplikate übernehmen (Menü zeigt MIN(id) je Name –
-  // bei Größen-Produkten wie Fanta kommt der sichtbare Preis aus sizes, nicht aus price)
+  // bei Größen-Produkten wie Fanta kommt der sichtbare Preis aus sizes, nicht aus price).
+  // Bild nur bei neuem Upload übernehmen (sonst würde ein Edit ohne Bild das Menü-Bild mit NULL überschreiben).
+  if (req.file) {
+    await db.run('UPDATE products SET image = $1 WHERE name = $2 AND id != $3', [image, name, req.params.id]);
+  }
   await db.run('UPDATE products SET price = $1, old_price = $2, sizes = $3, allergene = $4, zusatzstoffe = $5 WHERE name = $6 AND id != $7',
     [price, old_price || null, sizesJson, (allergene || '').trim(), (zusatzstoffe || '').trim(), name, req.params.id]);
   res.redirect('/admin/produkte');
