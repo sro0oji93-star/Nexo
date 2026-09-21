@@ -11,6 +11,28 @@ const DEFAULT_ZONES = [
 // Richtwert wenn keine Zone passt/konfiguriert ist (Minuten, inkl. Zubereitung).
 const DEFAULT_DELIVERY_MINUTES = 15;
 
+// Feste Lieferzeiten der Standard-Zonen (nach Entfernung). Wird für Backfill
+// und als Fallback je Zone benutzt – bestehende gültige time-Werte bleiben immer.
+const KNOWN_ZONE_TIMES = { 3: 10, 6: 12, 9: 15, 12: 18, 15: 20 };
+
+function defaultTimeFor(to) {
+  const t = KNOWN_ZONE_TIMES[Number(to)];
+  return isFinite(t) ? t : DEFAULT_DELIVERY_MINUTES;
+}
+
+// Fehlende/ungültige time-Werte ergänzen (nur diese!), Rest unverändert lassen.
+// Gibt { zones, changed } zurück – Preise/Entfernungen werden nie angefasst.
+function fillMissingZoneTimes(arr) {
+  let changed = false;
+  const zones = arr.map((z) => {
+    const cur = parseInt(z && z.time, 10);
+    if (isFinite(cur) && cur >= 5 && cur <= 180) return z;
+    changed = true;
+    return Object.assign({}, z, { time: defaultTimeFor(z && z.to) });
+  });
+  return { zones, changed };
+}
+
 function getDeliveryZones(settings) {
   try {
     const raw = settings && settings.delivery_zones;
@@ -20,7 +42,7 @@ function getDeliveryZones(settings) {
     const clean = arr
       .map(z => {
         let time = parseInt(z.time, 10);
-        if (!isFinite(time)) time = DEFAULT_DELIVERY_MINUTES;
+        if (!isFinite(time)) time = defaultTimeFor(z.to);
         time = Math.max(5, Math.min(180, time));
         return { to: parseFloat(z.to), fee: parseFloat(z.fee), min: parseFloat(z.min), free: parseFloat(z.free) || 0, time };
       })
@@ -40,4 +62,4 @@ function findDeliveryZone(zones, km) {
   return null;
 }
 
-module.exports = { DEFAULT_ZONES, DEFAULT_DELIVERY_MINUTES, getDeliveryZones, findDeliveryZone };
+module.exports = { DEFAULT_ZONES, DEFAULT_DELIVERY_MINUTES, KNOWN_ZONE_TIMES, defaultTimeFor, fillMissingZoneTimes, getDeliveryZones, findDeliveryZone };

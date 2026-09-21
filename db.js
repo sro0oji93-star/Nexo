@@ -235,6 +235,26 @@ async function initialize() {
     );
   `);
 
+  // Einmal-Backfill (2026-09): fehlende Zonen-Lieferzeiten nach Entfernung ergänzen
+  // (3km→10, 6km→12, 9km→15, 12km→18, 15km→20). Bestehende gültige time-Werte und
+  // alle Preise/Entfernungen bleiben unberührt; läuft nur bei Bedarf (changed-Flag).
+  try {
+    const zoneRow = await get("SELECT value FROM settings WHERE key = 'delivery_zones'");
+    if (zoneRow && zoneRow.value) {
+      const parsed = JSON.parse(zoneRow.value);
+      if (Array.isArray(parsed)) {
+        const { fillMissingZoneTimes } = require('./delivery');
+        const filled = fillMissingZoneTimes(parsed);
+        if (filled.changed) {
+          await query('UPDATE settings SET value = $1 WHERE key = $2', [JSON.stringify(filled.zones), 'delivery_zones']);
+          console.log('Lieferzonen-Zeiten ergänzt (Backfill).');
+        }
+      }
+    }
+  } catch (e) {
+    console.error('Zonen-Zeit-Backfill übersprungen:', e.message);
+  }
+
   // Slug-Reparatur: Admin-Edits haben Box-/Deal-Slugs angehängt ("box-2-45").
   // Box-/Deal-Logik hängt am exakten Slug -> kanonischen Slug wiederherstellen.
   try {
@@ -1526,7 +1546,7 @@ async function initialize() {
     ['opening_hours', 'Mo–So: 11:30 – 22:30'],
     ['delivery_fee', '4.50'],
     ['free_delivery_from', '30.00'],
-    ['delivery_zones', '[{"to":3,"fee":1,"min":10,"free":20},{"to":6,"fee":2,"min":15,"free":25},{"to":9,"fee":3,"min":20,"free":30},{"to":12,"fee":3.5,"min":25,"free":0},{"to":15,"fee":4.5,"min":30,"free":0}]'],
+    ['delivery_zones', '[{"to":3,"fee":1,"min":10,"free":20,"time":10},{"to":6,"fee":2,"min":15,"free":25,"time":12},{"to":9,"fee":3,"min":20,"free":30,"time":15},{"to":12,"fee":3.5,"min":25,"free":0,"time":18},{"to":15,"fee":4.5,"min":30,"free":0,"time":20}]'],
     ['max_delivery_km', '15'],
     ['restaurant_lat', '53.295344'],
     ['restaurant_lon', '10.391293'],
