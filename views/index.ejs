@@ -1,5 +1,8 @@
 <%- include('partials/header') %>
 
+<!-- Aktive Bestellungen (wird per JS nur bei vorhandenen Tracking-Token befüllt, sonst unsichtbar) -->
+<div id="nexo-active-orders" style="display:none"></div>
+
 <!-- Animated Hero Slider -->
 <section class="hero mad-hero-animated <%= (typeof settings !== 'undefined' && settings.hero_theme === 'banner') ? 'hero-banner' : '' %>" style="position:relative;overflow:hidden;display:flex;align-items:center">
   <div class="hero-overlay" style="position:absolute;inset:0;background:rgba(0,0,0,.35);z-index:1"></div>

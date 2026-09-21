@@ -47,6 +47,7 @@
               <option value="in_bearbeitung" <%= o.order_status === 'in_bearbeitung' ? 'selected' : '' %>>In Bearbeitung</option>
               <option value="unterwegs" <%= o.order_status === 'unterwegs' ? 'selected' : '' %>>Unterwegs</option>
               <option value="geliefert" <%= o.order_status === 'geliefert' ? 'selected' : '' %>>Geliefert</option>
+              <option value="zugestellt" <%= o.order_status === 'zugestellt' ? 'selected' : '' %>>Zugestellt (Fahrer)</option>
               <option value="storniert" <%= o.order_status === 'storniert' ? 'selected' : '' %>>Storniert</option>
             </select>
           </form>

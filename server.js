@@ -189,12 +189,15 @@ app.use('/eigentuemer/login', (req, res, next) => (req.method === 'POST' ? login
 app.use('/eigentuemer/setup', (req, res, next) => (req.method === 'POST' ? loginLimiter(req, res, next) : next()));
 app.use('/eigentuemer', ownerRoutes);
 app.use(require('./routes/images')); // /produkt-bild/:id (DB-Bilder mit Cache)
+app.use('/', require('./routes/tracking')); // /verfolgung/* (Kunden-Tracking, SSE), /fahrer/* (Fahrer-QR)
 
 app.use((req, res) => {
   res.status(404).render('404', { title: 'Seite nicht gefunden' });
 });
 
 db.initialize().then(() => {
+  // Liefer-Timer nach Restart/Redeploy neu stellen (kein fester Sweeper, keine Polls).
+  require('./delivery-scheduler').start().catch(err => console.error('Scheduler-Start Fehler:', err.message));
   app.listen(PORT, () => {
     console.log(`Server läuft auf http://localhost:${PORT}`);
   });

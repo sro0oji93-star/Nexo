@@ -1165,6 +1165,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (result.success) {
           localStorage.removeItem('feinCart');
           localStorage.removeItem('feinDiscount');
+          // Tracking merken (gleiche Gerät, überlebt Reload): Homepage-Widget + Sendungsverfolgung.
+          try {
+            if (window.NexoTracking && result.orderNumber && result.confirmToken) {
+              window.NexoTracking.add(result.orderNumber, result.confirmToken);
+            }
+          } catch (e) { /* Tracking darf die Weiterleitung nie blockieren */ }
           if (result.stripeUrl) { window.location.href = result.stripeUrl; return; }
           window.location.href = '/bestellung/bestellung/' + result.orderNumber + (result.confirmToken ? '?t=' + result.confirmToken : '');
         } else {

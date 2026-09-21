@@ -202,6 +202,8 @@ router.get('/bestellungen', auth, async (req, res) => {
 router.post('/bestellungen/status/:id', auth, async (req, res) => {
   const { status } = req.body;
   await db.run('UPDATE orders SET order_status = $1 WHERE id = $2 AND COALESCE(is_deleted,0) = 0', [status, req.params.id]);
+  // Tracking-Push (SSE): Kunden-Seiten + Homepage-Widget live aktualisieren.
+  try { events.emit('order:status', { id: parseInt(req.params.id, 10) }); } catch (e) { /* still */ }
   res.redirect('/admin/bestellungen');
 });
 
@@ -301,7 +303,19 @@ router.get('/bestellungen/:id/bon', auth, async (req, res) => {
   try { order.items = JSON.parse(order.items); } catch (e) { order.items = []; }
   order.wish_display = db.formatWishDisplay(order.wish_time);
   const settings = res.locals.settings;
-  res.render('admin/bon', { order, settings });
+  // Fahrer-QR NUR für Lieferung, ganz unten auf dem Bon (wird live erzeugt, nie gespeichert).
+  // Abholer-Bons bleiben dadurch Byte-identisch zu bisher.
+  let fahrerQr = null;
+  if (order.order_type !== 'abholung' && order.driver_token) {
+    try {
+      const QRCode = require('qrcode');
+      const base = (process.env.SITE_URL || (req.protocol + '://' + req.get('host'))).replace(/\/$/, '');
+      fahrerQr = await QRCode.toDataURL(base + '/fahrer/' + order.driver_token, { width: 220, margin: 1 });
+    } catch (e) {
+      console.error('Fahrer-QR übersprungen:', e.message);
+    }
+  }
+  res.render('admin/bon', { order, settings, fahrerQr });
 });
 
 router.get('/bestellungen/:id', auth, async (req, res) => {
@@ -433,20 +447,24 @@ router.post('/einstellungen', auth, async (req, res) => {
       await db.run('UPDATE settings SET value = $1 WHERE key = $2', [val, key]);
     }
   }
-  // Lieferzonen-Tabelle (Bis km / Mindestbestellwert / Lieferkosten / Gratis ab)
+  // Lieferzonen-Tabelle (Bis km / Mindestbestellwert / Lieferkosten / Gratis ab / Lieferzeit)
   if (req.body.zone_to !== undefined) {
     const toArr = Array.isArray(req.body.zone_to) ? req.body.zone_to : [req.body.zone_to];
     const feeArr = Array.isArray(req.body.zone_fee) ? req.body.zone_fee : [req.body.zone_fee];
     const minArr = Array.isArray(req.body.zone_min) ? req.body.zone_min : [req.body.zone_min];
     const freeArr = Array.isArray(req.body.zone_free) ? req.body.zone_free : [req.body.zone_free];
+    const timeArr = Array.isArray(req.body.zone_time) ? req.body.zone_time : [req.body.zone_time];
     const zones = [];
     for (let i = 0; i < Math.min(toArr.length, 10); i++) {
       const to = parseFloat(String(toArr[i] || '').replace(',', '.'));
       const fee = parseFloat(String(feeArr[i] || '').replace(',', '.'));
       const min = parseFloat(String(minArr[i] || '').replace(',', '.'));
       const free = parseFloat(String(freeArr[i] || '').replace(',', '.')) || 0;
+      let time = parseInt(timeArr[i], 10);
+      if (!isFinite(time)) time = 15;
+      time = Math.max(5, Math.min(180, time));
       if (!isFinite(to) || to <= 0 || !isFinite(fee) || fee < 0 || !isFinite(min) || min < 0 || !isFinite(free) || free < 0) continue;
-      zones.push({ to, fee: Math.round(fee * 100) / 100, min: Math.round(min * 100) / 100, free: Math.round(free * 100) / 100 });
+      zones.push({ to, fee: Math.round(fee * 100) / 100, min: Math.round(min * 100) / 100, free: Math.round(free * 100) / 100, time });
     }
     zones.sort((a, b) => a.to - b.to);
     if (zones.length) {

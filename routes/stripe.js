@@ -65,6 +65,7 @@ async function webhookHandler(req, res) {
       // damit Webhook-Retries keinen Doppel-Ton/-Druck auslösen.
       if (upd && upd.rowCount > 0) {
         try { events.emit('order:new', { id: parseInt(orderId, 10) }); } catch (e) { /* still */ }
+        try { events.emit('order:status', { id: parseInt(orderId, 10) }); } catch (e) { /* still */ }
       }
     } else if (event.type === 'checkout.session.expired' && orderId) {
       await db.run(

@@ -64,6 +64,11 @@
   <br><br>
   <div class="center">* * * Danke! * * *</div>
   <br><br><br>
+  <% if (order.order_type !== 'abholung' && typeof fahrerQr !== 'undefined' && fahrerQr) { %>
+  <hr>
+  <div class="center medium">FAHRER: BITTE SCANNEN</div>
+  <div class="center"><img src="<%= fahrerQr %>" style="width:45mm;height:45mm;" alt="Fahrer-QR"></div>
+  <% } %>
 <script>
   if (new URLSearchParams(location.search).get('autoprint') === '1') { window.onload = function() { setTimeout(function(){ window.print(); }, 300); }; }
 </script>

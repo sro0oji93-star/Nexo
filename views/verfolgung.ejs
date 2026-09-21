@@ -1,0 +1,73 @@
+<%- include('partials/header') %>
+
+<div class="page-hero confirmation-hero" style="background:linear-gradient(135deg,rgba(35,34,35,.5),rgba(35,34,35,.3)),url('/images/384x384_img2.jpg') center/cover">
+  <div class="page-hero-overlay"></div>
+  <div class="page-hero-content">
+    <div class="confirmation-icon"><i class="fas fa-motorcycle" style="color:#d4af37"></i></div>
+    <h1 class="page-hero-title" style="color:#d4af37">Sendungsverfolgung</h1>
+    <p class="page-hero-subtitle" style="color:#d4af37">Bestellung <%= order.order_number %></p>
+  </div>
+</div>
+
+<section class="section confirmation-section">
+  <div class="container">
+    <div class="confirmation-card">
+      <div class="confirmation-header">
+        <div class="confirmation-check"><i class="fas fa-receipt"></i></div>
+        <h2 id="nexo-track-label"><%= order.label %></h2>
+        <p id="nexo-track-sub"><%= order.active ? 'Ihre Bestellung ist unterwegs zu Ihnen – diese Seite aktualisiert sich automatisch.' : 'Diese Bestellung ist abgeschlossen.' %></p>
+      </div>
+      <div class="confirmation-details">
+        <div class="confirmation-row">
+          <span>Bestellnummer</span>
+          <strong><%= order.order_number %></strong>
+        </div>
+        <div class="confirmation-row">
+          <span>Status</span>
+          <strong id="nexo-track-status"><%= order.label %></strong>
+        </div>
+        <div class="confirmation-row">
+          <span>Bestellart</span>
+          <strong><%= order.order_type === 'abholung' ? 'Abholung' : 'Lieferung' %></strong>
+        </div>
+        <div class="confirmation-row">
+          <span>Gesamtbetrag</span>
+          <strong><%= parseFloat(order.total).toFixed(2) %> €</strong>
+        </div>
+      </div>
+      <div class="confirmation-actions">
+        <a href="/" class="btn btn-primary">Zur Startseite</a>
+        <a href="/speisekarte" class="btn btn-outline">Weiter bestellen</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+(function () {
+  var token = <%= JSON.stringify(trackingToken) %>;
+  var num = <%= JSON.stringify(order.order_number) %>;
+  function setStatus(label, active) {
+    var a = document.getElementById('nexo-track-status');
+    var b = document.getElementById('nexo-track-label');
+    var c = document.getElementById('nexo-track-sub');
+    if (a) a.textContent = label;
+    if (b) b.textContent = label;
+    if (c) c.textContent = active
+      ? 'Ihre Bestellung ist unterwegs zu Ihnen – diese Seite aktualisiert sich automatisch.'
+      : 'Diese Bestellung ist abgeschlossen.';
+  }
+  try {
+    var es = new EventSource('/verfolgung/stream?tokens=' + encodeURIComponent(token));
+    es.addEventListener('status', function (ev) {
+      var o;
+      try { o = JSON.parse(ev.data); } catch (e) { return; }
+      if (!o || o.order_number !== num) return;
+      setStatus(o.label, o.active);
+    });
+    // Absichtlich KEIN Fetch auf 'error': EventSource verbindet sich selbst neu.
+  } catch (e) { /* ohne SSE bleibt der Server-Stand sichtbar */ }
+})();
+</script>
+
+<%- include('partials/footer') %>

@@ -72,7 +72,7 @@ function validateWishTime(wishTime, type, settings) {
 // Liefergebiet serverseitig prüfen (Nominatim-Geocoding + OSRM-Fahrstrecke).
 // Ergebnis: { km } (km=null -> unverifiziert, fail-open) oder { km, noRoute:true } (keine Fahrstrecke -> nicht lieferbar)
 // Zonen kommen aus den Einstellungen (Admin pflegbar), siehe delivery.js
-const { getDeliveryZones, findDeliveryZone } = require('../delivery');
+const { getDeliveryZones, findDeliveryZone, DEFAULT_DELIVERY_MINUTES } = require('../delivery');
 
 async function checkDeliveryArea(address, zip, city, settings) {
   const rLat = parseFloat((settings && (settings.restaurant_lat || settings.latitude)) || 53.295344);
@@ -447,13 +447,21 @@ router.post('/', async (req, res) => {
     // Geheimer Token: schützt die Bestellübersicht (kein Fremdzugriff über die Bestellnummer)
     const confirmToken = crypto.randomBytes(32).toString('hex');
 
+    // Tracking: Lieferzeit der passenden Zone JETZT festschreiben (wird später nie neu berechnet,
+    // damit spätere Zonen-Änderungen laufende Bestellungen nicht verfälschen). Fahrer-Token nur
+    // für Lieferung – Abholer bekommen nie einen Fahrer-QR.
+    const deliveryMinutes = type === 'lieferung'
+      ? (zone && isFinite(zone.time) ? zone.time : DEFAULT_DELIVERY_MINUTES)
+      : null;
+    const driverToken = type === 'lieferung' ? crypto.randomBytes(32).toString('hex') : null;
+
     // Online-Zahlung: Bestellung parken (kein Druck/Ton), erst Webhook gibt sie frei
     const isOnline = payment === 'online';
-    const ins = await db.run(`INSERT INTO orders (order_number, customer_name, customer_email, customer_phone, delivery_address, delivery_city, delivery_zip, notes, items, subtotal, delivery_fee, discount, discount_code, total, payment_method, payment_status, order_status, order_type, vat7, vat19, wish_time, confirm_token)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22) RETURNING id`,
+    const ins = await db.run(`INSERT INTO orders (order_number, customer_name, customer_email, customer_phone, delivery_address, delivery_city, delivery_zip, notes, items, subtotal, delivery_fee, discount, discount_code, total, payment_method, payment_status, order_status, order_type, vat7, vat19, wish_time, confirm_token, driver_token, delivery_minutes)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24) RETURNING id`,
       [orderNumber, name, email, phone, address, city, zip, notes,
       JSON.stringify(parsedItems), calculatedSubtotal, calculatedDelivery, calculatedDiscount, validCode, calculatedTotal,
-      payment, isOnline ? 'ausstehend' : 'bar', isOnline ? 'wartet_auf_zahlung' : 'neu', type, vat7, vat19, wishIso, confirmToken]
+      payment, isOnline ? 'ausstehend' : 'bar', isOnline ? 'wartet_auf_zahlung' : 'neu', type, vat7, vat19, wishIso, confirmToken, driverToken, deliveryMinutes]
     );
     const orderId = ins.rows && ins.rows[0] ? ins.rows[0].id : null;
 
@@ -479,6 +487,7 @@ router.post('/', async (req, res) => {
     // Fire-and-forget: Die Bestellantwort darf nie am Event-Bus scheitern.
     if (orderId) {
       try { events.emit('order:new', { id: orderId }); } catch (e) { /* still */ }
+      try { events.emit('order:status', { id: orderId }); } catch (e) { /* still */ }
     }
 
     res.json({ success: true, orderNumber, confirmToken, message: 'Bestellung erfolgreich aufgegeben!' });

@@ -221,6 +221,11 @@ async function initialize() {
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS printed_at TIMESTAMP;
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS vat7 NUMERIC(10,2) DEFAULT 0;
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS vat19 NUMERIC(10,2) DEFAULT 0;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS driver_token TEXT;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_minutes INTEGER;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS driver_started_at TIMESTAMP;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_due_at TIMESTAMP;
+    CREATE INDEX IF NOT EXISTS idx_orders_status_due ON orders (order_status, delivery_due_at);
 
     CREATE TABLE IF NOT EXISTS visitor_days (
       day TEXT NOT NULL,
