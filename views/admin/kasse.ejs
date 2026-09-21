@@ -1,0 +1,138 @@
+<%- include('layout') %>
+<style>
+  .kasse-wrap { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+  .kasse-left { flex: 1 1 560px; min-width: 0; }
+  .kasse-side { flex: 0 0 340px; position: sticky; top: 12px; background: #fff; border: 1px solid #e8e4de; border-radius: 14px; padding: 14px; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+  .kasse-catrow { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+  .kasse-cat { flex: 1 1 150px; min-height: 64px; font-size: 17px; font-weight: 800; border-radius: 12px; border: 2px solid #d4af37; background: #fff; cursor: pointer; padding: 10px 8px; }
+  .kasse-cat.active { background: #0a0a0a; color: #f5d67b; border-color: #0a0a0a; }
+  .kasse-cat.fee-btn { border-color: #2d8a4e; }
+  .kasse-cat.fee-btn.active { background: #15803d; color: #fff; border-color: #15803d; }
+  .kasse-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+  .kasse-prod { min-height: 76px; font-size: 16px; font-weight: 700; border-radius: 12px; border: 2px solid #e8e4de; background: #fff; cursor: pointer; padding: 10px 8px; display: flex; flex-direction: column; gap: 4px; align-items: stretch; text-align: center; }
+  .kasse-prod small { font-weight: 600; color: #b8860b; font-size: 14px; }
+  .kasse-prod.selected { border-color: #d4af37; background: #fffbeF; }
+  .kasse-prod:disabled { opacity: .45; cursor: not-allowed; }
+  .kasse-opts { display: none; margin-top: 12px; background: #fff; border: 1px solid #e8e4de; border-radius: 12px; padding: 14px; }
+  .kasse-opts.open { display: block; }
+  .kasse-add { width: 100%; min-height: 56px; font-size: 18px; font-weight: 800; border-radius: 12px; border: none; background: #0a0a0a; color: #f5d67b; cursor: pointer; margin-top: 12px; }
+  .kasse-fee-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+  .kasse-fee { flex: 1 1 100px; min-height: 56px; font-size: 18px; font-weight: 800; border-radius: 12px; border: 2px solid #2d8a4e; background: #fff; cursor: pointer; }
+  .kasse-fee.active { background: #15803d; color: #fff; }
+  .kasse-line { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px dashed #e8e4de; font-size: 14px; }
+  .kasse-line .nm { flex: 1; min-width: 0; }
+  .kasse-line .nm small { display: block; color: #6b6b6b; font-size: 12px; }
+  .kasse-qty { display: flex; align-items: center; gap: 6px; }
+  .kasse-qty button { width: 34px; height: 34px; font-size: 18px; font-weight: 800; border-radius: 8px; border: 1px solid #ddd; background: #f7f4ec; cursor: pointer; }
+  .kasse-rm { border: none; background: none; color: #c0392b; font-size: 18px; cursor: pointer; }
+  .kasse-total { font-size: 20px; font-weight: 800; display: flex; justify-content: space-between; margin-top: 10px; }
+  .kasse-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .kasse-actions .btn { flex: 1; min-height: 54px; font-size: 16px; font-weight: 800; }
+  .kasse-toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #0a0a0a; color: #f5d67b; padding: 12px 22px; border-radius: 12px; font-weight: 700; z-index: 99999; display: none; max-width: 92vw; text-align: center; }
+</style>
+
+<div class="section-header-row">
+  <h2><i class="fas fa-cash-register"></i> Kasse</h2>
+  <span class="badge">Theke · Bar · Abholung</span>
+</div>
+
+<% var dealWindows = {
+  'nexo-mittag-deal': { from: 720, to: 900, hint: 'Nur 12:00–15:00 Uhr bestellbar' },
+  'nexo-night-deal': { from: 1260, to: 1440, hint: 'Ab 21:00 Uhr bestellbar · nur Abholer' }
+}; %>
+<script>window.PIZZA_EXTRA_PRICES = <%- JSON.stringify(pizzaExtras.prices) %>;</script>
+<script>window.KASSE_CSRF = <%= JSON.stringify(typeof csrfToken !== 'undefined' ? csrfToken : '') %>;</script>
+
+<div class="kasse-wrap">
+  <div class="kasse-left">
+    <div class="kasse-catrow" id="kasseCats">
+      <% categories.forEach(function(cat, ci) { %>
+      <button type="button" class="kasse-cat<%= ci === 0 ? ' active' : '' %>" data-cat="<%= cat.slug %>"><%= cat.name %></button>
+      <% }); %>
+      <button type="button" class="kasse-cat fee-btn" data-cat="__fee">LIEFERKOSTEN</button>
+    </div>
+
+    <div id="kasseFeePanel" style="display:none;background:#fff;border:1px solid #e8e4de;border-radius:12px;padding:14px;margin-bottom:14px">
+      <strong>Lieferkosten (optional)</strong>
+      <div class="kasse-fee-row" id="kasseFees">
+        <button type="button" class="kasse-fee" data-fee="1">1,00 €</button>
+        <button type="button" class="kasse-fee" data-fee="1.5">1,50 €</button>
+        <button type="button" class="kasse-fee" data-fee="2">2,00 €</button>
+        <button type="button" class="kasse-fee" data-fee="2.5">2,50 €</button>
+        <button type="button" class="kasse-fee" data-fee="3">3,00 €</button>
+        <button type="button" class="kasse-fee" data-fee="0">Keine</button>
+      </div>
+    </div>
+
+    <% categories.forEach(function(cat, ci) { %>
+    <% var catProducts = products.filter(function(p) { return p.category_id === cat.id; }); %>
+    <div class="kasse-catpage" data-catpage="<%= cat.slug %>" style="<%= ci === 0 ? '' : 'display:none' %>">
+      <div class="kasse-grid">
+        <% catProducts.forEach(function(p) { %>
+        <button type="button" class="kasse-prod" data-pid="<%= p.id %>" <%= p.is_available ? '' : 'disabled' %>>
+          <span><%= p.name %></span>
+          <small><% if (p.sizes) { var sz = JSON.parse(p.sizes); var minP = Math.min.apply(null, sz.map(function(s){return s.price})); %>ab <%= minP.toFixed(2).replace('.', ',') %> €<% } else { %><%= parseFloat(p.price).toFixed(2).replace('.', ',') %> €<% } %><%= p.is_available ? '' : ' · ausverkauft' %></small>
+        </button>
+        <% }); %>
+        <% if (!catProducts.length) { %><p style="color:#999">Bald verfügbar</p><% } %>
+      </div>
+
+      <% catProducts.forEach(function(p) { %>
+      <% if (!p.is_available) return; %>
+      <div class="kasse-opts" data-opts-for="<%= p.id %>">
+        <strong style="font-size:17px"><%= p.name %></strong>
+        <% if (p.description) { %><div style="color:#777;font-size:13px;margin:4px 0 8px"><%= p.description %></div><% } %>
+        <% if (p.sizes) { var sizeData = JSON.parse(p.sizes); %>
+        <% if (cat.slug === 'croque' || cat.slug === 'salat' || cat.slug === 'rings') { %><%- include('../partials/croque-sauces', { productId: p.id, sizeData: sizeData }) %><% } else if (cat.slug === 'schnitzel' || cat.slug === 'bowls') { %><%- include('../partials/croque-sauces', { productId: p.id, sizeData: sizeData, boxTitle: '1 Beilage nach Wahl' }) %><% } else if (cat.slug === 'burger') { %><%- include('../partials/burger-menue', { productId: p.id, productName: p.name, sizeData: sizeData }) %><% } else { %>
+        <div class="size-picker" style="margin-top:10px;display:flex;flex-wrap:wrap;gap:8px">
+          <% sizeData.forEach(function(s, si) { %>
+          <label class="size-option" style="cursor:pointer;padding:10px 18px;border:2px solid #3a3a41;border-radius:10px;font-size:15px;background:#1d1d21;color:#f0ead8;min-height:52px;display:flex;flex-direction:column;justify-content:center;text-align:center">
+            <input type="radio" name="size_<%= p.id %>" value="<%= s.price %>" data-label="<%= s.label %>" data-id="<%= p.id %>" data-name="<%= p.name %>" style="display:none" <%= si === 0 ? 'checked' : '' %>>
+            <span style="display:block;font-weight:700"><%= s.label %></span>
+            <span class="size-price" style="display:block;color:var(--primary);font-weight:700"><%= s.price.toFixed(2).replace('.', ',') %>€</span>
+          </label>
+          <% }); %>
+        </div>
+        <% } %>
+        <% if (cat.slug === 'snacks') { %><%- include('../partials/snacks-menue', { productId: p.id }) %><% } %>
+        <% if (cat.slug === 'bowls') { %><%- include('../partials/bowls-sauces', { productId: p.id }) %><% } %>
+        <% if (cat.slug === 'pizza-broetchen') { %><%- include('../partials/free-sauce', { productId: p.id }) %><% } %>
+        <% if (['crepe-nutella','crepe-frucht','crepe-lotus','crepe-oreo','crepe-bueno','mini-pancakes','mini-waffel'].indexOf(p.slug) !== -1) { %><%- include('../partials/choco-box', { productId: p.id }) %><% } %>
+        <% if (cat.slug === 'pizza') { %><%- include('../partials/pizza-extras', { productId: p.id }) %><% } %>
+        <% if (cat.slug === 'burger') { %><button type="button" class="kasse-add" data-id="<%= p.id %>" data-name="<%= p.name %>" data-price="<%= p.price %>" data-has-menue="1">HINZUFÜGEN</button><% } else if (cat.slug === 'snacks') { %><button type="button" class="kasse-add" data-id="<%= p.id %>" data-name="<%= p.name %>" data-has-snacks-menue="1">HINZUFÜGEN</button><% } else if (cat.slug === 'pizza-broetchen') { %><button type="button" class="kasse-add" data-id="<%= p.id %>" data-name="<%= p.name %>" data-price="<%= p.price %>" data-has-sauce="1">HINZUFÜGEN</button><% } else { %><button type="button" class="kasse-add" data-id="<%= p.id %>" data-name="<%= p.name %>" data-has-sizes="1">HINZUFÜGEN</button><% } %>
+        <% } else if (p.slug === 'nexo-mittag-deal') { %>
+        <%- include('../partials/deal-choices', { productId: p.id, dealLists: typeof dealLists !== 'undefined' ? dealLists : null }) %>
+        <button type="button" class="kasse-add" data-id="<%= p.id %>" data-name="<%= p.name %>" data-price="<%= p.price %>" data-has-deal="1" data-deal-slug="nexo-mittag-deal">HINZUFÜGEN</button>
+        <% } else if (p.boxGroups) { %>
+        <%- include('../partials/box-choices', { productId: p.id, boxSlug: p.slug, boxGroups: p.boxGroups }) %>
+        <button type="button" class="kasse-add" data-id="<%= p.id %>" data-name="<%= p.name %>" data-price="<%= p.price %>" data-has-box="1" data-box-slug="<%= p.slug %>">HINZUFÜGEN</button>
+        <% } else if (['crepe-nutella','crepe-frucht','crepe-lotus','crepe-oreo','crepe-bueno','mini-pancakes','mini-waffel'].indexOf(p.slug) !== -1) { %>
+        <%- include('../partials/choco-box', { productId: p.id }) %>
+        <button type="button" class="kasse-add" data-id="<%= p.id %>" data-name="<%= p.name %>" data-price="<%= p.price %>" data-has-choco="1">HINZUFÜGEN</button>
+        <% } else if (cat.slug === 'pasta') { %>
+        <%- include('../partials/pasta-type', { productId: p.id, showSauce: p.slug === 'pasta-wunsch' }) %>
+        <button type="button" class="kasse-add" data-id="<%= p.id %>" data-name="<%= p.name %>" data-price="<%= p.price %>" data-has-pasta="1">HINZUFÜGEN</button>
+        <% } else { %>
+        <button type="button" class="kasse-add" data-id="<%= p.id %>" data-name="<%= p.name %>" data-price="<%= p.price %>"<%- p.slug === 'nexo-night-deal' ? ' data-pickup-only="1"' : '' %>>HINZUFÜGEN</button>
+        <% } %>
+      </div>
+      <% }); %>
+    </div>
+    <% }); %>
+  </div>
+
+  <aside class="kasse-side">
+    <h3 style="margin:0 0 8px"><i class="fas fa-receipt"></i> Bon</h3>
+    <div id="kasseLines"><p style="color:#999;font-size:14px">Noch keine Positionen.</p></div>
+    <div class="kasse-total"><span>Gesamt</span><span id="kasseTotal">0,00 €</span></div>
+    <div class="kasse-actions">
+      <button type="button" class="btn btn-outline" id="kasseClear">Leeren</button>
+      <button type="button" class="btn btn-primary" id="kasseSubmit">Bestellen &amp; Drucken</button>
+    </div>
+    <div id="kasseLast" style="margin-top:8px;font-size:13px;color:#15803d"></div>
+  </aside>
+</div>
+<div class="kasse-toast" id="kasseToast"></div>
+<script src="/js/pizza-extras.js"></script>
+<script src="/js/kasse.js?v=20260922a"></script>
+<%- include('footer') %>

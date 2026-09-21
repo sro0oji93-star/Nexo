@@ -184,6 +184,7 @@ app.use('/kontakt', (req, res, next) => (req.method === 'POST' ? contactLimiter(
 app.use('/kontakt', contactRoutes);
 app.use('/admin/login', (req, res, next) => (req.method === 'POST' ? loginLimiter(req, res, next) : next()));
 app.use('/admin', adminRoutes);
+app.use('/admin', require('./routes/kasse')); // Theken-Kasse (GET Seite + POST Bestellung)
 // Brute-Force-Schutz auch für den Eigentümer-Login und die Ersteinrichtung
 app.use('/eigentuemer/login', (req, res, next) => (req.method === 'POST' ? loginLimiter(req, res, next) : next()));
 app.use('/eigentuemer/setup', (req, res, next) => (req.method === 'POST' ? loginLimiter(req, res, next) : next()));

@@ -114,3 +114,6 @@ router.get('/produkt/:slug', async (req, res) => {
 });
 
 module.exports = router;
+// Loader für Theken-Kasse (GET /admin/kasse) wiederverwenden – kein Duplikat.
+module.exports.loadBoxLists = loadBoxLists;
+module.exports.loadDealLists = loadDealLists;
