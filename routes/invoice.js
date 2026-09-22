@@ -25,7 +25,7 @@ function isKasseOrder(order) {
 }
 
 function eur(n) {
-  return (parseFloat(n) || 0).toFixed(2) + ' €';
+  return (parseFloat(n) || 0).toFixed(2).replace('.', ',') + ' €';
 }
 
 function paymentLabel(m) {
@@ -58,9 +58,6 @@ function buildInvoicePdf(order, settings) {
       doc.text('Bestellnummer: ' + order.order_number);
       const d = order.created_at ? new Date(order.created_at) : new Date();
       doc.text('Datum: ' + d.toLocaleDateString('de-DE') + ' ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
-      doc.text('Zahlungsmethode: ' + paymentLabel(order.payment_method));
-      doc.font('Helvetica-Bold').text('Status: ' + (order.payment_status === 'bezahlt' ? 'Bestellung bezahlt' : 'Bestellung nicht bezahlt'));
-      doc.font('Helvetica').fontSize(10);
       doc.moveDown();
       doc.text('Kunde: ' + (order.customer_name || ''));
       if (order.order_type !== 'abholung') {
@@ -89,12 +86,15 @@ function buildInvoicePdf(order, settings) {
       }
       doc.moveDown();
       doc.text('Zwischensumme: ' + eur(order.subtotal));
-      doc.text('Lieferung: ' + eur(order.delivery_fee));
+      if (parseFloat(order.delivery_fee) > 0) doc.text('Lieferung: ' + eur(order.delivery_fee));
       if (parseFloat(order.discount) > 0) doc.text('Rabatt' + (order.discount_code ? ' ' + order.discount_code : '') + ': -' + eur(order.discount));
+      if (parseFloat(order.vat7) > 0) doc.text('7% MwSt: ' + eur(order.vat7));
+      if (parseFloat(order.vat19) > 0) doc.text('19% MwSt: ' + eur(order.vat19));
       doc.font('Helvetica-Bold').fontSize(12).text('Gesamt: ' + eur(order.total));
       doc.font('Helvetica').fontSize(10);
-      if (parseFloat(order.vat7) > 0) doc.text('Darin 7% MwSt: ' + eur(order.vat7));
-      if (parseFloat(order.vat19) > 0) doc.text('Darin 19% MwSt: ' + eur(order.vat19));
+      doc.text('Zahlung: ' + paymentLabel(order.payment_method));
+      doc.font('Helvetica-Bold').text('Status: ' + (order.payment_status === 'bezahlt' ? 'Bestellung bezahlt' : 'Bestellung nicht bezahlt'));
+      doc.font('Helvetica').fontSize(10);
       doc.moveDown();
       doc.fontSize(9).text('Vielen Dank für Ihre Bestellung!');
       doc.end();
