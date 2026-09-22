@@ -56,11 +56,20 @@
       <strong>Lieferkosten (optional)</strong>
       <div class="kasse-fee-row" id="kasseFees">
         <button type="button" class="kasse-fee" data-fee="1">1,00 €</button>
+        <button type="button" class="kasse-fee" data-fee="1.05">1,05 €</button>
         <button type="button" class="kasse-fee" data-fee="1.5">1,50 €</button>
         <button type="button" class="kasse-fee" data-fee="2">2,00 €</button>
         <button type="button" class="kasse-fee" data-fee="2.5">2,50 €</button>
         <button type="button" class="kasse-fee" data-fee="3">3,00 €</button>
+        <button type="button" class="kasse-fee" data-fee="3.5">3,50 €</button>
+        <button type="button" class="kasse-fee" data-fee="4">4,00 €</button>
+        <button type="button" class="kasse-fee" data-fee="4.5">4,50 €</button>
+        <button type="button" class="kasse-fee" data-fee="5">5,00 €</button>
         <button type="button" class="kasse-fee" data-fee="0">Keine</button>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;align-items:stretch">
+        <input type="text" inputmode="decimal" id="kasseFeeInput" placeholder="z.B. 1,80" style="flex:1;min-height:52px;font-size:18px;padding:8px 12px;border:2px solid #e8e4de;border-radius:12px">
+        <button type="button" class="btn btn-outline" id="kasseFeeAdd" style="min-height:52px;font-size:16px;font-weight:800;padding:8px 22px">Hinzufügen</button>
       </div>
     </div>
 

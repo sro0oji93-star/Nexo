@@ -278,7 +278,25 @@
     }
   }
 
+  // Burger-Menü: zweiter Klick auf dieselbe Auswahl hebt sie wieder auf –
+  // danach gilt wieder der normale Burgerpreis. Pro Menü-Box gemerkt (braucht
+  // kein mousedown und funktioniert mit Maus, Touch und Tastatur gleich).
+  // Nur Kasse-Datei, Kundenseite (cart.js bindDrinkToggle) unverändert.
   document.addEventListener('click', function (e) {
+    var mlab = e.target && e.target.closest ? e.target.closest('.menue-box label') : null;
+    var mr = mlab ? mlab.querySelector('input[type="radio"]') : null;
+    // Nur Label-Klicks behandeln (Inputs sind display:none): der weitergeleitete
+    // Input-Klick danach wird ignoriert, sonst würde er sofort wieder umschalten.
+    if (mr && e.target !== mr) {
+      var mbox = mr.closest('.menue-box');
+      if (mbox && mbox._kasseMenue === mr) {
+        if (e.cancelable) e.preventDefault();
+        mr.checked = false;
+        mbox._kasseMenue = null;
+      } else if (mbox) {
+        mbox._kasseMenue = mr;
+      }
+    }
     var cat = e.target.closest ? e.target.closest('.kasse-cat') : null;
     if (cat) {
       var slug = cat.getAttribute('data-cat');
@@ -295,6 +313,19 @@
     var fb = e.target.closest ? e.target.closest('#kasseFees .kasse-fee') : null;
     if (fb) {
       fee = parseFloat(fb.getAttribute('data-fee')) || 0;
+      paintFees();
+      render();
+      return;
+    }
+    // Manueller Betrag (Komma erlaubt): ersetzt die aktuelle Auswahl, addiert nie.
+    var feeAdd = e.target.closest ? e.target.closest('#kasseFeeAdd') : null;
+    if (feeAdd) {
+      var inp = document.getElementById('kasseFeeInput');
+      var raw = inp && inp.value ? String(inp.value).trim().replace(',', '.') : '';
+      var v = parseFloat(raw);
+      if (!isFinite(v) || v < 0) { toast('Bitte gültigen Betrag eingeben (z.B. 1,80)'); return; }
+      fee = Math.round(v * 100) / 100;
+      if (inp) inp.value = '';
       paintFees();
       render();
       return;

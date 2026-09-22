@@ -15,7 +15,7 @@ const { priceItems, splitVat } = require('../order-pricing');
 const { loadBoxLists, loadDealLists } = require('./menu');
 const { TOPPINGS, FISH_TOPPINGS, EXTRA_PRICES, KAESERAND } = require('../extras');
 
-const KASSE_FEES = [0, 1, 1.50, 2, 2.50, 3];
+const KASSE_FEE_MAX = 999;
 
 // Touch-Oberfläche: alle Kategorien + Produkte (ohne Bilder), Optionen wie im Menü.
 router.get('/kasse', auth, async (req, res) => {
@@ -47,10 +47,12 @@ router.post('/kasse/order', auth, async (req, res) => {
     if (!Array.isArray(parsedItems) || !parsedItems.length) {
       return res.status(400).json({ success: false, message: 'Keine Positionen.' });
     }
-    let fee = parseFloat(req.body.fee);
+    // Manueller Betrag oder fester Button (UI-Shortcuts in kasse.ejs): ersetzen, nie addieren.
+    // Gültig: 0 bis KASSE_FEE_MAX, auf Cent gerundet. Negatives/Unsinn -> 400.
+    let fee = parseFloat(String(req.body.fee).replace(',', '.'));
     if (!isFinite(fee)) fee = 0;
     fee = Math.round(fee * 100) / 100;
-    if (!KASSE_FEES.includes(fee)) {
+    if (fee < 0 || fee > KASSE_FEE_MAX) {
       return res.status(400).json({ success: false, message: 'Ungültige Lieferkosten.' });
     }
     let priced;
