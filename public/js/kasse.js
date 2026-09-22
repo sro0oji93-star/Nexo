@@ -10,8 +10,10 @@
   var fee = 0;
   var discountCode = null;
   var discountValue = 0;
+  var discountKind = null; // 'code' | 'manual' | null
 
   function fmt(n) { return (parseFloat(n) || 0).toFixed(2).replace('.', ',') + ' €'; }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function toast(msg) {
     var t = document.getElementById('kasseToast');
     if (!t) return;
@@ -64,8 +66,8 @@
     }
     var dl = document.getElementById('kasseDiscLine');
     if (dl) {
-      dl.innerHTML = (discountValue > 0 && discountCode)
-        ? '<div class="kasse-line"><div class="nm"><strong>Rabatt ' + discountCode + '</strong></div><strong>-' + fmt(discountValue) + '</strong><button type="button" class="kasse-rm" data-kdisc-rm="1" title="Rabatt entfernen">×</button></div>'
+      dl.innerHTML = (discountValue > 0 && discountKind)
+        ? '<div class="kasse-line"><div class="nm"><strong>Rabatt' + (discountKind === 'code' && discountCode ? ' ' + esc(discountCode) : '') + '</strong></div><strong>-' + fmt(discountValue) + '</strong><button type="button" class="kasse-rm" data-kdisc-rm="1" title="Rabatt entfernen">×</button></div>'
         : '';
     }
     document.getElementById('kasseTotal').textContent = fmt(t.total);
@@ -236,32 +238,51 @@
     }
   }
 
-  // Rabattcode prüfen (exakt dieselbe Prüfung wie Online-Kasse: POST /bestellung/rabatt-pruefen).
+  // Rabatt: Code (serverseitig geprüft wie online) ODER direkter Betrag – nie beides.
   function applyDiscount() {
     var inp = document.getElementById('kasseDiscInput');
+    var amtInp = document.getElementById('kasseDiscAmount');
     var code = inp && inp.value ? inp.value.trim().toUpperCase() : '';
-    if (!code) { toast('Bitte Rabattcode eingeben'); return; }
-    var t = totals();
-    fetch('/bestellung/rabatt-pruefen', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-csrf-token': window.KASSE_CSRF || '' },
-      body: JSON.stringify({ code: code, subtotal: t.sub })
-    })
-      .then(function (r) { return r.json(); })
-      .then(function (j) {
-        if (!j.valid) {
-          discountCode = null;
-          discountValue = 0;
-          render();
-          toast(j.message || 'Rabattcode ungültig');
-          return;
-        }
-        discountCode = code;
-        discountValue = parseFloat(j.value) || 0;
-        render();
-        toast(j.message || 'Rabatt angewendet');
+    var amtRaw = amtInp && amtInp.value ? String(amtInp.value).trim().replace(',', '.') : '';
+    if (code) {
+      if (amtInp) amtInp.value = '';
+      var t = totals();
+      fetch('/bestellung/rabatt-pruefen', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': window.KASSE_CSRF || '' },
+        body: JSON.stringify({ code: code, subtotal: t.sub })
       })
-      .catch(function () { toast('Netzwerkfehler'); });
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (!j.valid) {
+            discountCode = null;
+            discountValue = 0;
+            discountKind = null;
+            render();
+            toast(j.message || 'Rabattcode ungültig');
+            return;
+          }
+          discountCode = code;
+          discountValue = parseFloat(j.value) || 0;
+          discountKind = 'code';
+          render();
+          toast(j.message || 'Rabatt angewendet');
+        })
+        .catch(function () { toast('Netzwerkfehler'); });
+      return;
+    }
+    if (amtRaw) {
+      var v = Math.round(parseFloat(amtRaw) * 100) / 100;
+      if (!isFinite(v) || v <= 0) { toast('Bitte gültigen Betrag eingeben (z.B. 2,00)'); return; }
+      discountCode = null;
+      discountValue = v;
+      discountKind = 'manual';
+      if (inp) inp.value = '';
+      render();
+      toast('Rabatt angewendet');
+      return;
+    }
+    toast('Bitte Rabattcode oder Betrag eingeben');
   }
 
   function submit() {
@@ -271,7 +292,7 @@
     fetch('/admin/kasse/order', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-csrf-token': window.KASSE_CSRF || '' },
-      body: JSON.stringify({ items: items, fee: fee, discount_code: discountCode })
+      body: JSON.stringify({ items: items, fee: fee, discount_code: discountKind === 'code' ? discountCode : null, discount_value: discountKind === 'manual' ? discountValue : null })
     })
       .then(function (r) { return r.json(); })
       .then(function (j) {
@@ -297,8 +318,11 @@
         fee = 0;
         discountCode = null;
         discountValue = 0;
+        discountKind = null;
         var di = document.getElementById('kasseDiscInput');
         if (di) di.value = '';
+        var da = document.getElementById('kasseDiscAmount');
+        if (da) da.value = '';
         paintFees();
         render();
         toast('Bestellung ' + j.orderNumber + ' gespeichert');
@@ -409,8 +433,11 @@
     if (drmr) {
       discountCode = null;
       discountValue = 0;
+      discountKind = null;
       var di2 = document.getElementById('kasseDiscInput');
       if (di2) di2.value = '';
+      var da2 = document.getElementById('kasseDiscAmount');
+      if (da2) da2.value = '';
       render();
       return;
     }
@@ -419,8 +446,11 @@
       fee = 0;
       discountCode = null;
       discountValue = 0;
+      discountKind = null;
       var di3 = document.getElementById('kasseDiscInput');
       if (di3) di3.value = '';
+      var da3 = document.getElementById('kasseDiscAmount');
+      if (da3) da3.value = '';
       paintFees();
       render();
       return;

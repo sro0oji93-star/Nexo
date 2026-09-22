@@ -62,14 +62,32 @@ router.post('/kasse/order', auth, async (req, res) => {
       return res.status(e && e.status ? e.status : 400).json({ success: false, message: (e && e.message) || 'Ungültige Bestellung' });
     }
     const subtotal = priced.subtotal;
-    // Rabattcode (optional): exakt dieselben Regeln wie online (shared helper).
-    // Explizit angegeben, aber ungültig -> 400 (Theke soll keinen stillen Vollpreis kassieren).
+    // Rabatt: Code (shared Regeln wie online) ODER direkter Betrag – nie beides.
+    // Betrag nutzt dieselbe Total/VAT-Mathematik (kein zweites System).
     const discountCode = typeof req.body.discount_code === 'string' && req.body.discount_code.trim()
       ? req.body.discount_code.trim()
       : null;
-    const { validCode, discount: kasseDiscount } = await validateDiscountCode(discountCode, subtotal);
-    if (discountCode && !validCode) {
-      return res.status(400).json({ success: false, message: 'Rabattcode ungültig oder Mindestbestellwert nicht erreicht.' });
+    let manualDiscount = null;
+    if (req.body.discount_value !== undefined && req.body.discount_value !== null && String(req.body.discount_value).trim() !== '') {
+      manualDiscount = Math.round(parseFloat(String(req.body.discount_value).replace(',', '.')) * 100) / 100;
+      if (!isFinite(manualDiscount) || manualDiscount < 0) {
+        return res.status(400).json({ success: false, message: 'Ungültiger Rabattbetrag.' });
+      }
+    }
+    if (discountCode && manualDiscount !== null) {
+      return res.status(400).json({ success: false, message: 'Bitte entweder Rabattcode oder Betrag verwenden.' });
+    }
+    let validCode = null;
+    let kasseDiscount = 0;
+    if (discountCode) {
+      const checked = await validateDiscountCode(discountCode, subtotal);
+      if (!checked.validCode) {
+        return res.status(400).json({ success: false, message: 'Rabattcode ungültig oder Mindestbestellwert nicht erreicht.' });
+      }
+      validCode = checked.validCode;
+      kasseDiscount = checked.discount;
+    } else if (manualDiscount !== null) {
+      kasseDiscount = manualDiscount;
     }
     const total = Math.max(0, subtotal + fee - kasseDiscount);
     // Lieferkosten folgen 7 %, Rabatt anteilig je Satz (wie online).

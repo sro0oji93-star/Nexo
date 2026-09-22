@@ -334,8 +334,28 @@ router.post('/bestellungen/loeschen/:id', auth, async (req, res) => {
 });
 
 router.get('/rabatte', auth, async (req, res) => {
+  if (req.query.batch === 'clear') {
+    req.session.rabattBatch = null;
+    return req.session.save(() => res.redirect('/admin/rabatte'));
+  }
   const discounts = await db.all('SELECT * FROM discounts ORDER BY created_at DESC');
-  res.render('admin/discounts', { title: 'Rabatte – Admin', discounts });
+  // Batch-Auswahl über Redirects/Löschungen hinweg erhalten (Session).
+  // Gelöschte Codes fallen automatisch raus; Rest bleibt druck-/PDF-fähig.
+  let newCodes = null;
+  const stored = Array.isArray(req.session.rabattBatch)
+    ? req.session.rabattBatch.filter((c) => typeof c === 'string' && /^[A-Z0-9-]{1,30}$/.test(c)).slice(0, 1000)
+    : [];
+  if (stored.length) {
+    const placeholders = stored.map((_, i) => '$' + (i + 1)).join(',');
+    const rows = await db.all('SELECT code FROM discounts WHERE code IN (' + placeholders + ')', stored).catch(() => []);
+    const existing = new Set(rows.map((r) => r.code));
+    newCodes = stored.filter((c) => existing.has(c));
+    if (!newCodes.length) {
+      req.session.rabattBatch = null;
+      newCodes = null;
+    }
+  }
+  res.render('admin/discounts', { title: 'Rabatte – Admin', discounts, newCodes, bulkError: null });
 });
 
 router.post('/rabatte', auth, async (req, res) => {
@@ -364,6 +384,10 @@ function bulkRandomCode(prefix) {
 router.post('/rabatte/bulk', auth, async (req, res) => {
   const renderWith = async (newCodes, bulkError) => {
     const discounts = await db.all('SELECT * FROM discounts ORDER BY created_at DESC');
+    if (newCodes && newCodes.length) {
+      req.session.rabattBatch = newCodes.slice(0, 1000);
+      try { await new Promise((resolve) => req.session.save(() => resolve())); } catch (e) { /* still rendern */ }
+    }
     res.render('admin/discounts', { title: 'Rabatte – Admin', discounts, newCodes: newCodes || null, bulkError: bulkError || null });
   };
   let anzahl = parseInt(req.body.anzahl, 10);
@@ -414,8 +438,9 @@ router.get('/rabatte/drucken', auth, async (req, res) => {
   res.render('admin/discount-print', { cards, settings: res.locals.settings, autoprint: req.query.autoprint !== '0' });
 });
 
-// Rabattcode-Sammel-PDF für professionellen Kartendruck (RAM-only, kein Storage).
-// Enthält jeden Code genau einmal als eigene Karte (Code, Wert/Typ, Gültigkeit).
+// Rabattcode-Sammel-PDF: NUR nummerierte Codes, eine Zeile pro Code – für den
+// professionellen Kartendruck. Keine Boxen/Karten, kein QR, kein Logo, kein Deko.
+// RAM-only (kein Storage), on-demand.
 router.get('/rabatte/pdf', auth, async (req, res) => {
   const codes = String(req.query.codes || '').split(',').map((s) => s.trim().toUpperCase()).filter(Boolean).slice(0, 500);
   if (!codes.length) return res.status(400).send('Keine Codes angegeben.');
@@ -426,32 +451,17 @@ router.get('/rabatte/pdf', auth, async (req, res) => {
   const cards = codes.map((c) => byCode[c]).filter(Boolean);
   if (!cards.length) return res.status(404).send('Keine gültigen Codes gefunden.');
   const PDFDocument = require('pdfkit');
-  const doc = new PDFDocument({ size: 'A4', margin: 36, compress: false });
+  const doc = new PDFDocument({ size: 'A4', margin: 50, compress: false });
   const chunks = [];
   doc.on('data', (c) => chunks.push(c));
   const done = new Promise((resolve, reject) => {
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
   });
-  const s = res.locals.settings || {};
-  doc.font('Helvetica-Bold').fontSize(18).text(s.site_name || 'NexoFood', { align: 'center' });
-  doc.font('Helvetica').fontSize(10).text('Rabattcodes', { align: 'center' });
-  doc.moveDown();
-  const colW = (doc.page.width - 72) / 2;
-  const cardH = 150;
-  let x = 36, y = doc.y, col = 0;
-  const valueText = (c) => (c.type === 'prozent' ? c.value + '%' : parseFloat(c.value).toFixed(2).replace('.', ',') + ' €');
-  const validText = (c) => (c.expires_at ? 'Gültig bis ' + new Date(c.expires_at).toLocaleDateString('de-DE') : 'Unbegrenzt gültig');
-  for (const c of cards) {
-    if (y + cardH > doc.page.height - 36) { doc.addPage(); x = 36; y = 36; col = 0; }
-    if (col === 1) { x = 36 + colW; } else { x = 36; }
-    doc.rect(x, y, colW - 12, cardH - 12).stroke();
-    doc.font('Helvetica-Bold').fontSize(20).text(c.code, x + 8, y + 18, { width: colW - 28, align: 'center' });
-    doc.font('Helvetica').fontSize(11).text('Rabatt: ' + valueText(c), x + 8, y + 62, { width: colW - 28, align: 'center' });
-    if (parseFloat(c.min_order) > 0) doc.fontSize(10).text('Ab ' + parseFloat(c.min_order).toFixed(2).replace('.', ',') + ' €', x + 8, y + 82, { width: colW - 28, align: 'center' });
-    doc.fontSize(10).text(validText(c), x + 8, y + 102, { width: colW - 28, align: 'center' });
-    if (col === 1) { col = 0; y += cardH; } else { col = 1; }
-  }
+  doc.font('Helvetica').fontSize(13);
+  cards.forEach((c, i) => {
+    doc.text((i + 1) + '. ' + c.code);
+  });
   doc.end();
   const pdf = await done;
   res.set({

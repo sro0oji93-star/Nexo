@@ -12,7 +12,7 @@
 <% } %>
 <% if (typeof newCodes !== 'undefined' && newCodes && newCodes.length) { %>
 <div class="table-container" style="margin-bottom:16px">
-  <h3 style="margin:0 0 8px"><i class="fas fa-check-circle"></i> <%= newCodes.length %> neue Codes erstellt</h3>
+  <h3 style="margin:0 0 8px"><i class="fas fa-check-circle"></i> <%= newCodes.length %> Codes ausgewählt <a href="/admin/rabatte?batch=clear" style="font-size:12px;font-weight:400">Auswahl schließen</a></h3>
   <form id="bulkOutputForm" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start">
     <div style="flex:1;min-width:240px;max-height:220px;overflow-y:auto;border:1px solid #e8e4de;border-radius:8px;padding:8px 12px">
       <% newCodes.forEach(function(cd, i) { %>
@@ -20,15 +20,19 @@
       <% }); %>
     </div>
     <div style="display:flex;flex-direction:column;gap:8px">
-      <button type="button" class="btn btn-outline" onclick="bulkOutput('drucken')">🖨️ Drucken</button>
-      <button type="button" class="btn btn-outline" onclick="bulkOutput('pdf')">📄 PDF</button>
+      <button type="button" class="btn btn-outline" onclick="bulkOutput('drucken')">🖨️ Drucken (Auswahl)</button>
+      <button type="button" class="btn btn-outline" onclick="bulkOutput('drucken', true)">🖨️ Alle neuen Codes drucken</button>
+      <button type="button" class="btn btn-outline" onclick="bulkOutput('pdf')">📄 PDF herunterladen</button>
     </div>
   </form>
   <script>
-  function bulkOutput(kind) {
-    var sel = Array.prototype.map.call(document.querySelectorAll('#bulkOutputForm input[name="codes"]:checked'), function(c) { return c.value; });
+  function bulkOutput(kind, all) {
+    var boxes = document.querySelectorAll('#bulkOutputForm input[name="codes"]');
+    var sel = [];
+    boxes.forEach(function(c) { if (all || c.checked) sel.push(c.value); });
     if (!sel.length) { alert('Bitte mindestens einen Code auswählen.'); return; }
     var url = kind === 'pdf' ? '/admin/rabatte/pdf?codes=' : '/admin/rabatte/drucken?codes=';
+    if (kind !== 'pdf') url += '&autoprint=1';
     window.open(url + sel.map(encodeURIComponent).join(','), '_blank');
   }
   </script>
@@ -60,6 +64,7 @@
         <td><%= d.expires_at ? new Date(d.expires_at).toLocaleDateString('de-DE') : '∞' %></td>
         <td><span class="status-badge <%= d.active ? 'status-verfuegbar' : 'status-ausverkauft' %>"><%= d.active ? 'Aktiv' : 'Inaktiv' %></span></td>
         <td>
+          <a href="/admin/rabatte/drucken?codes=<%= d.code %>&autoprint=1" target="_blank" class="btn btn-sm btn-outline" title="Diesen Code drucken"><i class="fas fa-print"></i></a>
           <form method="POST" action="/admin/rabatte/loeschen/<%= d.id %>" style="display:inline" onsubmit="return confirm('Wirklich löschen?')"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
           </form>
