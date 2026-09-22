@@ -32,18 +32,27 @@ function getExtraPrice(sizeLabel, name) {
 
 // names: Array aus Strings oder {name}-Objekten (vom Client).
 // Wirft bei unbekanntem Extra. Doppelte werden ignoriert.
-function validateExtras(sizeLabel, names) {
+// opts.wunsch (nur NEXO Wunsch): die ersten 3 Beläge sind gratis, jeder weitere
+// Belag kostet den Listenpreis. Fisch/Käserand sind nie gratis (Premium).
+function validateExtras(sizeLabel, names, opts) {
   if (!names) return { extras: [], total: 0 };
   if (!Array.isArray(names)) throw new Error('Ungültige Extras');
+  const wunsch = !!(opts && opts.wunsch);
   const seen = new Set();
   const extras = [];
   let total = 0;
+  let freeBelagLeft = wunsch ? 3 : 0;
   for (const entry of names) {
     const n = typeof entry === 'string' ? entry : (entry && entry.name);
     if (typeof n !== 'string' || seen.has(n)) continue;
     const e = getExtraPrice(sizeLabel, n);
     if (!e) throw new Error('Ungültiges Extra: ' + n);
     seen.add(n);
+    if (wunsch && e.type === 'belag' && freeBelagLeft > 0) {
+      freeBelagLeft--;
+      extras.push({ name: e.name, price: 0, type: e.type });
+      continue;
+    }
     extras.push(e);
     total += e.price;
   }

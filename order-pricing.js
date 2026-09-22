@@ -136,9 +136,10 @@ async function priceItems(parsedItems) {
         fail('Ungültige Größe für: ' + item.name);
       }
       realPrice = parseFloat(matchedSize.price);
-      // Extras & Beläge (Pizza): serverseitig gegen Preisliste prüfen
+      // Extras & Beläge (Pizza): serverseitig gegen Preisliste prüfen.
+      // Nur NEXO Wunsch: erste 3 Beläge gratis (alle anderen Pizzen: alles kostenpflichtig).
       try {
-        const validated = validateExtras(item.size.label, item.extras);
+        const validated = validateExtras(item.size.label, item.extras, { wunsch: product.slug === 'nexo-wunsch' });
         item.extras = validated.extras;
         realPrice = parseFloat((realPrice + validated.total).toFixed(2));
       } catch (e) {

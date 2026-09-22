@@ -41,7 +41,7 @@
   'nexo-night-deal': { from: 1260, to: 1440, hint: 'Ab 21:00 Uhr bestellbar · nur Abholer' }
 }; %>
 <script>window.PIZZA_EXTRA_PRICES = <%- JSON.stringify(pizzaExtras.prices) %>;</script>
-<script>window.KASSE_CSRF = <%= JSON.stringify(typeof csrfToken !== 'undefined' ? csrfToken : '') %>;</script>
+<script>window.KASSE_CSRF = '<%= typeof csrfToken !== "undefined" ? csrfToken : "" %>';</script>
 
 <div class="kasse-wrap">
   <div class="kasse-left">
@@ -98,7 +98,7 @@
         <% if (cat.slug === 'bowls') { %><%- include('../partials/bowls-sauces', { productId: p.id }) %><% } %>
         <% if (cat.slug === 'pizza-broetchen') { %><%- include('../partials/free-sauce', { productId: p.id }) %><% } %>
         <% if (['crepe-nutella','crepe-frucht','crepe-lotus','crepe-oreo','crepe-bueno','mini-pancakes','mini-waffel'].indexOf(p.slug) !== -1) { %><%- include('../partials/choco-box', { productId: p.id }) %><% } %>
-        <% if (cat.slug === 'pizza') { %><%- include('../partials/pizza-extras', { productId: p.id }) %><% } %>
+        <% if (cat.slug === 'pizza') { %><%- include('../partials/pizza-extras', { productId: p.id, wunsch: p.slug === 'nexo-wunsch' }) %><% } %>
         <% if (cat.slug === 'burger') { %><button type="button" class="kasse-add" data-id="<%= p.id %>" data-name="<%= p.name %>" data-price="<%= p.price %>" data-has-menue="1">HINZUFÜGEN</button><% } else if (cat.slug === 'snacks') { %><button type="button" class="kasse-add" data-id="<%= p.id %>" data-name="<%= p.name %>" data-has-snacks-menue="1">HINZUFÜGEN</button><% } else if (cat.slug === 'pizza-broetchen') { %><button type="button" class="kasse-add" data-id="<%= p.id %>" data-name="<%= p.name %>" data-price="<%= p.price %>" data-has-sauce="1">HINZUFÜGEN</button><% } else { %><button type="button" class="kasse-add" data-id="<%= p.id %>" data-name="<%= p.name %>" data-has-sizes="1">HINZUFÜGEN</button><% } %>
         <% } else if (p.slug === 'nexo-mittag-deal') { %>
         <%- include('../partials/deal-choices', { productId: p.id, dealLists: typeof dealLists !== 'undefined' ? dealLists : null }) %>
@@ -135,4 +135,43 @@
 <div class="kasse-toast" id="kasseToast"></div>
 <script src="/js/pizza-extras.js"></script>
 <script src="/js/kasse.js?v=20260922a"></script>
+<script>
+// Größen-Auswahl exakt wie Kundenseite (menu.ejs): gewählte Box gold markieren.
+// Rein visuell – die Auswahl selbst lesen kasse.js/cart.js aus :checked (unverändert).
+document.querySelectorAll('.size-picker').forEach(function(picker) {
+  function paintSelected(label) {
+    label.style.borderColor = '#d4af37';
+    label.style.background = '#4a3a08';
+    label.style.boxShadow = '0 0 0 3px #d4af37, 0 0 16px rgba(212,175,55,.6)';
+    label.dataset.selected = '1';
+  }
+  function paintPlain(l) {
+    l.style.borderColor = '#3a3a41';
+    l.style.background = '#1d1d21';
+    l.style.boxShadow = '0 1px 4px rgba(0,0,0,0.4)';
+    delete l.dataset.selected;
+  }
+  var first = picker.querySelector('input[type="radio"]');
+  if (first) {
+    var label = first.closest('.size-option');
+    if (label) paintSelected(label);
+  }
+  picker.querySelectorAll('input[type="radio"]').forEach(function(radio) {
+    radio.addEventListener('change', function() {
+      picker.querySelectorAll('.size-option').forEach(function(l) { paintPlain(l); });
+      var label = this.closest('.size-option');
+      if (label) paintSelected(label);
+    });
+  });
+  // Hover effect
+  picker.querySelectorAll('.size-option').forEach(function(l) {
+    l.addEventListener('mouseenter', function() {
+      if (!this.dataset.selected) { this.style.borderColor = '#6b6455'; }
+    });
+    l.addEventListener('mouseleave', function() {
+      if (!this.dataset.selected) { this.style.borderColor = '#3a3a41'; }
+    });
+  });
+});
+</script>
 <%- include('footer') %>
