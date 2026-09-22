@@ -8,9 +8,7 @@
 
   var items = [];
   var fee = 0;
-  var discountCode = null;
-  var discountValue = 0;
-  var discountKind = null; // 'code' | 'manual' | null
+  var discountPercent = 0; // EIN Prozentwert (0–100), ersetzt immer den vorherigen (kein Stapeln)
 
   function fmt(n) { return (parseFloat(n) || 0).toFixed(2).replace('.', ',') + ' €'; }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -38,10 +36,17 @@
     return parts.join(' · ');
   }
 
+  function discountValue() {
+    var sum = 0;
+    items.forEach(function (it) { sum += parseFloat(it.price) * parseInt(it.qty, 10); });
+    if (!(discountPercent > 0)) return 0;
+    return Math.round(sum * discountPercent) / 100;
+  }
+
   function totals() {
     var sum = 0;
     items.forEach(function (it) { sum += parseFloat(it.price) * parseInt(it.qty, 10); });
-    return { sub: sum, total: Math.max(0, sum + fee - discountValue) };
+    return { sub: sum, disc: discountValue(), total: Math.max(0, sum + fee - discountValue()) };
   }
 
   function render() {
@@ -66,11 +71,17 @@
     }
     var dl = document.getElementById('kasseDiscLine');
     if (dl) {
-      dl.innerHTML = (discountValue > 0 && discountKind)
-        ? '<div class="kasse-line"><div class="nm"><strong>Rabatt' + (discountKind === 'code' && discountCode ? ' ' + esc(discountCode) : '') + '</strong></div><strong>-' + fmt(discountValue) + '</strong><button type="button" class="kasse-rm" data-kdisc-rm="1" title="Rabatt entfernen">×</button></div>'
+      var dv = discountValue();
+      dl.innerHTML = (dv > 0 && discountPercent > 0)
+        ? '<div class="kasse-line"><div class="nm"><strong>Rabatt ' + esc(pctLabel()) + '</strong><small>Zwischensumme ' + fmt(t.sub) + '</small></div><strong>-' + fmt(dv) + '</strong><button type="button" class="kasse-rm" data-kdisc-rm="1" title="Rabatt entfernen">×</button></div>'
         : '';
     }
     document.getElementById('kasseTotal').textContent = fmt(t.total);
+  }
+
+  function pctLabel() {
+    var p = Math.round(discountPercent * 100) / 100;
+    return (Number.isInteger(p) ? String(p) : String(p)) + '%';
   }
 
   function pushItem(o) {
@@ -238,51 +249,20 @@
     }
   }
 
-  // Rabatt: Code (serverseitig geprüft wie online) ODER direkter Betrag – nie beides.
-  function applyDiscount() {
-    var inp = document.getElementById('kasseDiscInput');
-    var amtInp = document.getElementById('kasseDiscAmount');
-    var code = inp && inp.value ? inp.value.trim().toUpperCase() : '';
-    var amtRaw = amtInp && amtInp.value ? String(amtInp.value).trim().replace(',', '.') : '';
-    if (code) {
-      if (amtInp) amtInp.value = '';
-      var t = totals();
-      fetch('/bestellung/rabatt-pruefen', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-csrf-token': window.KASSE_CSRF || '' },
-        body: JSON.stringify({ code: code, subtotal: t.sub })
-      })
-        .then(function (r) { return r.json(); })
-        .then(function (j) {
-          if (!j.valid) {
-            discountCode = null;
-            discountValue = 0;
-            discountKind = null;
-            render();
-            toast(j.message || 'Rabattcode ungültig');
-            return;
-          }
-          discountCode = code;
-          discountValue = parseFloat(j.value) || 0;
-          discountKind = 'code';
-          render();
-          toast(j.message || 'Rabatt angewendet');
-        })
-        .catch(function () { toast('Netzwerkfehler'); });
+  // Rabatt: EIN Prozentwert (0–100). Ersetzt immer den vorherigen Wert (kein Stapeln).
+  // Leer = kein Rabatt. Negativ/ungültig/>100 wird abgelehnt.
+  function applyPercentFromInput() {
+    var inp = document.getElementById('kasseDiscPercent');
+    var raw = inp && inp.value ? String(inp.value).trim().replace(',', '.') : '';
+    if (raw === '') { discountPercent = 0; render(); return; }
+    var v = parseFloat(raw);
+    if (!isFinite(v) || v < 0 || v > 100) {
+      toast('Bitte gültigen Prozentsatz eingeben (0–100)');
+      if (inp) inp.value = discountPercent > 0 ? String(Math.round(discountPercent * 100) / 100) : '';
       return;
     }
-    if (amtRaw) {
-      var v = Math.round(parseFloat(amtRaw) * 100) / 100;
-      if (!isFinite(v) || v <= 0) { toast('Bitte gültigen Betrag eingeben (z.B. 2,00)'); return; }
-      discountCode = null;
-      discountValue = v;
-      discountKind = 'manual';
-      if (inp) inp.value = '';
-      render();
-      toast('Rabatt angewendet');
-      return;
-    }
-    toast('Bitte Rabattcode oder Betrag eingeben');
+    discountPercent = Math.round(v * 100) / 100;
+    render();
   }
 
   function submit() {
@@ -292,7 +272,7 @@
     fetch('/admin/kasse/order', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-csrf-token': window.KASSE_CSRF || '' },
-      body: JSON.stringify({ items: items, fee: fee, discount_code: discountKind === 'code' ? discountCode : null, discount_value: discountKind === 'manual' ? discountValue : null })
+      body: JSON.stringify({ items: items, fee: fee, discount_percent: discountPercent })
     })
       .then(function (r) { return r.json(); })
       .then(function (j) {
@@ -316,13 +296,9 @@
         }
         items = [];
         fee = 0;
-        discountCode = null;
-        discountValue = 0;
-        discountKind = null;
-        var di = document.getElementById('kasseDiscInput');
+        discountPercent = 0;
+        var di = document.getElementById('kasseDiscPercent');
         if (di) di.value = '';
-        var da = document.getElementById('kasseDiscAmount');
-        if (da) da.value = '';
         paintFees();
         render();
         toast('Bestellung ' + j.orderNumber + ' gespeichert');
@@ -428,34 +404,32 @@
       render();
       return;
     }
-    if (e.target.closest && e.target.closest('#kasseDiscApply')) { applyDiscount(); return; }
     var drmr = e.target.closest ? e.target.closest('[data-kdisc-rm]') : null;
     if (drmr) {
-      discountCode = null;
-      discountValue = 0;
-      discountKind = null;
-      var di2 = document.getElementById('kasseDiscInput');
+      discountPercent = 0;
+      var di2 = document.getElementById('kasseDiscPercent');
       if (di2) di2.value = '';
-      var da2 = document.getElementById('kasseDiscAmount');
-      if (da2) da2.value = '';
       render();
       return;
     }
     if (e.target.closest && e.target.closest('#kasseClear')) {
       items = [];
       fee = 0;
-      discountCode = null;
-      discountValue = 0;
-      discountKind = null;
-      var di3 = document.getElementById('kasseDiscInput');
+      discountPercent = 0;
+      var di3 = document.getElementById('kasseDiscPercent');
       if (di3) di3.value = '';
-      var da3 = document.getElementById('kasseDiscAmount');
-      if (da3) da3.value = '';
       paintFees();
       render();
       return;
     }
     if (e.target.closest && e.target.closest('#kasseSubmit')) { submit(); return; }
+  });
+
+  // Nur 'input' (kein 'change'): 'change' feuert beim Verlassen des Felds (blur)
+  // und würde per render() den gerade angeklickten ×-Button ersetzen,
+  // sodass der Klick ins Leere geht. 'input' deckt Tippen + Einfügen ab.
+  document.addEventListener('input', function (e) {
+    if (e.target && e.target.id === 'kasseDiscPercent') applyPercentFromInput();
   });
 
   render();

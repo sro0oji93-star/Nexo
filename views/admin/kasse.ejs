@@ -134,10 +134,12 @@
     <h3 style="margin:0 0 8px"><i class="fas fa-receipt"></i> Bon</h3>
     <div id="kasseLines"><p style="color:#999;font-size:14px">Noch keine Positionen.</p></div>
     <div id="kasseDiscLine"></div>
-    <div style="display:flex;gap:8px;margin-top:10px">
-      <input type="text" id="kasseDiscInput" placeholder="Rabattcode" autocapitalize="characters" style="flex:1;min-height:48px;font-size:15px;padding:8px 12px;border:2px solid #e8e4de;border-radius:12px;text-transform:uppercase">
-      <input type="text" inputmode="decimal" id="kasseDiscAmount" placeholder="€ z.B. 2,00" style="width:110px;min-height:48px;font-size:15px;padding:8px 12px;border:2px solid #e8e4de;border-radius:12px">
-      <button type="button" class="btn btn-outline" id="kasseDiscApply" style="min-height:48px;font-weight:800">OK</button>
+    <div style="margin-top:10px">
+      <label for="kasseDiscPercent" style="display:block;font-weight:800;font-size:15px;margin-bottom:6px">Rabatt</label>
+      <div style="display:flex;gap:8px;align-items:stretch">
+        <input type="text" inputmode="decimal" id="kasseDiscPercent" placeholder="10" style="flex:1;min-height:48px;font-size:16px;padding:8px 12px;border:2px solid #e8e4de;border-radius:12px">
+        <span style="display:flex;align-items:center;min-height:48px;font-size:18px;font-weight:800;padding:0 6px">%</span>
+      </div>
     </div>
     <div class="kasse-total"><span>Gesamt</span><span id="kasseTotal">0,00 €</span></div>
     <div class="kasse-actions">
@@ -149,7 +151,7 @@
 </div>
 <div class="kasse-toast" id="kasseToast"></div>
 <script src="/js/pizza-extras.js"></script>
-<script src="/js/kasse.js?v=20260922a"></script>
+<script src="/js/kasse.js?v=20260923a"></script>
 <script>
 // Größen-Auswahl exakt wie Kundenseite (menu.ejs): gewählte Box gold markieren.
 // Rein visuell – die Auswahl selbst lesen kasse.js/cart.js aus :checked (unverändert).
