@@ -1,5 +1,6 @@
 // Separater Eigentümer-Bereich: eigene URL (/eigentuemer), eigene Logindaten,
-// sieht ALLE Bestellungen (auch gelöschte) + Provision + Benutzerverwaltung.
+// sieht Bestellungen inkl. Admin-gelöschter (eigene owner_deleted blendet nur hier aus)
+// + Provision (nur online) + Benutzerverwaltung.
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
@@ -41,6 +42,8 @@ function isKasseOrder(o) {
 // SQL-Gegenstück (NULL-sicher: COALESCE, damit alte NULL-Notizen als online zählen).
 const KASSE_SQL = "(customer_name = 'Theke' AND notes = 'Theken-Bestellung')";
 const ONLINE_SQL = "(COALESCE(customer_name,'') <> 'Theke' OR COALESCE(notes,'') <> 'Theken-Bestellung')";
+// Eigentümer-Sicht: owner_deleted blendet NUR beim Eigentümer aus (Admin unberührt).
+const OWNER_VISIBLE_SQL = 'COALESCE(owner_deleted,0) = 0';
 
 // ---------- Login / Setup ----------
 router.get('/login', async (req, res) => {
@@ -104,14 +107,14 @@ router.post('/logout', (req, res) => {
 router.get('/', requireOwner, async (req, res) => {
   const today = todayStr();
   const rate = commissionRate(res.locals.settings);
-  const dayCount = (await db.get('SELECT COUNT(*) as count FROM orders WHERE created_at::date = $1', [today])).count;
-  const dayOnlineCount = (await db.get('SELECT COUNT(*) as count FROM orders WHERE created_at::date = $1 AND ' + ONLINE_SQL, [today])).count;
-  const dayOnlineRevenue = (await db.get("SELECT COALESCE(SUM(total),0) as total FROM orders WHERE created_at::date = $1 AND order_status != 'storniert' AND " + ONLINE_SQL, [today])).total;
-  const dayKasseRevenue = (await db.get("SELECT COALESCE(SUM(total),0) as total FROM orders WHERE created_at::date = $1 AND order_status != 'storniert' AND " + KASSE_SQL, [today])).total;
-  const dayDeleted = (await db.get('SELECT COUNT(*) as count FROM orders WHERE created_at::date = $1 AND COALESCE(is_deleted,0) = 1', [today])).count;
-  const monthCount = (await db.get("SELECT COUNT(*) as count FROM orders WHERE TO_CHAR(created_at,'YYYY-MM') = TO_CHAR(NOW(),'YYYY-MM')")).count;
-  const monthOnlineCount = (await db.get("SELECT COUNT(*) as count FROM orders WHERE TO_CHAR(created_at,'YYYY-MM') = TO_CHAR(NOW(),'YYYY-MM') AND " + ONLINE_SQL)).count;
-  const monthRevenue = (await db.get("SELECT COALESCE(SUM(total),0) as total FROM orders WHERE TO_CHAR(created_at,'YYYY-MM') = TO_CHAR(NOW(),'YYYY-MM') AND order_status != 'storniert'")).total;
+  const dayCount = (await db.get('SELECT COUNT(*) as count FROM orders WHERE created_at::date = $1 AND ' + OWNER_VISIBLE_SQL, [today])).count;
+  const dayOnlineCount = (await db.get('SELECT COUNT(*) as count FROM orders WHERE created_at::date = $1 AND ' + OWNER_VISIBLE_SQL + ' AND ' + ONLINE_SQL, [today])).count;
+  const dayOnlineRevenue = (await db.get("SELECT COALESCE(SUM(total),0) as total FROM orders WHERE created_at::date = $1 AND order_status != 'storniert' AND " + OWNER_VISIBLE_SQL + ' AND ' + ONLINE_SQL, [today])).total;
+  const dayKasseRevenue = (await db.get("SELECT COALESCE(SUM(total),0) as total FROM orders WHERE created_at::date = $1 AND order_status != 'storniert' AND " + OWNER_VISIBLE_SQL + ' AND ' + KASSE_SQL, [today])).total;
+  const dayDeleted = (await db.get('SELECT COUNT(*) as count FROM orders WHERE created_at::date = $1 AND ' + OWNER_VISIBLE_SQL + ' AND COALESCE(is_deleted,0) = 1', [today])).count;
+  const monthCount = (await db.get("SELECT COUNT(*) as count FROM orders WHERE TO_CHAR(created_at,'YYYY-MM') = TO_CHAR(NOW(),'YYYY-MM') AND " + OWNER_VISIBLE_SQL)).count;
+  const monthOnlineCount = (await db.get("SELECT COUNT(*) as count FROM orders WHERE TO_CHAR(created_at,'YYYY-MM') = TO_CHAR(NOW(),'YYYY-MM') AND " + OWNER_VISIBLE_SQL + ' AND ' + ONLINE_SQL)).count;
+  const monthRevenue = (await db.get("SELECT COALESCE(SUM(total),0) as total FROM orders WHERE TO_CHAR(created_at,'YYYY-MM') = TO_CHAR(NOW(),'YYYY-MM') AND order_status != 'storniert' AND " + OWNER_VISIBLE_SQL)).total;
   let visitorsToday = 0, visitorsWeek = [];
   try {
     visitorsToday = (await db.get('SELECT COUNT(*) as count FROM visitor_days WHERE day = $1', [today])).count;
@@ -129,7 +132,7 @@ router.get('/', requireOwner, async (req, res) => {
 router.get('/bestellungen', requireOwner, async (req, res) => {
   const datum = validDate(req.query.datum);
   const rate = commissionRate(res.locals.settings);
-  const orders = await db.all('SELECT * FROM orders WHERE created_at::date = $1 ORDER BY created_at DESC', [datum]);
+  const orders = await db.all('SELECT * FROM orders WHERE created_at::date = $1 AND ' + OWNER_VISIBLE_SQL + ' ORDER BY created_at DESC', [datum]);
   orders.forEach(parseItems);
   orders.forEach(o => { o.wish_display = db.formatWishDisplay(o.wish_time); });
   const received = orders.length;
@@ -146,9 +149,11 @@ router.get('/bestellungen', requireOwner, async (req, res) => {
   });
 });
 
-// Löschen: dasselbe Soft-Delete wie /admin (is_deleted + deleted_at), kein zweites System.
+// Eigentümer-Löschen: NUR owner_deleted-Flag (eigene Spalte). is_deleted/deleted_at
+// bleiben unberührt, daher sieht /admin die Bestellung weiterhin (Tagesbericht,
+// Kasse, Druck etc. unverändert). Kein zweites Admin-System, eigene Spalte.
 router.post('/bestellungen/loeschen/:id', requireOwner, async (req, res) => {
-  await db.run('UPDATE orders SET is_deleted = 1, deleted_at = NOW() WHERE id = $1', [req.params.id]);
+  await db.run('UPDATE orders SET owner_deleted = 1 WHERE id = $1', [req.params.id]);
   const datum = validDate(req.body.datum);
   res.redirect('/eigentuemer/bestellungen?datum=' + datum);
 });

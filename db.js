@@ -889,9 +889,11 @@ async function initialize() {
 
   // Auto-Migration Eigentümer-Bereich 2026-09-06: Soft-Delete für Bestellungen +
   // Rollen für Admins (bestehende Admins werden Eigentümer). Idempotent.
+  // owner_deleted: NUR Eigentümer-Ansicht (Admin sieht die Bestellung weiterhin).
   try {
     await query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS is_deleted INTEGER DEFAULT 0');
     await query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP');
+    await query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS owner_deleted INTEGER DEFAULT 0');
     await query('ALTER TABLE admins ADD COLUMN IF NOT EXISTS role TEXT');
     await query("UPDATE admins SET role = 'owner' WHERE role IS NULL OR role = ''");
     await query("ALTER TABLE admins ALTER COLUMN role SET DEFAULT 'manager'");
