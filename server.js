@@ -180,6 +180,7 @@ app.use('/speisekarte', menuRoutes);
 app.use('/warenkorb', cartRoutes);
 app.post('/bestellung', orderLimiter);
 app.use('/bestellung', orderRoutes);
+app.use('/bestellung', require('./routes/invoice')); // PDF-Rechnung (RAM-only, nur bezahlt)
 app.use('/kontakt', (req, res, next) => (req.method === 'POST' ? contactLimiter(req, res, next) : next()));
 app.use('/kontakt', contactRoutes);
 app.use('/admin/login', (req, res, next) => (req.method === 'POST' ? loginLimiter(req, res, next) : next()));
