@@ -32,6 +32,16 @@ function parseItems(order) {
   return order;
 }
 
+// Kasse-Marker: beide Felder werden NUR von der Theken-Kasse serverseitig gesetzt
+// (routes/kasse.js) – Online-Kunden können sie nicht erzeugen. Online-Bestellnummern
+// tragen dasselbe FEIN-Präfix und taugen daher NICHT zur Unterscheidung.
+function isKasseOrder(o) {
+  return o && o.customer_name === 'Theke' && o.notes === 'Theken-Bestellung';
+}
+// SQL-Gegenstück (NULL-sicher: COALESCE, damit alte NULL-Notizen als online zählen).
+const KASSE_SQL = "(customer_name = 'Theke' AND notes = 'Theken-Bestellung')";
+const ONLINE_SQL = "(COALESCE(customer_name,'') <> 'Theke' OR COALESCE(notes,'') <> 'Theken-Bestellung')";
+
 // ---------- Login / Setup ----------
 router.get('/login', async (req, res) => {
   if (req.session && req.session.owner) return res.redirect('/eigentuemer');
@@ -95,9 +105,12 @@ router.get('/', requireOwner, async (req, res) => {
   const today = todayStr();
   const rate = commissionRate(res.locals.settings);
   const dayCount = (await db.get('SELECT COUNT(*) as count FROM orders WHERE created_at::date = $1', [today])).count;
-  const dayRevenue = (await db.get("SELECT COALESCE(SUM(total),0) as total FROM orders WHERE created_at::date = $1 AND order_status != 'storniert'", [today])).total;
+  const dayOnlineCount = (await db.get('SELECT COUNT(*) as count FROM orders WHERE created_at::date = $1 AND ' + ONLINE_SQL, [today])).count;
+  const dayOnlineRevenue = (await db.get("SELECT COALESCE(SUM(total),0) as total FROM orders WHERE created_at::date = $1 AND order_status != 'storniert' AND " + ONLINE_SQL, [today])).total;
+  const dayKasseRevenue = (await db.get("SELECT COALESCE(SUM(total),0) as total FROM orders WHERE created_at::date = $1 AND order_status != 'storniert' AND " + KASSE_SQL, [today])).total;
   const dayDeleted = (await db.get('SELECT COUNT(*) as count FROM orders WHERE created_at::date = $1 AND COALESCE(is_deleted,0) = 1', [today])).count;
   const monthCount = (await db.get("SELECT COUNT(*) as count FROM orders WHERE TO_CHAR(created_at,'YYYY-MM') = TO_CHAR(NOW(),'YYYY-MM')")).count;
+  const monthOnlineCount = (await db.get("SELECT COUNT(*) as count FROM orders WHERE TO_CHAR(created_at,'YYYY-MM') = TO_CHAR(NOW(),'YYYY-MM') AND " + ONLINE_SQL)).count;
   const monthRevenue = (await db.get("SELECT COALESCE(SUM(total),0) as total FROM orders WHERE TO_CHAR(created_at,'YYYY-MM') = TO_CHAR(NOW(),'YYYY-MM') AND order_status != 'storniert'")).total;
   let visitorsToday = 0, visitorsWeek = [];
   try {
@@ -106,7 +119,7 @@ router.get('/', requireOwner, async (req, res) => {
   } catch (e) { console.error('Besucherzahlen übersprungen:', e.message); }
   res.render('owner/dashboard', {
     title: 'Eigentümer Dashboard',
-    today, rate, dayCount, dayRevenue, dayDeleted, monthCount, monthRevenue,
+    today, rate, dayCount, dayOnlineCount, dayOnlineRevenue, dayKasseRevenue, dayDeleted, monthCount, monthOnlineCount, monthRevenue,
     visitorsToday, visitorsWeek,
     success: null
   });
@@ -121,12 +134,23 @@ router.get('/bestellungen', requireOwner, async (req, res) => {
   orders.forEach(o => { o.wish_display = db.formatWishDisplay(o.wish_time); });
   const received = orders.length;
   const deleted = orders.filter(o => o.is_deleted).length;
-  const revenue = orders.filter(o => o.order_status !== 'storniert').reduce((s, o) => s + parseFloat(o.total || 0), 0);
+  const onlineOrders = orders.filter(o => !isKasseOrder(o));
+  const kasseOrders = orders.filter(o => isKasseOrder(o));
+  const onlineRevenue = onlineOrders.filter(o => o.order_status !== 'storniert').reduce((s, o) => s + parseFloat(o.total || 0), 0);
+  const kasseRevenue = kasseOrders.filter(o => o.order_status !== 'storniert').reduce((s, o) => s + parseFloat(o.total || 0), 0);
   res.render('owner/orders', {
     title: 'Alle Bestellungen',
-    datum, rate, orders, received, deleted, revenue,
-    commission: received * rate
+    datum, rate, orders, received, deleted, onlineRevenue, kasseRevenue,
+    onlineReceived: onlineOrders.length,
+    commission: onlineOrders.length * rate
   });
+});
+
+// Löschen: dasselbe Soft-Delete wie /admin (is_deleted + deleted_at), kein zweites System.
+router.post('/bestellungen/loeschen/:id', requireOwner, async (req, res) => {
+  await db.run('UPDATE orders SET is_deleted = 1, deleted_at = NOW() WHERE id = $1', [req.params.id]);
+  const datum = validDate(req.body.datum);
+  res.redirect('/eigentuemer/bestellungen?datum=' + datum);
 });
 
 // ---------- Provision ----------

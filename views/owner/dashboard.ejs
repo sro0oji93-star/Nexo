@@ -9,12 +9,16 @@
     <div class="l">Bestellungen heute</div>
   </div>
   <div class="owner-card">
-    <div class="v"><%= parseFloat(dayRevenue).toFixed(2) %> €</div>
-    <div class="l">Umsatz heute</div>
+    <div class="v"><%= parseFloat(dayOnlineRevenue).toFixed(2) %> €</div>
+    <div class="l">Online Umsatz Tag</div>
+  </div>
+  <div class="owner-card">
+    <div class="v"><%= parseFloat(dayKasseRevenue).toFixed(2) %> €</div>
+    <div class="l">Kasse Umsatz Tag</div>
   </div>
   <div class="owner-card gold">
-    <div class="v"><%= (dayCount * rate).toFixed(2) %> €</div>
-    <div class="l">Deine Provision heute (<%= dayCount %> × <%= rate.toFixed(2) %> €)</div>
+    <div class="v"><%= (dayOnlineCount * rate).toFixed(2) %> €</div>
+    <div class="l">Deine Provision heute (<%= dayOnlineCount %> × <%= rate.toFixed(2) %> €, nur online)</div>
   </div>
   <div class="owner-card">
     <div class="v"><%= dayDeleted %></div>
@@ -25,8 +29,8 @@
     <div class="l">Bestellungen Monat</div>
   </div>
   <div class="owner-card gold">
-    <div class="v"><%= (monthCount * rate).toFixed(2) %> €</div>
-    <div class="l">Provision Monat</div>
+    <div class="v"><%= (monthOnlineCount * rate).toFixed(2) %> €</div>
+    <div class="l">Provision Monat (nur online)</div>
   </div>
   <div class="owner-card">
     <div class="v"><%= typeof visitorsToday !== 'undefined' ? visitorsToday : 0 %></div>

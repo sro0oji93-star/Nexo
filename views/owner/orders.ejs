@@ -21,21 +21,25 @@
     <div class="l">Gelöscht</div>
   </div>
   <div class="owner-card">
-    <div class="v"><%= parseFloat(revenue).toFixed(2) %> €</div>
-    <div class="l">Umsatz Tag</div>
+    <div class="v"><%= parseFloat(onlineRevenue).toFixed(2) %> €</div>
+    <div class="l">Online Umsatz Tag</div>
+  </div>
+  <div class="owner-card">
+    <div class="v"><%= parseFloat(kasseRevenue).toFixed(2) %> €</div>
+    <div class="l">Kasse Umsatz Tag</div>
   </div>
   <div class="owner-card gold">
     <div class="v"><%= parseFloat(commission).toFixed(2) %> €</div>
-    <div class="l">Provision (<%= received %> × <%= rate.toFixed(2) %> €)</div>
+    <div class="l">Provision (<%= onlineReceived %> × <%= rate.toFixed(2) %> €, nur online)</div>
   </div>
 </div>
 
 <div class="table-container">
   <table class="admin-table">
-    <thead><tr><th>Nr.</th><th>Zeit</th><th>Kunde</th><th>Artikel</th><th>Typ</th><th>Gesamt</th><th>Status</th></tr></thead>
+    <thead><tr><th>Nr.</th><th>Zeit</th><th>Kunde</th><th>Artikel</th><th>Typ</th><th>Gesamt</th><th>Status</th><th>Aktion</th></tr></thead>
     <tbody>
       <% if (!orders || orders.length === 0) { %>
-      <tr><td colspan="7" class="empty-state">Keine Bestellungen an diesem Tag.</td></tr>
+      <tr><td colspan="8" class="empty-state">Keine Bestellungen an diesem Tag.</td></tr>
       <% } %>
       <% orders.forEach(function(o) { %>
       <tr class="<%= o.is_deleted ? 'row-deleted' : '' %>">
@@ -51,6 +55,13 @@
         <td><%= o.order_type === 'abholung' ? 'Abholung' : 'Lieferung' %></td>
         <td><strong><%= parseFloat(o.total).toFixed(2) %> €</strong></td>
         <td><span class="badge-ok"><%= o.order_status %></span></td>
+        <td>
+          <% if (!o.is_deleted) { %>
+          <form method="POST" action="/eigentuemer/bestellungen/loeschen/<%= o.id %>" style="display:inline" onsubmit="return confirm('Wirklich löschen?')"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="datum" value="<%= datum %>">
+            <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+          </form>
+          <% } %>
+        </td>
       </tr>
       <% }); %>
     </tbody>
