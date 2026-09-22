@@ -241,10 +241,22 @@
       .then(function (j) {
         if (btn) btn.disabled = false;
         if (!j.success) { toast(j.message || 'Fehler'); return; }
-        // Normaler Bon über das bestehende Druck-System (Abholer => kein QR).
-        if (j.id) window.open('/admin/bestellungen/' + j.id + '/bon?autoprint=1', '_blank');
+        // Druck läuft über das bestehende Auto-Print-System (Theke: genau 1 Kopie).
+        // Manueller Nachdruck bei Bedarf über den Bon-Link (ohne Autoprint).
         var last = document.getElementById('kasseLast');
-        if (last) last.textContent = 'Bestellung ' + j.orderNumber + ' (' + fmt(j.total) + ') gespeichert.';
+        if (last) {
+          last.textContent = '';
+          var s = document.createElement('span');
+          s.textContent = 'Bestellung ' + j.orderNumber + ' (' + fmt(j.total) + ') gespeichert. ';
+          last.appendChild(s);
+          if (j.id) {
+            var a = document.createElement('a');
+            a.href = '/admin/bestellungen/' + encodeURIComponent(j.id) + '/bon';
+            a.target = '_blank';
+            a.textContent = 'Bon drucken';
+            last.appendChild(a);
+          }
+        }
         items = [];
         fee = 0;
         paintFees();

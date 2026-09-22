@@ -82,7 +82,8 @@
     f.src = '/admin/bestellungen/' + order.id + '/bon';
     // Aufräumen erst nach Druckdialog (afterprint) – sonst wird der Druck abgebrochen
     var fallback = setTimeout(finish, 60000);
-    var copiesLeft = BON_COPIES;
+    // Theken-Bestellungen (Kasse): genau 1 Kopie; Online-Bestellungen: 2 Kopien (unverändert).
+    var copiesLeft = (order && order.notes === 'Theken-Bestellung') ? 1 : BON_COPIES;
     f.onload = function () {
       try {
         var w = f.contentWindow;

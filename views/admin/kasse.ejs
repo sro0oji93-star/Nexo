@@ -71,7 +71,7 @@
         <% catProducts.forEach(function(p) { %>
         <button type="button" class="kasse-prod" data-pid="<%= p.id %>" <%= p.is_available ? '' : 'disabled' %>>
           <span><%= p.name %></span>
-          <small><% if (p.sizes) { var sz = JSON.parse(p.sizes); var minP = Math.min.apply(null, sz.map(function(s){return s.price})); %>ab <%= minP.toFixed(2).replace('.', ',') %> €<% } else { %><%= parseFloat(p.price).toFixed(2).replace('.', ',') %> €<% } %><%= p.is_available ? '' : ' · ausverkauft' %></small>
+          <small><% if (cat.slug === 'burger') { %><%= parseFloat(p.price).toFixed(2).replace('.', ',') %> €<% } else if (p.sizes) { var sz = JSON.parse(p.sizes); var minP = Math.min.apply(null, sz.map(function(s){return s.price})); %>ab <%= minP.toFixed(2).replace('.', ',') %> €<% } else { %><%= parseFloat(p.price).toFixed(2).replace('.', ',') %> €<% } %><%= p.is_available ? '' : ' · ausverkauft' %></small>
         </button>
         <% }); %>
         <% if (!catProducts.length) { %><p style="color:#999">Bald verfügbar</p><% } %>
