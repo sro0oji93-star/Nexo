@@ -1,48 +1,45 @@
 <%- include('layout') %>
 <div class="section-header-row">
   <h2><i class="fas fa-percent"></i> Rabattcodes verwalten</h2>
-  <div style="display:flex;gap:8px">
-    <button class="btn btn-outline" onclick="openModal('bulkDiscountModal')"><i class="fas fa-layer-group"></i> Bulk erstellen</button>
-    <button class="btn btn-primary" onclick="openModal('addDiscountModal')"><i class="fas fa-plus"></i> Neuer Rabatt</button>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    <input type="text" id="discSearch" placeholder="Rabattcode suchen..." autocomplete="off" style="min-height:42px;font-size:15px;padding:8px 12px;border:2px solid #e8e4de;border-radius:8px">
+    <button class="btn btn-primary" onclick="openModal('bulkDiscountModal')"><i class="fas fa-layer-group"></i> Bulk erstellen</button>
   </div>
 </div>
 
 <% if (typeof bulkError !== 'undefined' && bulkError) { %>
 <div class="alert alert-danger" style="background:#f8d7da;border:1px solid #dc3545;color:#721c24;padding:12px 16px;border-radius:8px;margin-bottom:16px"><%= bulkError %></div>
 <% } %>
-<% if (typeof newCodes !== 'undefined' && newCodes && newCodes.length) { %>
+
 <div class="table-container" style="margin-bottom:16px">
-  <h3 style="margin:0 0 8px"><i class="fas fa-check-circle"></i> <%= newCodes.length %> Codes ausgewählt <a href="/admin/rabatte?batch=clear" style="font-size:12px;font-weight:400">Auswahl schließen</a></h3>
-  <form id="bulkOutputForm" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start">
-    <div style="flex:1;min-width:240px;max-height:220px;overflow-y:auto;border:1px solid #e8e4de;border-radius:8px;padding:8px 12px">
-      <% newCodes.forEach(function(cd, i) { %>
-      <label style="display:block;padding:4px 0;font-size:14px;cursor:pointer"><input type="checkbox" name="codes" value="<%= cd %>" checked> <strong><%= cd %></strong></label>
-      <% }); %>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:8px">
-      <button type="button" class="btn btn-outline" onclick="bulkOutput('drucken')">🖨️ Drucken (Auswahl)</button>
-      <button type="button" class="btn btn-outline" onclick="bulkOutput('drucken', true)">🖨️ Alle neuen Codes drucken</button>
-      <button type="button" class="btn btn-outline" onclick="bulkOutput('pdf')">📄 PDF herunterladen</button>
-    </div>
-  </form>
-  <script>
-  function bulkOutput(kind, all) {
-    var boxes = document.querySelectorAll('#bulkOutputForm input[name="codes"]');
-    var sel = [];
-    boxes.forEach(function(c) { if (all || c.checked) sel.push(c.value); });
-    if (!sel.length) { alert('Bitte mindestens einen Code auswählen.'); return; }
-    var url = kind === 'pdf' ? '/admin/rabatte/pdf?codes=' : '/admin/rabatte/drucken?codes=';
-    if (kind !== 'pdf') url += '&autoprint=1';
-    window.open(url + sel.map(encodeURIComponent).join(','), '_blank');
-  }
-  </script>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    <button type="button" class="btn btn-outline" onclick="discPrintAll()">🖨️ Alle drucken</button>
+    <button type="button" class="btn btn-outline" onclick="discOutput('drucken')">🖨️ Auswahl drucken</button>
+    <button type="button" class="btn btn-outline" onclick="discOutput('pdf')">📄 PDF herunterladen</button>
+    <span id="discCount" style="font-size:13px;color:#666"></span>
+  </div>
+</div>
+
+<% var batchList = (typeof batchCodes !== 'undefined' && batchCodes) ? batchCodes : []; %>
+<% if (batchList.length) { %>
+<div class="table-container" id="discBatchBox" style="margin-bottom:16px">
+  <h3 style="margin:0 0 8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <span><i class="fas fa-check-circle"></i> <%= batchList.length %> neue Codes (automatisch ausgewählt)</span>
+    <button type="button" class="btn btn-sm btn-outline" id="discBatchToggle" onclick="discToggleBatch()">Ausblenden</button>
+  </h3>
+  <div id="discBatchList" style="max-height:220px;overflow-y:auto;border:1px solid #e8e4de;border-radius:8px;padding:8px 12px">
+    <% batchList.forEach(function(cd, i) { %>
+    <div style="padding:4px 0;font-size:14px"><span style="color:#888"><%= i + 1 %>.</span> <strong><%= cd %></strong></div>
+    <% }); %>
+  </div>
 </div>
 <% } %>
 
 <div class="table-container">
-  <table class="admin-table">
+  <table class="admin-table" id="discTable">
     <thead>
       <tr>
+        <th><input type="checkbox" id="discSelectAll" title="Alle auswählen"></th>
         <th>Code</th>
         <th>Typ</th>
         <th>Wert</th>
@@ -55,7 +52,8 @@
     </thead>
     <tbody>
       <% discounts.forEach(function(d) { %>
-      <tr>
+      <tr data-code="<%= d.code %>">
+        <td><input type="checkbox" class="discSel" value="<%= d.code %>"<%= batchList.indexOf(d.code) !== -1 ? ' checked' : '' %>></td>
         <td><strong><%= d.code %></strong></td>
         <td><%= d.type === 'prozent' ? 'Prozent' : 'Festbetrag' %></td>
         <td><%= d.type === 'prozent' ? d.value + '%' : d.value.toFixed(2) + ' €' %></td>
@@ -64,7 +62,7 @@
         <td><%= d.expires_at ? new Date(d.expires_at).toLocaleDateString('de-DE') : '∞' %></td>
         <td><span class="status-badge <%= d.active ? 'status-verfuegbar' : 'status-ausverkauft' %>"><%= d.active ? 'Aktiv' : 'Inaktiv' %></span></td>
         <td>
-          <a href="/admin/rabatte/drucken?codes=<%= d.code %>&autoprint=1" target="_blank" class="btn btn-sm btn-outline" title="Diesen Code drucken"><i class="fas fa-print"></i></a>
+          <a href="/admin/rabatte/drucken?codes=<%= d.code %>&autoprint=1" target="_blank" class="btn btn-sm btn-outline" title="Diesen Code drucken">🖨️ Drucken</a>
           <form method="POST" action="/admin/rabatte/loeschen/<%= d.id %>" style="display:inline" onsubmit="return confirm('Wirklich löschen?')"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
           </form>
@@ -75,59 +73,71 @@
   </table>
 </div>
 
-<div class="modal" id="addDiscountModal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h3>Neuer Rabattcode</h3>
-      <button class="modal-close" onclick="closeModal('addDiscountModal')">&times;</button>
-    </div>
-    <form method="POST" action="/admin/rabatte">
-      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-      <div class="form-grid">
-        <div class="form-group">
-          <label>Code *</label>
-          <input type="text" name="code" required placeholder="z.B. SOMMER10">
-        </div>
-        <div class="form-group">
-          <label>Typ</label>
-          <select name="type">
-            <option value="prozent">Prozent (%)</option>
-            <option value="fest">Festbetrag (€)</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Wert *</label>
-          <input type="number" step="0.01" name="value" required placeholder="10">
-        </div>
-        <div class="form-group">
-          <label>Mindestbestellwert</label>
-          <input type="number" step="0.01" name="min_order" value="0">
-        </div>
-        <div class="form-group">
-          <label>Nutzungslimit (0 = unbegrenzt)</label>
-          <input type="number" name="usage_limit" value="0">
-        </div>
-        <div class="form-group">
-          <label>Gültig bis</label>
-          <input type="date" name="expires_at">
-        </div>
-      </div>
-      <button type="submit" class="btn btn-primary">Speichern</button>
-    </form>
-  </div>
-</div>
+<script>
+function discSelected(all) {
+  var boxes = document.querySelectorAll('#discTable input.discSel');
+  var sel = [];
+  boxes.forEach(function(c) { if (all || c.checked) sel.push(c.value); });
+  return sel;
+}
+function discOutput(kind) {
+  var sel = discSelected(false);
+  if (!sel.length) { alert('Bitte mindestens einen Code auswählen.'); return; }
+  var codes = sel.map(encodeURIComponent).join(',');
+  var url = kind === 'pdf'
+    ? '/admin/rabatte/pdf?codes=' + codes
+    : '/admin/rabatte/drucken?codes=' + codes + '&autoprint=1';
+  window.open(url, '_blank');
+}
+function discPrintAll() {
+  var sel = discSelected(true);
+  if (!sel.length) { alert('Keine Codes vorhanden.'); return; }
+  window.open('/admin/rabatte/drucken?codes=' + sel.map(encodeURIComponent).join(',') + '&autoprint=1', '_blank');
+}
+function discToggleBatch() {
+  var list = document.getElementById('discBatchList');
+  var btn = document.getElementById('discBatchToggle');
+  if (!list || !btn) return;
+  var hidden = list.style.display === 'none';
+  list.style.display = hidden ? '' : 'none';
+  btn.textContent = hidden ? 'Ausblenden' : 'Einblenden';
+}
+function discUpdateCount() {
+  var rows = document.querySelectorAll('#discTable tbody tr');
+  var vis = 0;
+  rows.forEach(function(r) { if (r.style.display !== 'none') vis++; });
+  var el = document.getElementById('discCount');
+  if (el) el.textContent = vis + ' von ' + rows.length + ' Codes';
+}
+document.addEventListener('DOMContentLoaded', function() {
+  var all = document.getElementById('discSelectAll');
+  if (all) all.addEventListener('change', function() {
+    document.querySelectorAll('#discTable input.discSel').forEach(function(c) { c.checked = all.checked; });
+  });
+  var search = document.getElementById('discSearch');
+  if (search) search.addEventListener('input', function() {
+    var q = search.value.trim().toUpperCase();
+    document.querySelectorAll('#discTable tbody tr').forEach(function(r) {
+      var code = (r.getAttribute('data-code') || '').toUpperCase();
+      r.style.display = (!q || code.indexOf(q) !== -1) ? '' : 'none';
+    });
+    discUpdateCount();
+  });
+  discUpdateCount();
+});
+</script>
 
 <div class="modal" id="bulkDiscountModal">
   <div class="modal-content">
     <div class="modal-header">
-      <h3>Rabattcodes bulk erstellen</h3>
+      <h3>Rabattcodes erstellen</h3>
       <button class="modal-close" onclick="closeModal('bulkDiscountModal')">&times;</button>
     </div>
     <form method="POST" action="/admin/rabatte/bulk">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <div class="form-grid">
         <div class="form-group">
-          <label>Anzahl Rabattcodes * (1–1000)</label>
+          <label>Anzahl Rabattcodes * (1–1000, 1 = einzelner Code)</label>
           <input type="number" name="anzahl" min="1" max="1000" value="100" required>
         </div>
         <div class="form-group">

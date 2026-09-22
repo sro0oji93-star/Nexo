@@ -355,14 +355,7 @@ router.get('/rabatte', auth, async (req, res) => {
       newCodes = null;
     }
   }
-  res.render('admin/discounts', { title: 'Rabatte – Admin', discounts, newCodes, bulkError: null });
-});
-
-router.post('/rabatte', auth, async (req, res) => {
-  const { code, type, value, min_order, usage_limit, expires_at } = req.body;
-  await db.run('INSERT INTO discounts (code, type, value, min_order, usage_limit, expires_at) VALUES ($1, $2, $3, $4, $5, $6)',
-    [code.toUpperCase(), type, value, min_order || 0, usage_limit || 0, expires_at || null]);
-  res.redirect('/admin/rabatte');
+  res.render('admin/discounts', { title: 'Rabatte – Admin', discounts, newCodes, batchCodes: newCodes || [], bulkError: null });
 });
 
 router.post('/rabatte/loeschen/:id', auth, async (req, res) => {
@@ -388,7 +381,7 @@ router.post('/rabatte/bulk', auth, async (req, res) => {
       req.session.rabattBatch = newCodes.slice(0, 1000);
       try { await new Promise((resolve) => req.session.save(() => resolve())); } catch (e) { /* still rendern */ }
     }
-    res.render('admin/discounts', { title: 'Rabatte – Admin', discounts, newCodes: newCodes || null, bulkError: bulkError || null });
+    res.render('admin/discounts', { title: 'Rabatte – Admin', discounts, newCodes: newCodes || null, batchCodes: newCodes || [], bulkError: bulkError || null });
   };
   let anzahl = parseInt(req.body.anzahl, 10);
   if (!isFinite(anzahl)) anzahl = 0;
