@@ -280,10 +280,13 @@ router.get('/bestellung/:orderNumber', async (req, res) => {
 
   const settings = res.locals.settings;
 
+  // Rechnung für alle normalen Online-Bestellungen – nie für Theke (siehe invoice.js).
+  const { isKasseOrder } = require('./invoice');
   res.render('order-confirmation', {
     title: 'Bestellung ' + order.order_number + ' – ' + settings.site_name,
     order,
-    settings
+    settings,
+    showInvoice: !isKasseOrder(order)
   });
 });
 

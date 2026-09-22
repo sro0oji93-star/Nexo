@@ -73,7 +73,7 @@
       <div class="confirmation-actions">
         <a href="/" class="btn btn-primary">Zur Startseite</a>
         <a href="/speisekarte" class="btn btn-outline">Weiter bestellen</a>
-        <% if (order.payment_status === 'bezahlt') { %>
+        <% if (typeof showInvoice !== 'undefined' && showInvoice) { %>
         <a href="/bestellung/rechnung/<%= order.order_number %>?t=<%= order.confirm_token %>" class="btn btn-outline"><i class="fas fa-file-download"></i> Rechnung herunterladen</a>
         <% } %>
       </div>

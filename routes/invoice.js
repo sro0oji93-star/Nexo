@@ -15,6 +15,15 @@ function tokensEqual(a, b) {
   try { return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b)); } catch (e) { return false; }
 }
 
+// Kasse-Bestellungen (Theke) bekommen NIE eine Rechnung. Alle drei Merkmale werden
+// serverseitig fix gesetzt (kein Kunden-Input) – ein normales Online-Formular kann
+// diese Kombination praktisch nicht erzeugen (Telefon dort Pflicht, hier NULL).
+function isKasseOrder(order) {
+  return !!order && order.customer_name === 'Theke'
+    && order.notes === 'Theken-Bestellung'
+    && (order.customer_phone === null || order.customer_phone === undefined || order.customer_phone === '');
+}
+
 function eur(n) {
   return (parseFloat(n) || 0).toFixed(2) + ' €';
 }
@@ -29,7 +38,8 @@ function buildInvoicePdf(order, settings) {
   return new Promise((resolve, reject) => {
     try {
       const s = settings || {};
-      const doc = new PDFDocument({ size: 'A4', margin: 50, info: { Title: 'Rechnung ' + order.order_number } });
+      // compress:false -> Text bleibt im PDF lesbar/pruefbar (Größe weiter im KB-Bereich, RAM-only).
+      const doc = new PDFDocument({ size: 'A4', margin: 50, compress: false, info: { Title: 'Rechnung ' + order.order_number } });
       const chunks = [];
       doc.on('data', (c) => chunks.push(c));
       doc.on('error', reject);
@@ -48,7 +58,9 @@ function buildInvoicePdf(order, settings) {
       doc.text('Bestellnummer: ' + order.order_number);
       const d = order.created_at ? new Date(order.created_at) : new Date();
       doc.text('Datum: ' + d.toLocaleDateString('de-DE') + ' ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
-      doc.text('Zahlungsmethode: ' + paymentLabel(order.payment_method) + ' (bezahlt)');
+      doc.text('Zahlungsmethode: ' + paymentLabel(order.payment_method));
+      doc.font('Helvetica-Bold').text('Status: ' + (order.payment_status === 'bezahlt' ? 'Bestellung bezahlt' : 'Bestellung nicht bezahlt'));
+      doc.font('Helvetica').fontSize(10);
       doc.moveDown();
       doc.text('Kunde: ' + (order.customer_name || ''));
       if (order.order_type !== 'abholung') {
@@ -102,8 +114,9 @@ router.get('/rechnung/:orderNumber', async (req, res) => {
   if (token && expected && token.length === expected.length) {
     try { tokenOk = tokensEqual(token, expected); } catch (e) { tokenOk = false; }
   }
-  // Nur erfolgreich BEZAHLTE Bestellungen bekommen eine Rechnung (sonst 404 wie bisher).
-  if (!tokenOk || order.payment_status !== 'bezahlt') {
+  // Rechnung für ALLE normalen Online-Bestellungen (bezahlt oder nicht, Lieferung
+  // oder Abholung) – aber NIE für Kasse-Bestellungen (Theke). Sonst 404 wie bisher.
+  if (!tokenOk || isKasseOrder(order)) {
     return res.status(404).render('404', { title: 'Bestellung nicht gefunden' });
   }
   let pdf;
@@ -125,3 +138,4 @@ router.get('/rechnung/:orderNumber', async (req, res) => {
 
 module.exports = router;
 module.exports.buildInvoicePdf = buildInvoicePdf;
+module.exports.isKasseOrder = isKasseOrder;
