@@ -133,6 +133,11 @@
   <aside class="kasse-side">
     <h3 style="margin:0 0 8px"><i class="fas fa-receipt"></i> Bon</h3>
     <div id="kasseLines"><p style="color:#999;font-size:14px">Noch keine Positionen.</p></div>
+    <div id="kasseDiscLine"></div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <input type="text" id="kasseDiscInput" placeholder="Rabattcode" autocapitalize="characters" style="flex:1;min-height:48px;font-size:15px;padding:8px 12px;border:2px solid #e8e4de;border-radius:12px;text-transform:uppercase">
+      <button type="button" class="btn btn-outline" id="kasseDiscApply" style="min-height:48px;font-weight:800">OK</button>
+    </div>
     <div class="kasse-total"><span>Gesamt</span><span id="kasseTotal">0,00 €</span></div>
     <div class="kasse-actions">
       <button type="button" class="btn btn-outline" id="kasseClear">Leeren</button>

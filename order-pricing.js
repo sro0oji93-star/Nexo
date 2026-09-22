@@ -271,8 +271,7 @@ async function priceItems(parsedItems) {
 
 // MwSt je Satz aus Bruttototalen (Liefergebühr folgt 7 %, Rabatt anteilig je Satz).
 // Aufrufer addiert die Liefergebühr VORHER zu gross7 (wie bisher: gross7 += delivery).
-function splitVat(gross7, gross19, discount) {
-  const grossAll = gross7 + gross19;
+function splitVat(gross7, gross19, discount) {  const grossAll = gross7 + gross19;
   let base7 = gross7, base19 = gross19;
   if (discount > 0 && grossAll > 0) {
     base7 = Math.max(0, gross7 - discount * gross7 / grossAll);
@@ -283,4 +282,28 @@ function splitVat(gross7, gross19, discount) {
   return { vat7, vat19 };
 }
 
-module.exports = { priceItems, splitVat, berlinMinutes, TIME_DEALS, BEVERAGE_19 };
+module.exports = { priceItems, splitVat, validateDiscountCode, useDiscountCode, berlinMinutes, TIME_DEALS, BEVERAGE_19 };
+
+// Rabattcode-Prüfung nach EXAKT den Online-Regeln (aktiv, Ablauf, Limit, Mindestwert).
+// Gibt { validCode, discount } zurück – computed wie bisher (prozent vom Subtotal
+// bzw. Festbetrag, ungerundet; Rundung passiert erst in total/VAT wie bisher).
+async function validateDiscountCode(code, subtotal) {
+  let validCode = null;
+  let discount = 0;
+  if (code) {
+    const now = new Date().toISOString().split('T')[0];
+    const found = await db.get(`SELECT * FROM discounts WHERE code = $1 AND active = 1 AND (expires_at IS NULL OR expires_at > $2) AND (usage_limit = 0 OR used_count < usage_limit)`, [code, now]);
+    if (found && (!found.min_order || subtotal >= parseFloat(found.min_order))) {
+      validCode = code;
+      discount = found.type === 'prozent'
+        ? (subtotal * parseFloat(found.value) / 100)
+        : parseFloat(found.value);
+    }
+  }
+  return { validCode, discount };
+}
+
+// Nutzung zählen (wie bisher: pro eingelöstem Code genau +1).
+async function useDiscountCode(code) {
+  if (code) await db.run('UPDATE discounts SET used_count = used_count + 1 WHERE code = $1', [code]);
+}

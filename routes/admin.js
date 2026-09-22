@@ -350,6 +350,119 @@ router.post('/rabatte/loeschen/:id', auth, async (req, res) => {
   res.redirect('/admin/rabatte');
 });
 
+// Bulk-Generierung: N eindeutige Codes mit denselben Feldern/Regeln wie Einzelcodes.
+// Keine zweite Coupon-Logik – dieselbe discounts-Tabelle, dieselbe Validierung.
+const BULK_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+function bulkRandomCode(prefix) {
+  const buf = require('crypto').randomBytes(8);
+  let s = '';
+  for (let i = 0; i < 8; i++) s += BULK_ALPHABET[buf[i] % BULK_ALPHABET.length];
+  const pre = String(prefix || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12);
+  return (pre ? pre + '-' : '') + s;
+}
+
+router.post('/rabatte/bulk', auth, async (req, res) => {
+  const renderWith = async (newCodes, bulkError) => {
+    const discounts = await db.all('SELECT * FROM discounts ORDER BY created_at DESC');
+    res.render('admin/discounts', { title: 'Rabatte – Admin', discounts, newCodes: newCodes || null, bulkError: bulkError || null });
+  };
+  let anzahl = parseInt(req.body.anzahl, 10);
+  if (!isFinite(anzahl)) anzahl = 0;
+  anzahl = Math.max(0, Math.min(1000, anzahl));
+  const type = req.body.type === 'fest' ? 'fest' : 'prozent';
+  const value = parseFloat(String(req.body.value || '').replace(',', '.'));
+  const min_order = parseFloat(String(req.body.min_order || '').replace(',', '.')) || 0;
+  const usage_limit = parseInt(req.body.usage_limit, 10) || 0;
+  const expires_at = req.body.expires_at || null;
+  if (!anzahl) return renderWith(null, 'Bitte Anzahl wählen (1–1000).');
+  if (!isFinite(value) || value <= 0) return renderWith(null, 'Bitte gültigen Wert eingeben.');
+  if (type === 'prozent' && value > 100) return renderWith(null, 'Prozent darf maximal 100 sein.');
+  const created = [];
+  let attempts = 0;
+  while (created.length < anzahl && attempts < anzahl * 10 + 100) {
+    attempts++;
+    const code = bulkRandomCode(req.body.prefix);
+    try {
+      const r = await db.run(
+        'INSERT INTO discounts (code, type, value, min_order, usage_limit, expires_at) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (code) DO NOTHING RETURNING id',
+        [code, type, value, min_order, usage_limit, expires_at]
+      );
+      if (r && r.rows && r.rows.length) created.push(code);
+    } catch (e) { /* Kollision/Fehler -> neu würfeln */ }
+  }
+  if (created.length < anzahl) return renderWith(created.length ? created : null, 'Nur ' + created.length + ' von ' + anzahl + ' Codes erstellt – bitte erneut versuchen.');
+  return renderWith(created, null);
+});
+
+// Rabattcode-Karten für den Thermo-Bondrucker (80mm, eigenes Format – normaler Bon unverändert).
+// ?codes=A,B,C&id=... – nur existierende Codes werden gedruckt (QR + Wert + Gültigkeit je Code).
+router.get('/rabatte/drucken', auth, async (req, res) => {
+  const codes = String(req.query.codes || '').split(',').map((s) => s.trim().toUpperCase()).filter(Boolean).slice(0, 200);
+  if (!codes.length) return res.status(400).send('Keine Codes angegeben.');
+  const placeholders = codes.map((_, i) => '$' + (i + 1)).join(',');
+  const rows = await db.all('SELECT * FROM discounts WHERE code IN (' + placeholders + ')', codes);
+  const byCode = {};
+  rows.forEach((r) => { byCode[r.code] = r; });
+  const cards = codes.map((c) => byCode[c]).filter(Boolean);
+  if (!cards.length) return res.status(404).send('Keine gültigen Codes gefunden.');
+  const QRCode = require('qrcode');
+  for (const c of cards) {
+    try {
+      c.qr = await QRCode.toDataURL('https://nexofood.de', { width: 220, margin: 1 });
+    } catch (e) { c.qr = null; }
+  }
+  res.render('admin/discount-print', { cards, settings: res.locals.settings, autoprint: req.query.autoprint !== '0' });
+});
+
+// Rabattcode-Sammel-PDF für professionellen Kartendruck (RAM-only, kein Storage).
+// Enthält jeden Code genau einmal als eigene Karte (Code, Wert/Typ, Gültigkeit).
+router.get('/rabatte/pdf', auth, async (req, res) => {
+  const codes = String(req.query.codes || '').split(',').map((s) => s.trim().toUpperCase()).filter(Boolean).slice(0, 500);
+  if (!codes.length) return res.status(400).send('Keine Codes angegeben.');
+  const placeholders = codes.map((_, i) => '$' + (i + 1)).join(',');
+  const rows = await db.all('SELECT * FROM discounts WHERE code IN (' + placeholders + ')', codes);
+  const byCode = {};
+  rows.forEach((r) => { byCode[r.code] = r; });
+  const cards = codes.map((c) => byCode[c]).filter(Boolean);
+  if (!cards.length) return res.status(404).send('Keine gültigen Codes gefunden.');
+  const PDFDocument = require('pdfkit');
+  const doc = new PDFDocument({ size: 'A4', margin: 36, compress: false });
+  const chunks = [];
+  doc.on('data', (c) => chunks.push(c));
+  const done = new Promise((resolve, reject) => {
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
+  });
+  const s = res.locals.settings || {};
+  doc.font('Helvetica-Bold').fontSize(18).text(s.site_name || 'NexoFood', { align: 'center' });
+  doc.font('Helvetica').fontSize(10).text('Rabattcodes', { align: 'center' });
+  doc.moveDown();
+  const colW = (doc.page.width - 72) / 2;
+  const cardH = 150;
+  let x = 36, y = doc.y, col = 0;
+  const valueText = (c) => (c.type === 'prozent' ? c.value + '%' : parseFloat(c.value).toFixed(2).replace('.', ',') + ' €');
+  const validText = (c) => (c.expires_at ? 'Gültig bis ' + new Date(c.expires_at).toLocaleDateString('de-DE') : 'Unbegrenzt gültig');
+  for (const c of cards) {
+    if (y + cardH > doc.page.height - 36) { doc.addPage(); x = 36; y = 36; col = 0; }
+    if (col === 1) { x = 36 + colW; } else { x = 36; }
+    doc.rect(x, y, colW - 12, cardH - 12).stroke();
+    doc.font('Helvetica-Bold').fontSize(20).text(c.code, x + 8, y + 18, { width: colW - 28, align: 'center' });
+    doc.font('Helvetica').fontSize(11).text('Rabatt: ' + valueText(c), x + 8, y + 62, { width: colW - 28, align: 'center' });
+    if (parseFloat(c.min_order) > 0) doc.fontSize(10).text('Ab ' + parseFloat(c.min_order).toFixed(2).replace('.', ',') + ' €', x + 8, y + 82, { width: colW - 28, align: 'center' });
+    doc.fontSize(10).text(validText(c), x + 8, y + 102, { width: colW - 28, align: 'center' });
+    if (col === 1) { col = 0; y += cardH; } else { col = 1; }
+  }
+  doc.end();
+  const pdf = await done;
+  res.set({
+    'Content-Type': 'application/pdf',
+    'Content-Length': pdf.length,
+    'Content-Disposition': 'attachment; filename="rabattcodes.pdf"',
+    'Cache-Control': 'no-store'
+  });
+  res.send(pdf);
+});
+
 router.get('/banner', auth, async (req, res) => {
   const banners = await db.all('SELECT * FROM banners ORDER BY sort_order');
   res.render('admin/banners', { title: 'Banner – Admin', banners });

@@ -3,7 +3,7 @@ const router = express.Router();
 const db = require('../db');
 const crypto = require('crypto');
 const events = require('../events');
-const { priceItems, splitVat } = require('../order-pricing');
+const { priceItems, splitVat, validateDiscountCode, useDiscountCode } = require('../order-pricing');
 
 // "YYYY-MM-DDTHH:MM" als Berlin-Wandzeit -> UTC-Millis (Client-Zeit kann manipuliert sein)
 function berlinToUtcMs(y, mo, d, h, mi) {
@@ -172,18 +172,8 @@ router.post('/', async (req, res) => {
     else if (zone) calculatedDelivery = (zone.free > 0 && calculatedSubtotal >= zone.free - 1e-9) ? 0 : zone.fee;
     else calculatedDelivery = calculatedSubtotal >= freeFrom ? 0 : deliveryFee;
     
-    let calculatedDiscount = 0;
-    let validCode = null;
-    if (discount_code) {
-      const now = new Date().toISOString().split('T')[0];
-      const discount = await db.get(`SELECT * FROM discounts WHERE code = $1 AND active = 1 AND (expires_at IS NULL OR expires_at > $2) AND (usage_limit = 0 OR used_count < usage_limit)`, [discount_code, now]);
-      if (discount && (!discount.min_order || calculatedSubtotal >= parseFloat(discount.min_order))) {
-        validCode = discount_code;
-        calculatedDiscount = discount.type === 'prozent'
-          ? (calculatedSubtotal * parseFloat(discount.value) / 100)
-          : parseFloat(discount.value);
-      }
-    }
+    // Rabattcode nach den Standard-Regeln prüfen (shared helper, auch Kasse nutzt ihn).
+    const { validCode, discount: calculatedDiscount } = await validateDiscountCode(discount_code, calculatedSubtotal);
     
     const calculatedTotal = Math.max(0, calculatedSubtotal + calculatedDelivery - calculatedDiscount);
 
@@ -212,9 +202,7 @@ router.post('/', async (req, res) => {
     );
     const orderId = ins.rows && ins.rows[0] ? ins.rows[0].id : null;
 
-    if (validCode) {
-      await db.run('UPDATE discounts SET used_count = used_count + 1 WHERE code = $1', [validCode]);
-    }
+    await useDiscountCode(validCode);
 
     if (isOnline) {
       try {

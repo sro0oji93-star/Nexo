@@ -11,7 +11,7 @@ const router = express.Router();
 const db = require('../db');
 const auth = require('../middleware/auth');
 const events = require('../events');
-const { priceItems, splitVat } = require('../order-pricing');
+const { priceItems, splitVat, validateDiscountCode, useDiscountCode } = require('../order-pricing');
 const { loadBoxLists, loadDealLists } = require('./menu');
 const { TOPPINGS, FISH_TOPPINGS, EXTRA_PRICES, KAESERAND } = require('../extras');
 
@@ -62,18 +62,28 @@ router.post('/kasse/order', auth, async (req, res) => {
       return res.status(e && e.status ? e.status : 400).json({ success: false, message: (e && e.message) || 'Ungültige Bestellung' });
     }
     const subtotal = priced.subtotal;
-    const total = Math.max(0, subtotal + fee);
-    // Lieferkosten folgen 7 % (wie online), Rabatt gibt es an der Theke nicht.
-    const { vat7, vat19 } = splitVat(priced.gross7 + fee, priced.gross19, 0);
+    // Rabattcode (optional): exakt dieselben Regeln wie online (shared helper).
+    // Explizit angegeben, aber ungültig -> 400 (Theke soll keinen stillen Vollpreis kassieren).
+    const discountCode = typeof req.body.discount_code === 'string' && req.body.discount_code.trim()
+      ? req.body.discount_code.trim()
+      : null;
+    const { validCode, discount: kasseDiscount } = await validateDiscountCode(discountCode, subtotal);
+    if (discountCode && !validCode) {
+      return res.status(400).json({ success: false, message: 'Rabattcode ungültig oder Mindestbestellwert nicht erreicht.' });
+    }
+    const total = Math.max(0, subtotal + fee - kasseDiscount);
+    // Lieferkosten folgen 7 %, Rabatt anteilig je Satz (wie online).
+    const { vat7, vat19 } = splitVat(priced.gross7 + fee, priced.gross19, kasseDiscount);
     const orderNumber = 'FEIN-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
     const confirmToken = crypto.randomBytes(32).toString('hex');
     const ins = await db.run(`INSERT INTO orders (order_number, customer_name, customer_email, customer_phone, delivery_address, delivery_city, delivery_zip, notes, items, subtotal, delivery_fee, discount, discount_code, total, payment_method, payment_status, order_status, order_type, vat7, vat19, wish_time, confirm_token, driver_token, delivery_minutes)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24) RETURNING id`,
       [orderNumber, 'Theke', '', null, null, null, null, 'Theken-Bestellung',
-      JSON.stringify(priced.items), subtotal, fee, 0, null, total,
+      JSON.stringify(priced.items), subtotal, fee, kasseDiscount, validCode, total,
       'bar', 'bar', 'neu', 'abholung', vat7, vat19, null, confirmToken, null, null]
     );
     const orderId = ins.rows && ins.rows[0] ? ins.rows[0].id : null;
+    await useDiscountCode(validCode);
     // Auto-Druck + Admin-Push wie bei Online-Bestellungen (Bon-System unverändert).
     if (orderId) {
       try { events.emit('order:new', { id: orderId }); } catch (e) { /* still */ }

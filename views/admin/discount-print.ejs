@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Rabattcodes</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Courier New', Courier, monospace; font-size: 15px; font-weight: bold; color: #000; background: #fff; width: 72mm; margin: 0 auto; padding: 4mm 2mm; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .center { text-align: center; }
+  .big { font-size: 18px; font-weight: bold; }
+  .medium { font-size: 15px; font-weight: bold; }
+  .code { font-size: 24px; font-weight: bold; letter-spacing: 2px; margin: 6px 0; }
+  hr { border: none; border-top: 1px dashed #000; margin: 6px 0; }
+  .card { page-break-inside: avoid; }
+  @media print {
+    @page { size: 80mm auto; margin: 0; }
+    body { width: 72mm; padding: 2mm; }
+  }
+</style>
+</head>
+<body>
+  <% cards.forEach(function(c, ci) { %>
+  <div class="card">
+    <div class="center">
+      <% if (typeof settings !== 'undefined' && settings.logo_url) { %>
+        <img src="<%= settings.logo_url %>" style="max-width:55mm;max-height:22mm;filter:brightness(0);" alt="Logo">
+      <% } else { %>
+        <div class="big">NEXO food</div>
+      <% } %>
+      <% if (typeof settings !== 'undefined' && settings.address) { %><div><%= settings.address %></div><% } %>
+      <% if (typeof settings !== 'undefined' && settings.phone) { %><div>Tel: <%= settings.phone %></div><% } %>
+    </div>
+    <hr>
+    <div class="center medium">RABATTCODE</div>
+    <div class="center code"><%= c.code %></div>
+    <div class="center medium"><%= c.type === 'prozent' ? c.value + '%' : parseFloat(c.value).toFixed(2).replace('.', ',') + ' €' %> Rabatt</div>
+    <% if (parseFloat(c.min_order) > 0) { %><div class="center">Ab <%= parseFloat(c.min_order).toFixed(2).replace('.', ',') %> € Bestellwert</div><% } %>
+    <div class="center"><%= c.expires_at ? ('Gültig bis ' + new Date(c.expires_at).toLocaleDateString('de-DE')) : 'Unbegrenzt gültig' %></div>
+    <% if (c.qr) { %><div class="center"><img src="<%= c.qr %>" style="width:45mm;height:45mm;" alt="QR"></div><% } %>
+    <div class="center">https://nexofood.de</div>
+    <hr>
+    <br><br>
+  </div>
+  <% }); %>
+<script>
+  if (<%= typeof autoprint !== 'undefined' && autoprint ? 'true' : 'false' %>) { window.onload = function() { setTimeout(function(){ window.print(); }, 300); }; }
+</script>
+</body>
+</html>
