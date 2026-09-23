@@ -2069,6 +2069,33 @@ async function initialize() {
   } catch (e) {
     console.error('Menükarten-Migration Teil 2 übersprungen:', e.message);
   }
+
+  // NEXO RABATT-AKTION als Hero-Slide (rotiert mit allen Angeboten, tel:-Button).
+  // Idempotent: kein zweiter Slide solange ein tel:-Slide existiert (Admin kann
+  // Text/Reihenfolge/active frei pflegen, kein Revert). Kein Preis-/Logik-Einfluss.
+  try {
+    const telSlide = await get("SELECT id FROM hero_slides WHERE button_link LIKE 'tel:%'");
+    if (!telSlide) {
+      let tel = '041314006817';
+      try {
+        const ph = await get("SELECT value FROM settings WHERE key = 'phone'");
+        if (ph && ph.value) {
+          const digits = String(ph.value).replace(/[^+\d]/g, '');
+          if (digits) tel = digits.charAt(0) === '0' ? '+49' + digits.slice(1) : digits;
+        }
+      } catch (e) { /* Fallback-Nummer */ }
+      const maxSort = await get('SELECT COALESCE(MAX(sort_order), -1) as m FROM hero_slides');
+      const nextSort = (maxSort ? parseInt(maxSort.m, 10) : -1) + 1;
+      await query(
+        `INSERT INTO hero_slides (sort_order, line1, line2, line3, price1, price1_cents, price1_tag, price2, price2_cents, price2_tag, description, button_text, button_link, bg_image, main_image, drink_tl, drink_tr, drink_br, active)
+         VALUES ($1, 'NEXO RABATT-AKTION', 'SELBSTABHOLER 15 % RABATT', 'Direktbestellung: 5 % Rabatt', '', '', '', '', '', '', 'Nicht mit anderen Angeboten kombinierbar.', 'JETZT ANRUFEN', $2, '/images/revolution/6cbea-bg1.jpg', '/images/revolution/75ec1-big1.png', NULL, NULL, NULL, 1)`,
+        [isFinite(nextSort) ? nextSort : 0, 'tel:' + tel]
+      );
+      console.log('Rabatt-Slide angelegt.');
+    }
+  } catch (e) {
+    console.error('Rabatt-Slide übersprungen:', e.message);
+  }
 }
 
 module.exports = { query, get, all, run, pool, initialize, syncDealPricesFromSlide, formatWishDisplay };
