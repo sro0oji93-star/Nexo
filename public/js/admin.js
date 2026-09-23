@@ -8,7 +8,7 @@ function filterProducts() {
 
 // Auswahl-Box-Presets für Größen/Auswahlen (Labels passend zu Menü-Logik)
 var CHOICE_PRESETS = {
-  sauces: ['Knoblauch', 'American', 'Remoulade', 'NEXO Haus', 'Chili', 'BBQ', 'Curry'],
+  sauces: ['Knoblauch', 'American', 'Remoulade', 'NEXO Toum', 'Chili', 'BBQ', 'Curry'],
   dressings: ['Knoblauch', 'Hausdressing', 'Yoghurt', 'American', 'Kräuter'],
   beilagen: ['Reis', 'Pommes'],
   drinks: ['Coca-Cola', 'Fanta', 'Sprite', 'Mezzo Mix', 'Coca-Cola Zero'],

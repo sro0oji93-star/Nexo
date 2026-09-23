@@ -1640,6 +1640,244 @@ async function initialize() {
     await query(`INSERT INTO hero_slides (sort_order, line1, line2, line3, price1, price1_cents, price1_tag, price2, price2_cents, price2_tag, description, button_text, button_link, bg_image, main_image, drink_tl, drink_tr, drink_br) VALUES (0, '1 GROSSE', 'PIZZA', '+ 4 GETRÄNKE', '19', ',99€', 'ABHOLUNG', '21', ',99€', 'LIEFERUNG', 'Bestellen Sie eine große 3-Belag-Pizza und erhalten Sie 4 Getränke (330ml) gratis!', 'JETZT BESTELLEN', '/warenkorb', '/images/revolution/6cbea-bg1.jpg', '/images/revolution/75ec1-big1.png', '/images/revolution/f13af-big3.png', '/images/revolution/d70da-big4.png', '/images/revolution/96fdd-big6.png')`);
     await query(`INSERT INTO hero_slides (sort_order, line1, line2, line3, price1, price1_cents, price1_tag, price2, price2_cents, price2_tag, description, button_text, button_link, bg_image, main_image, drink_tl, drink_tr, drink_br) VALUES (1, 'MIX OR MATCH', 'COMBO DEAL', 'SPECIAL', '9', ',99€', 'ABHOLUNG', '11', ',99€', 'LIEFERUNG', 'Includes 1 burger, 1 small fries, 1 dip and 1 drink (330ml)', 'JETZT BESTELLEN', '/warenkorb', '/images/revolution/6cbea-bg1.jpg', '/images/revolution/5b6b6-burger.png', '/images/revolution/5fb1e-glass.png', '/images/revolution/6e11b-donut3.png', '/images/revolution/f1de6-donut2.png')`);
   }
+
+  // Menükarte 2026-09: Kartennummern + Kennzeichnung in Produktnamen (Namen exakt wie
+  // Druckkarte), NEXO Haus -> NEXO Toum, Wasser entfernen, 3 Angebots-Deals in nexo-deals.
+  // Idempotent: Nummern-Guard (NOT LIKE 'NN %') schützt Admin-Edits, die die Nummer behalten.
+  // Preise, Kategorien, Slugs, Logik und Reihenfolge bleiben unberührt.
+  try {
+    const CARD_NAMES = {
+      'gemischter-salat': '1 Gemischter Salat',
+      'chicken-salat': '2 Chicken Salat',
+      'chef-salat': '3 Chef Salat [d,2,3,8]',
+      'cheese-salat': '4 Cheese Salat [g]',
+      'tuna-salat': '5 Tuna Salat [d,6]',
+      'wunsch-salat': '6 Wunsch Salat',
+      'teriyaki-chicken-bowl': '10 Teriyaki Chicken Bowl [a1,f,k]',
+      'crispy-chicken-bowl': '11 Crispy Chicken Bowl [a1,a3,g,k]',
+      'beef-bacon-bowl': '12 Beef Bacon Bowl [f,g,k,2,3,4,8]',
+      'nexo-scampi-bowl': '13 NEXO Scampi Bowl [b,k]',
+      'margherita': '20 Margherita [a1,g]',
+      'mozzarella': '21 Mozzarella [a1,g]',
+      'cheese': '22 Cheese [a1,g]',
+      'salami': '23 Salami [a1,g,2,3]',
+      'prosciutto': '24 Prosciutto [a1,g,2,3,8]',
+      'funghi': '25 Funghi [a1,g]',
+      'dreiklang': '26 Dreiklang [a1,g,2,3,8]',
+      'hawaii': '27 Hawaii [a1,g,2,3,8]',
+      'vegetarisch': '28 Vegetarisch [a1,g]',
+      'tonno': '29 Tonno [a1,d,g]',
+      'scampi': '30 Scampi [a1,b,g]',
+      'frutti-di-mare': '31 Frutti di Mare [a1,b,g,n]',
+      'spezial-chicken': '32 Spezial Chicken [a1,g]',
+      'chicken-hollandaise': '33 Chicken Hollandaise [a1,c,g]',
+      'chicken-curry': '34 Chicken Curry [a1,g]',
+      'chicken-beef': '35 Chicken Beef [a1,g]',
+      'bbq': '36 BBQ [a1,g,2,3]',
+      'hot-beef': '37 Hot Beef [a1,g]',
+      'sucuk': '38 Sucuk [a1,c,g,j,2,3,4,8]',
+      'sucuk-jalapenos': '38 Sucuk Jalapeños [a1,c,g,j,2,3,4,8]',
+      'bacon': '39 Bacon [a1,g,2,3]',
+      'meat-lovers': '40 Meat Lovers [a1,g,j,2,3,4,8]',
+      'hot-dog': '41 Hot Dog [a1,g,2]',
+      'ufo': '42 UFO [a1,g]',
+      'nexo-wunsch': '43 NEXO Wunsch [a1,g]',
+      'nexo-x': '44 NEXO X [a1,a3,c,g,j]',
+      'nexo-boom': '45 NEXO Boom [a1,g,2,3]',
+      'nexo-deluxe': '46 NEXO Deluxe [a1,d,g]',
+      'nexo-feuer-royale': '47 NEXO Feuer Royale [a1,c,g]',
+      'nexo-goldkrone': '48 NEXO Goldkrone [a1,c,g]',
+      'kaesering': '60 Käsering [a1,g]',
+      'bacon-ring': '61 Bacon Ring [a1,g,2,3]',
+      'chicken-ring': '62 Chicken Ring [a1,c,g]',
+      'feuerring': '63 Feuerring [a1,c,g]',
+      'pizza-broetchen-kaese': '70 Käse [a1,g]',
+      'pizza-broetchen-schinken': '71 Schinken [a1,g,2,3,8]',
+      'pizza-broetchen-pute': '72 Pute [a1,g]',
+      'pizza-broetchen-salami': '73 Salami [a1,g,2,3]',
+      'pizza-broetchen-sucuk': '74 Sucuk [a1,g,j,2,3,4,8]',
+      'pizza-broetchen-thunfisch': '75 Thunfisch [a1,d,g]',
+      'pizza-broetchen-haehnchen': '76 Hähnchen [a1,g]',
+      'nexo-napoli': '80 NEXO Napoli [a1]',
+      'nexo-bolognese': '81 NEXO Bolognese [a1]',
+      'nexo-feuer': '82 NEXO Feuer [a1,6]',
+      'nexo-fusion': '83 NEXO Fusion [a1,g]',
+      'nexo-cheese': '84 NEXO Cheese [a1,g]',
+      'nexo-carbonara': '85 NEXO Carbonara [a1,c,g,2,3,8]',
+      'nexo-pesto': '86 NEXO Pesto [a1,g,h4]',
+      'pasta-hawaii': '87 NEXO Hawaii [a1,g]',
+      'nexo-gamberi': '88 NEXO Gamberi [a1,b]',
+      'nexo-scampi-royal': '89 NEXO Scampi Royal [a1,b,g]',
+      'pasta-wunsch': '90 NEXO Wunsch [a1]',
+      'nexo-haehnchen-genuss': '91 NEXO Hähnchen Genuss [a1,g]',
+      'pasta-nexo-deluxe': '92 NEXO Deluxe [a1,a3,c,g]',
+      'nexo-signature': '93 NEXO Signature [a1,g]',
+      'hamburger-smash': '100 Hamburger Smash [a1,c,g,i,j,3]',
+      'cheeseburger-smash': '101 Cheeseburger Smash [a1,c,g,i,j,3]',
+      'chickenburger': '102 Chickenburger [a1,c,g,i,j,3]',
+      'fischburger': '103 Fischburger [a1,c,d,g,j]',
+      'veggieburger': '104 Veggieburger [a1]',
+      'double-smash': '105 Double Smash [a1,c,g,i,j,3]',
+      'triple-smash': '106 Triple Smash [a1,c,g,i,j,3]',
+      'bacon-bbq-smash': '107 Bacon BBQ Smash [a1,c,g,i,j,2,3]',
+      'mushroom-smash': '108 Mushroom Smash [a1,c,g,i,j,3]',
+      'chicken-smash': '109 Chicken Smash [a1,c,g,i,j,3]',
+      'boomburger': '110 Boom Burger [a1,c,g,i,j,3]',
+      'beef-chicken-smash': '111 Beef und Chicken Smash [a1,c,g,i,j,3]',
+      'nexo-madame': '120 NEXO Madame [a1,g]',
+      'nexo-mozzarella': '121 NEXO Mozzarella [a1,g]',
+      'nexo-salami': '122 NEXO Salami [a1,g,2,3]',
+      'nexo-schinken': '123 NEXO Schinken [a1,g,2,3,8]',
+      'nexo-chicken': '124 NEXO Chicken [a1,g]',
+      'nexo-pute': '125 NEXO Pute [a1,g]',
+      'nexo-sucuk': '126 NEXO Sucuk [a1,c,g,j,2,3,4,8]',
+      'nexo-camembert': '127 NEXO Camembert [a1,g]',
+      'nexo-hawaii': '128 NEXO Hawaii [a1,g,2,3,8]',
+      'nexo-crispy': '129 NEXO Crispy [a1,a3,g]',
+      'nexo-tuna': '130 NEXO Tuna [a1,d,g]',
+      'nexo-beef-bbq': '131 NEXO Beef BBQ [a1,g]',
+      'nexo-formaggi': '132 NEXO Formaggi [a1,g]',
+      'teriyaki-chicken-wrap': '140 Teriyaki Chicken Wrap [a1,c,f,g,j,k]',
+      'crispy-chicken-wrap': '141 Crispy Chicken Wrap [a1,a3,c,g,j]',
+      'bbq-beef-wrap': '142 BBQ Beef Wrap [a1,g,2,3]',
+      'spicy-crispy-chicken-wrap': '143 Spicy Crispy Chicken Wrap [a1,a3,c,g,j]',
+      'schnitzel-wiener-art': '150 Schnitzel Wiener Art [a1,c]',
+      'jaegerschnitzel': '151 Jägerschnitzel [a1,c,g,i]',
+      'paprikaschnitzel': '152 Paprikaschnitzel [a1,c]',
+      'schnitzel-hollandaise': '153 Schnitzel Hollandaise [a1,c,g]',
+      'currywurst-pommes': '160 Currywurst mit Pommes [2,3]',
+      'chicken-nuggets': '161 Chicken Nuggets [a1,c,g]',
+      'chicken-wings': '162 Chicken Wings [a1]',
+      'chili-cheese-nuggets': '163 Chili Cheese Nuggets [a1,g]',
+      'baked-feta': '164 Baked Feta [g]',
+      'chicken-strips': '165 Chicken Strips [a1,f]',
+      'fruehlingsrollen': '166 Frühlingsrollen [a1,c,f,i,j]',
+      'mozzarella-sticks': '167 Mozzarella Sticks [a1,c,g]',
+      'zwiebelringe': '168 Zwiebelringe [a1]',
+      'shrimps': '169 Shrimps [b]',
+      'muslitos': '170 Muslitos [a1,b,c,d,f]',
+      'corn-dog': '171 Corn Dog [a1,c,2,3,8]',
+      'pommes-frites': '180 Pommes Frites',
+      'chili-cheese-fries': '181 Chili Cheese Fries [g]',
+      'hotdog-fries': '182 Hotdog Fries [2]',
+      'kroketten': '183 Kroketten [a1,c]',
+      'curly-fries': '184 Curly Fries',
+      'kids-pizza': '190 Kids Pizza [a1,g]',
+      'kids-nuggets': '191 Kids Nuggets [a1,c,g]',
+      'happy-fish': '192 Happy Fish [a1,d]',
+      'knoblauch': '200 Knoblauch [c,g,j]',
+      'american': '201 American [c,g,j]',
+      'remoulade': '202 Remoulade [c,j]',
+      'nexo-haus': '203 NEXO Toum [c,j]',
+      'chili': '204 Chili',
+      'bbq-sauce': '205 BBQ',
+      'curry': '206 Curry [c,j]',
+      'portion-oliven': '210 Portion Oliven [6]',
+      'portion-peperoni-jalapenos': '211 Portion Peperoni oder Jalapeños',
+      'knoblauchbrot': '212 Knoblauchbrot mit Käse [a1,g]',
+      'spezialbrot': '213 Spezialbrot [a1,g]',
+      'formaggi-spezialbrot': '214 Formaggi Spezialbrot [a1,g]',
+      'spaghetti-eis': '220 Spaghetti Eis [f,g]',
+      'tiramisu': '221 Tiramisu [a1,c,g]',
+      'cheesecake': '222 Cheesecake [a1,c,g]',
+      'oreo-choice': '223 Oreo Choice',
+      'nutella-pizza': '224 Nutella Pizza [a1,f,g,h2]',
+      'crepe-nutella': '230 Crêpe Nutella [a1,c,f,g,h2]',
+      'crepe-frucht': '231 Crêpe Frucht [a1,c,g]',
+      'crepe-lotus': '232 Crêpe Lotus [a1,c,f,g]',
+      'crepe-oreo': '233 Crêpe Oreo [a1,c,f,g]',
+      'crepe-bueno': '234 Crêpe Bueno [a1,c,f,g,h2]',
+      'mini-pancakes': '240 Mini Pancakes [a1,c,g]',
+      'mini-waffel': '250 Mini Waffel [a1,c]',
+      'vanille': '260 Vanille [g]',
+      'schokolade': '261 Schokolade [g]',
+      'banane': '262 Banane [g]',
+      'erdbeere': '263 Erdbeere [g]',
+      'mix-milkshake': '264 Mix Milkshake [g]',
+      'box-1': '300 BOX 1',
+      'box-2': '301 BOX 2',
+      'box-3': '302 BOX 3'
+    };
+    for (const [slug, newName] of Object.entries(CARD_NAMES)) {
+      const num = newName.split(' ')[0];
+      await query('UPDATE products SET name = $1 WHERE slug = $2 AND name NOT LIKE $3', [newName, slug, num + ' %']);
+    }
+    // Optionslabels mit Kennzeichnung (nur setzen, wenn noch ohne Kennzeichnung)
+    const kidsPizza = await get("SELECT id, sizes FROM products WHERE slug = 'kids-pizza'");
+    if (kidsPizza && kidsPizza.sizes) {
+      const arr = JSON.parse(kidsPizza.sizes);
+      let changed = false;
+      for (const s of arr) {
+        if (s.label === 'Margherita') { s.label = 'Margherita [a1,g]'; changed = true; }
+        if (s.label === 'Salami') { s.label = 'Salami [a1,g,2,3]'; changed = true; }
+      }
+      if (changed) await query('UPDATE products SET sizes = $1 WHERE id = $2', [JSON.stringify(arr), kidsPizza.id]);
+    }
+    const oreoChoice = await get("SELECT id, sizes FROM products WHERE slug = 'oreo-choice'");
+    if (oreoChoice && oreoChoice.sizes) {
+      const arr = JSON.parse(oreoChoice.sizes);
+      let changed = false;
+      for (const s of arr) {
+        if (s.label === 'Oreo Donut') { s.label = 'Oreo Donut [a1,a2,f,g]'; changed = true; }
+        if (s.label === 'Oreo Muffin') { s.label = 'Oreo Muffin [a1,c,f,g]'; changed = true; }
+      }
+      if (changed) await query('UPDATE products SET sizes = $1 WHERE id = $2', [JSON.stringify(arr), oreoChoice.id]);
+    }
+    const pancakes = await get("SELECT id, sizes FROM products WHERE slug = 'mini-pancakes'");
+    if (pancakes && pancakes.sizes) {
+      const arr = JSON.parse(pancakes.sizes);
+      let changed = false;
+      for (const s of arr) {
+        if (s.label === '20 Stück') { s.label = '20 Stück (241)'; changed = true; }
+      }
+      if (changed) await query('UPDATE products SET sizes = $1 WHERE id = $2', [JSON.stringify(arr), pancakes.id]);
+    }
+    const waffel = await get("SELECT id, sizes FROM products WHERE slug = 'mini-waffel'");
+    if (waffel && waffel.sizes) {
+      const arr = JSON.parse(waffel.sizes);
+      let changed = false;
+      for (const s of arr) {
+        if (s.label === '20 Stück') { s.label = '20 Stück (251)'; changed = true; }
+      }
+      if (changed) await query('UPDATE products SET sizes = $1 WHERE id = $2', [JSON.stringify(arr), waffel.id]);
+    }
+    const salatCat = await get("SELECT id FROM categories WHERE slug = 'salat'");
+    if (salatCat) {
+      const dressCodes = { 'Knoblauch': 'Knoblauch [c,g,j]', 'Yoghurt': 'Yoghurt [c,g,j]', 'American': 'American [c,g,j]' };
+      const rows = await all('SELECT id, sizes FROM products WHERE category_id = $1', [salatCat.id]);
+      for (const r of rows) {
+        if (!r.sizes) continue;
+        const arr = JSON.parse(r.sizes);
+        let changed = false;
+        for (const s of arr) {
+          const base = String(s.label || '').replace(/^Dressing: /, '');
+          if (dressCodes[base] && s.label === 'Dressing: ' + base) { s.label = 'Dressing: ' + dressCodes[base]; changed = true; }
+        }
+        if (changed) await query('UPDATE products SET sizes = $1 WHERE id = $2', [JSON.stringify(arr), r.id]);
+      }
+    }
+    // Wasser von der Karte entfernen (steht nicht auf der Druckkarte)
+    await query("DELETE FROM products WHERE slug = 'wasser'");
+    // Angebots-Deals in nexo-deals (laut Druckkarte, ohne Konfigurator/Preislogik-Änderung)
+    const dealCat = await get("SELECT id FROM categories WHERE slug = 'nexo-deals'");
+    if (dealCat) {
+      const deals = [
+        ['NEXO Night Deal', 'night-deal-abholer', 'Nur für Abholer · Ab 21:00 Uhr. Pizza Ø 26 cm nach Wunsch, bis zu 3 Beläge nach Wahl + 1 Sauce nach Wahl. Fisch und Käserand ausgeschlossen.', 6.00, 2],
+        ['Party Pizza 60 × 40 cm', 'party-pizza-aktion', 'Nur Montag & Dienstag. 3 Beläge nach Wahl + 1 Dip + 1 Liter Softgetränk.', 31.90, 3],
+        ['Familienpizza 40 cm', 'familienpizza-aktion', 'Nur Mittwoch & Donnerstag. 3 Beläge nach Wahl + 1 Dip + 1 Liter Softgetränk.', 23.90, 4]
+      ];
+      for (const [name, slug, description, price, sort] of deals) {
+        await query(
+          `INSERT INTO products (category_id, name, slug, description, price, old_price, image, ingredients, is_featured, is_available, sort_order, sizes)
+           VALUES ($1,$2,$3,$4,$5,NULL,NULL,'',0,1,$6,NULL)
+           ON CONFLICT (slug) DO NOTHING`,
+          [dealCat.id, name, slug, description, price, sort]
+        );
+      }
+    }
+  } catch (e) {
+    console.error('Menükarten-Migration übersprungen:', e.message);
+  }
 }
 
 module.exports = { query, get, all, run, pool, initialize, syncDealPricesFromSlide, formatWishDisplay };
