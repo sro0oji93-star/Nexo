@@ -79,7 +79,7 @@
       <div class="kasse-grid">
         <% catProducts.forEach(function(p) { %>
         <button type="button" class="kasse-prod" data-pid="<%= p.id %>" <%= p.is_available ? '' : 'disabled' %>>
-          <span><%= p.name %></span>
+          <span><% var _pn = String(p.name).match(/^(\d+)\s+([\s\S]+)$/); %><% if (_pn) { %><span style="color:#9c7c1a"><%= _pn[1] %></span> <%= _pn[2] %><% } else { %><%= p.name %><% } %></span>
           <small><% if (cat.slug === 'burger') { %><%= parseFloat(p.price).toFixed(2).replace('.', ',') %> €<% } else if (p.sizes) { var sz = JSON.parse(p.sizes); var minP = Math.min.apply(null, sz.map(function(s){return s.price})); %>ab <%= minP.toFixed(2).replace('.', ',') %> €<% } else { %><%= parseFloat(p.price).toFixed(2).replace('.', ',') %> €<% } %><%= p.is_available ? '' : ' · ausverkauft' %></small>
         </button>
         <% }); %>
@@ -89,7 +89,7 @@
       <% catProducts.forEach(function(p) { %>
       <% if (!p.is_available) return; %>
       <div class="kasse-opts" data-opts-for="<%= p.id %>">
-        <strong style="font-size:17px"><%= p.name %></strong>
+        <strong style="font-size:17px"><% var _pn = String(p.name).match(/^(\d+)\s+([\s\S]+)$/); %><% if (_pn) { %><span style="color:#9c7c1a"><%= _pn[1] %></span> <%= _pn[2] %><% } else { %><%= p.name %><% } %></strong>
         <% if (p.description) { %><div style="color:#777;font-size:13px;margin:4px 0 8px"><%= p.description %></div><% } %>
         <% if (p.sizes) { var sizeData = JSON.parse(p.sizes); %>
         <% if (cat.slug === 'croque' || cat.slug === 'salat' || cat.slug === 'rings') { %><%- include('../partials/croque-sauces', { productId: p.id, sizeData: sizeData }) %><% } else if (cat.slug === 'schnitzel' || cat.slug === 'bowls') { %><%- include('../partials/croque-sauces', { productId: p.id, sizeData: sizeData, boxTitle: '1 Beilage nach Wahl' }) %><% } else if (cat.slug === 'burger') { %><%- include('../partials/burger-menue', { productId: p.id, productName: p.name, sizeData: sizeData }) %><% } else { %>
