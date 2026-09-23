@@ -56,11 +56,9 @@
         <td><strong><%= parseFloat(o.total).toFixed(2) %> €</strong></td>
         <td><span class="badge-ok"><%= o.order_status %></span></td>
         <td>
-          <% if (!o.is_deleted) { %>
           <form method="POST" action="/eigentuemer/bestellungen/loeschen/<%= o.id %>" style="display:inline" onsubmit="return confirm('Wirklich löschen?')"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="datum" value="<%= datum %>">
             <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
           </form>
-          <% } %>
         </td>
       </tr>
       <% }); %>
