@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
-const { TOPPINGS, FISH_TOPPINGS, EXTRA_PRICES, KAESERAND } = require('../extras');
+const { TOPPINGS, BELAG_LABELS, FISH_TOPPINGS, EXTRA_PRICES, KAESERAND } = require('../extras');
 const { swapProductImages } = require('../image');
 const { resolveGroups, dealToppingsNoFish, DEAL_BASIS, DEAL_DRINKS, DEAL_MAX_TOPPINGS } = require('../boxen');
-const pizzaExtras = { toppings: TOPPINGS, fish: FISH_TOPPINGS, prices: EXTRA_PRICES, kaeserand: KAESERAND };
+const pizzaExtras = { toppings: TOPPINGS, labels: BELAG_LABELS, fish: FISH_TOPPINGS, prices: EXTRA_PRICES, kaeserand: KAESERAND };
 
 // Speisekarte immer frisch laden (kein Browser-Cache), damit Ausverkauft sofort wirkt
 router.use((req, res, next) => {

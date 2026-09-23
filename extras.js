@@ -10,18 +10,30 @@ const EXTRA_PRICES = {
 };
 
 const TOPPINGS = [
-  'Salami', 'Schinken', 'Champignons', 'Ananas', 'Tomaten', 'Basilikum',
+  'Salami', 'Gouda', 'Schinken', 'Champignons', 'Ananas', 'Tomaten', 'Basilikum',
   'Mozzarella', 'Thunfisch', 'Rote Zwiebeln', 'Scampi', 'Frutti di Mare',
   'Hähnchen', 'Paprika', 'Brokkoli', 'Hackfleisch', 'Rinderhackfleisch',
   'Hirtenkäse', 'Feta', 'Röstzwiebeln', 'Sucuk', 'Ei', 'Bacon',
-  'Würstchen', 'Gewürzgurken', 'Jalapeños', 'Crispy Chicken', 'Mais',
-  'Lachs', 'Rucola', 'Pute', 'Oregano'
+  'Würstchen', 'Gewürzgurken', 'Jalapeños', 'Krispy Chicken', 'Mais',
+  'Lachs', 'Rucola', 'Pute', 'Oregano', 'Creme Fraiche', 'Oliven'
 ];
+
+// Anzeige-Labels (Allergene/Zusatzstoffe) für die Extra-Beläge-Box – nur Anzeige,
+// Preise/Logik unverändert. data-extra-name bleibt der reine Name.
+const BELAG_LABELS = {
+  'Salami': '[2,3]', 'Gouda': '[g]', 'Schinken': '[2,3,8]',
+  'Mozzarella': '[g]', 'Thunfisch': '[d]', 'Scampi': '[b]', 'Frutti di Mare': '[b,n]',
+  'Hirtenkäse': '[g]', 'Feta': '[g]', 'Röstzwiebeln': '[a1]', 'Sucuk': '[j,2,3,4,8]',
+  'Ei': '[c]', 'Bacon': '[2,3]', 'Würstchen': '[2]', 'Krispy Chicken': '[a1,a3]',
+  'Lachs': '[d]', 'Creme Fraiche': '[g]', 'Oliven': '[6]'
+};
 
 const FISH_TOPPINGS = ['Thunfisch', 'Scampi', 'Frutti di Mare', 'Lachs'];
 const fishSet = new Set(FISH_TOPPINGS);
 
 function getExtraPrice(sizeLabel, name) {
+  // Alias für alte Warenkörbe (vor Umbenennung): gleicher Preis/Typ wie Krispy Chicken.
+  if (name === 'Crispy Chicken') name = 'Krispy Chicken';
   const tier = EXTRA_PRICES[sizeLabel];
   if (!tier) return null;
   if (name === KAESERAND) return { name, price: tier.kaeserand, type: 'kaeserand' };
@@ -59,4 +71,4 @@ function validateExtras(sizeLabel, names, opts) {
   return { extras, total: parseFloat(total.toFixed(2)) };
 }
 
-module.exports = { EXTRA_PRICES, TOPPINGS, FISH_TOPPINGS, KAESERAND, getExtraPrice, validateExtras };
+module.exports = { EXTRA_PRICES, TOPPINGS, BELAG_LABELS, FISH_TOPPINGS, KAESERAND, getExtraPrice, validateExtras };

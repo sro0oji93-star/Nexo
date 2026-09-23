@@ -10,9 +10,10 @@
         <span class="extra-price" style="color:var(--primary);font-weight:700;white-space:nowrap"></span>
       </label>
       <% pizzaExtras.toppings.forEach(function(t) { %>
+      <% var _lbl = (pizzaExtras.labels && pizzaExtras.labels[t]) ? ' ' + pizzaExtras.labels[t] : ''; %>
       <label class="extra-row" style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:4px 6px;border-radius:8px;border:1.5px solid transparent">
         <input type="checkbox" data-extra-name="<%= t %>" data-extra-type="<%= pizzaExtras.fish.indexOf(t) !== -1 ? 'fisch' : 'belag' %>" style="width:16px;height:16px;accent-color:#16a34a">
-        <span style="flex:1"><%= t %></span>
+        <span style="flex:1"><%= t %><%= _lbl %></span>
         <span class="extra-tick" style="display:none;color:#16a34a;font-weight:900;font-size:14px">✓</span>
         <span class="extra-price" style="color:var(--primary);font-weight:700;white-space:nowrap"></span>
       </label>

@@ -14,7 +14,7 @@ const auth = require('../middleware/auth');
 const events = require('../events');
 const { priceItems, splitVat } = require('../order-pricing');
 const { loadBoxLists, loadDealLists } = require('./menu');
-const { TOPPINGS, FISH_TOPPINGS, EXTRA_PRICES, KAESERAND } = require('../extras');
+const { TOPPINGS, BELAG_LABELS, FISH_TOPPINGS, EXTRA_PRICES, KAESERAND } = require('../extras');
 
 const KASSE_FEE_MAX = 999;
 
@@ -37,7 +37,7 @@ router.get('/kasse', auth, async (req, res) => {
     products,
     boxLists,
     dealLists,
-    pizzaExtras: { toppings: TOPPINGS, fish: FISH_TOPPINGS, prices: EXTRA_PRICES, kaeserand: KAESERAND }
+    pizzaExtras: { toppings: TOPPINGS, labels: BELAG_LABELS, fish: FISH_TOPPINGS, prices: EXTRA_PRICES, kaeserand: KAESERAND }
   });
 });
 
