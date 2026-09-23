@@ -11,12 +11,45 @@
       <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:4px 6px;border-radius:8px;border:1.5px solid transparent">
         <input type="checkbox" data-bowl-sauce="<%= nm %>" style="width:16px;height:16px;accent-color:#16a34a">
         <span style="flex:1;font-weight:600;color:#232223"><%= nm %></span>
+        <span class="bowl-sauce-price" style="font-weight:700;color:#9c7c1a;font-size:12px"></span>
         <span class="sauce-tick" style="display:none;color:#16a34a;font-weight:900;font-size:14px">✓</span>
       </label>
       <% }); %>
     </div>
   </details>
 </div>
+<script>
+/* Bowls-Saucen Anzeige: 1. gewählte gratis, jede weitere +0,80 € (Server-Regel, nur Anzeige). */
+(function() {
+  function paintBox(box) {
+    var checked = box.querySelectorAll('input[data-bowl-sauce]:checked');
+    var first = checked.length ? checked[0] : null;
+    box.querySelectorAll('label').forEach(function(l) {
+      var inp = l.querySelector('input[data-bowl-sauce]');
+      var span = l.querySelector('.bowl-sauce-price');
+      if (!inp || !span) return;
+      if (!inp.checked) span.textContent = '';
+      else if (inp === first) span.textContent = 'gratis';
+      else span.textContent = '+0,80 €';
+    });
+  }
+  function paintAll() {
+    document.querySelectorAll('[data-bowlsauces-for]').forEach(function(box) {
+      if (!box.dataset.sauceInit) {
+        box.dataset.sauceInit = '1';
+        box.addEventListener('change', function() { paintBox(box); });
+      }
+      paintBox(box);
+    });
+  }
+  document.addEventListener('change', function(e) {
+    var box = e.target && e.target.closest ? e.target.closest('[data-bowlsauces-for]') : null;
+    if (box) paintBox(box);
+  });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', paintAll);
+  else paintAll();
+})();
+</script>
 <div class="bowls-sauces" data-bowlextras-for="<%= productId %>" style="margin-top:10px;border:1px dashed #e5c8ce;border-radius:10px;padding:10px 12px;background:#fffdf7">
   <details>
     <summary style="cursor:pointer;font-weight:700;font-size:13px;color:#232223">Extra Zutaten <span style="font-weight:400;color:#7a7879;font-size:12px">– je +3,50 €</span></summary>
