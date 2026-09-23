@@ -176,8 +176,40 @@ async function priceItems(parsedItems) {
       } else {
         delete item.sauce;
       }
-      // Bowls-Saucen: 1× inklusive, jede weitere +0,80 €
+      // Bowls-Saucen: 1× inklusive, jede weitere +0,80 € (unverändert)
       const BOWL_SAUCES = ['NEXO Haussoße', 'Knoblauchsoße', 'BBQ-Soße', 'American-Soße', 'Cheddar-Soße'];
+      // Bowls-Extras: Festpreise je Auswahl (Server ist maßgeblich, Client nur Anzeige).
+      // Nur bowls – dieselben Listen stehen in views/partials/bowls-sauces.ejs.
+      const BOWL_EXTRA_350 = ['Chicken', 'Rinderstreifen', 'Scampi [b]', 'Bacon [2,3]', 'Brokkoli', 'Paprika'];
+      const BOWL_EXTRA_100 = ['Mais', 'Karotten', 'Sesam [k]', 'Cheddar [g]', 'Röstzwiebeln [a1]', 'Champignons', 'Zwiebeln', 'Käse'];
+      if (item.bowlExtras && item.bowlExtras.length) {
+        if (product.catslug !== 'bowls') {
+          fail('Ungültige Bowl-Extras für: ' + item.name);
+        }
+        if (!Array.isArray(item.bowlExtras)) {
+          fail('Ungültige Bowl-Extras für: ' + item.name);
+        }
+        const seenBe = new Set();
+        const cleanBe = [];
+        let beTotal = 0;
+        for (const nm of item.bowlExtras) {
+          if (typeof nm !== 'string' || seenBe.has(nm)) continue;
+          let price = null;
+          if (BOWL_EXTRA_350.includes(nm)) price = 3.50;
+          else if (BOWL_EXTRA_100.includes(nm)) price = 1.00;
+          if (price === null) {
+            fail('Ungültiges Bowl-Extra für: ' + item.name);
+          }
+          seenBe.add(nm);
+          cleanBe.push(nm);
+          item.extras.push({ name: nm, price });
+          beTotal = parseFloat((beTotal + price).toFixed(2));
+        }
+        realPrice = parseFloat((realPrice + beTotal).toFixed(2));
+        item.bowlExtras = cleanBe;
+      } else {
+        delete item.bowlExtras;
+      }
       if (item.sauces && item.sauces.length) {
         if (product.catslug !== 'bowls') {
           fail('Ungültige Saucen für: ' + item.name);
@@ -222,6 +254,7 @@ async function priceItems(parsedItems) {
         delete item.sauce;
       }
       delete item.sauces;
+      delete item.bowlExtras;
       // Schoko-Box Dessert: genau 2 Pflicht (inklusive), nur Dessert
       if (item.chocos && item.chocos.length) {
         if (product.catslug !== 'dessert') {

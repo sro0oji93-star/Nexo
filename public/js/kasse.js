@@ -29,6 +29,7 @@
     if (it.menue && it.menue.drink === true) parts.push('Menü');
     if (it.sauce) parts.push('Sauce: ' + it.sauce);
     if (it.sauces) parts.push('Saucen: ' + it.sauces.join(', '));
+    if (it.bowlExtras) parts.push('Extras: ' + it.bowlExtras.join(', '));
     if (it.chocos) parts.push(it.chocos.join(' + '));
     if (it.deal) parts.push('Deal');
     if (it.box) parts.push('Box');
@@ -126,6 +127,16 @@
         for (var bi = 0; bi < bcs.length; bi++) bowlSauces.push(bcs[bi].getAttribute('data-bowl-sauce'));
       }
       if (bowlSauces.length > 1) unit += BOWL_SAUCE_PRICE * (bowlSauces.length - 1);
+      var bowlExtras = [];
+      var beBox = q('[data-bowlextras-for="' + id + '"]');
+      if (beBox) {
+        var becs = beBox.querySelectorAll('input[type="checkbox"]:checked');
+        for (var be = 0; be < becs.length; be++) {
+          var benm = becs[be].getAttribute('data-bowl-extra');
+          var bepr = parseFloat(becs[be].getAttribute('data-bowl-price'));
+          if (benm && !isNaN(bepr)) { bowlExtras.push(benm); unit += bepr; }
+        }
+      }
       unit = parseFloat(unit.toFixed(2));
       var chocoSel = [];
       var chBox = q('[data-chocobox-for="' + id + '"]');
@@ -134,7 +145,7 @@
         for (var cj = 0; cj < ccs.length; cj++) chocoSel.push(ccs[cj].getAttribute('data-choco'));
         if (chocoSel.length !== 2) { toast('Bitte 2 Schoko-Sorten wählen'); return; }
       }
-      pushItem({ id: id, name: name, price: unit, size: size, extras: extras, pickupOnly: pickupOnly, menue: null, sauce: null, sauces: bowlSauces.length ? bowlSauces : null, box: null, chocos: chocoSel.length ? chocoSel : null, deal: null, pasta: null, note: '' });
+      pushItem({ id: id, name: name, price: unit, size: size, extras: extras, pickupOnly: pickupOnly, menue: null, sauce: null, sauces: bowlSauces.length ? bowlSauces : null, bowlExtras: bowlExtras.length ? bowlExtras : null, box: null, chocos: chocoSel.length ? chocoSel : null, deal: null, pasta: null, note: '' });
     } else if (btn.getAttribute('data-has-menue')) {
       var drink = scope.querySelector('.menue-box input[type="radio"]:checked');
       if (drink) {

@@ -10,7 +10,7 @@ var Cart = (function() {
   // Bowls-Saucen: 1× inklusive, jede weitere +0,80 €
   var BOWL_SAUCE_PRICE = 0.80;
 
-  function makeKey(id, size, extras, menue, sauce, sauces, box, chocos, deal, pasta) {
+  function makeKey(id, size, extras, menue, sauce, sauces, box, chocos, deal, pasta, bowlExtras) {
     var base = size && size.label ? id + '-' + size.label : String(id);
     if (extras && extras.length) {
       var names = extras.map(function(e) { return e.name; }).sort();
@@ -19,6 +19,7 @@ var Cart = (function() {
     if (menue && menue.drink) base += '|m:' + menue.drink;
     if (sauce) base += '|s:' + sauce;
     if (sauces && sauces.length) base += '|b:' + sauces.slice().sort().join('+');
+    if (bowlExtras && bowlExtras.length) base += '|be:' + bowlExtras.slice().sort().join('+');
     if (box) base += '|box:' + stableBoxKey(box);
     if (chocos && chocos.length) base += '|c:' + chocos.slice().sort().join('+');
     if (deal && deal.choices) base += '|deal:' + stableDealKey(deal);
@@ -129,11 +130,12 @@ var Cart = (function() {
         if (!i.menue || !i.menue.drink) delete i.menue;
         if (typeof i.sauce !== 'string' || !i.sauce) delete i.sauce;
         if (!Array.isArray(i.sauces)) delete i.sauces;
+        if (!Array.isArray(i.bowlExtras)) delete i.bowlExtras;
         if (!i.box || typeof i.box !== 'object') delete i.box;
         if (!Array.isArray(i.chocos)) delete i.chocos;
         if (!i.deal || typeof i.deal !== 'object' || !i.deal.choices) delete i.deal;
         if (!i.pasta || typeof i.pasta !== 'object' || !i.pasta.type) delete i.pasta;
-        i._key = makeKey(i.id, i.size, i.extras, i.menue, i.sauce, i.sauces, i.box, i.chocos, i.deal, i.pasta);
+        i._key = makeKey(i.id, i.size, i.extras, i.menue, i.sauce, i.sauces, i.box, i.chocos, i.deal, i.pasta, i.bowlExtras);
       });
       var disc = localStorage.getItem('feinDiscount');
       if (disc) discount = JSON.parse(disc);
@@ -162,23 +164,24 @@ var Cart = (function() {
     return items.some(function(i) { return !!i.pickupOnly; });
   }
 
-  function addItem(id, name, price, qty, size, extras, pickupOnly, menue, sauce, sauces, box, chocos, deal, pasta) {
+  function addItem(id, name, price, qty, size, extras, pickupOnly, menue, sauce, sauces, box, chocos, deal, pasta, bowlExtras) {
     qty = qty || 1;
     extras = extras || [];
     if (!menue || !menue.drink) menue = null;
     if (typeof sauce !== 'string' || !sauce) sauce = null;
     if (!Array.isArray(sauces) || !sauces.length) sauces = null;
+    if (!Array.isArray(bowlExtras) || !bowlExtras.length) bowlExtras = null;
     if (!box || typeof box !== 'object') box = null;
     if (!Array.isArray(chocos) || !chocos.length) chocos = null;
     if (!deal || typeof deal !== 'object' || !deal.choices) deal = null;
     if (!pasta || typeof pasta !== 'object' || !pasta.type) pasta = null;
-    var key = makeKey(id, size, extras, menue, sauce, sauces, box, chocos, deal, pasta);
+    var key = makeKey(id, size, extras, menue, sauce, sauces, box, chocos, deal, pasta, bowlExtras);
     var existing = items.find(function(i) { return i._key === key; });
     if (existing) {
       existing.qty += qty;
       if (pickupOnly) existing.pickupOnly = true;
     } else {
-      items.push({ _key: key, id: id, name: name, price: parseFloat(price), qty: qty, size: size || null, extras: extras, pickupOnly: !!pickupOnly, menue: menue, sauce: sauce, sauces: sauces, box: box, chocos: chocos, deal: deal, pasta: pasta });
+      items.push({ _key: key, id: id, name: name, price: parseFloat(price), qty: qty, size: size || null, extras: extras, pickupOnly: !!pickupOnly, menue: menue, sauce: sauce, sauces: sauces, box: box, chocos: chocos, deal: deal, pasta: pasta, bowlExtras: bowlExtras });
     }
     save();
     renderCartBadge();
@@ -552,6 +555,12 @@ var Cart = (function() {
       var bn = bwBox.querySelectorAll('input[type="checkbox"]:checked').length;
       if (bn > 1) total += BOWL_SAUCE_PRICE * (bn - 1);
     }
+    var beBox = block.querySelector('[data-bowlextras-for]');
+    if (beBox) {
+      beBox.querySelectorAll('input[type="checkbox"]:checked').forEach(function(cb) {
+        total += parseFloat(cb.getAttribute('data-bowl-price')) || 0;
+      });
+    }
     var snBox = block.querySelector('.snacks-menue input.menue-check');
     if (snBox && snBox.checked) total += MENUE_PRICE;
     return parseFloat(total.toFixed(2));
@@ -576,7 +585,7 @@ var Cart = (function() {
     document.addEventListener('change', function(e) {
       var t = e.target;
       if (!t || !t.matches) return;
-      if (t.matches('.size-picker input[type="radio"], .size-picker-detail input[type="radio"], [data-extras-for] input[type="checkbox"], [data-bowlsauces-for] input[type="checkbox"], .snacks-menue input')) {
+      if (t.matches('.size-picker input[type="radio"], .size-picker-detail input[type="radio"], [data-extras-for] input[type="checkbox"], [data-bowlsauces-for] input[type="checkbox"], [data-bowlextras-for] input[type="checkbox"], .snacks-menue input')) {
         var block = t.closest('.mad-spec-info') || t.closest('.content-element-2');
         // pizza-extras.js schreibt data-extra-price erst danach – daher deferred lesen
         setTimeout(function() { refreshLiveBlock(block); }, 0);
@@ -629,6 +638,17 @@ var Cart = (function() {
           for (var bi = 0; bi < bchecked.length; bi++) bowlSauces.push(bchecked[bi].getAttribute('data-bowl-sauce'));
         }
         if (bowlSauces.length > 1) unit += BOWL_SAUCE_PRICE * (bowlSauces.length - 1);
+        // Bowls-Extras: Festpreise je Auswahl (Server prüft erneut – hier nur Anzeige)
+        var bowlExtras = [];
+        var bowlExBox = document.querySelector('[data-bowlextras-for="' + id + '"]');
+        if (bowlExBox) {
+          var bechecked = bowlExBox.querySelectorAll('input[type="checkbox"]:checked');
+          for (var be = 0; be < bechecked.length; be++) {
+            var benm = bechecked[be].getAttribute('data-bowl-extra');
+            var bepr = parseFloat(bechecked[be].getAttribute('data-bowl-price'));
+            if (benm && !isNaN(bepr)) { bowlExtras.push(benm); unit += bepr; }
+          }
+        }
         unit = parseFloat(unit.toFixed(2));
         // Schoko-Box Dessert: genau 2 Pflicht (inklusive)
         var chocoSel = [];
@@ -637,7 +657,7 @@ var Cart = (function() {
           chocoBox.querySelectorAll('input[type="checkbox"]:checked').forEach(function(c) { chocoSel.push(c.getAttribute('data-choco')); });
           if (chocoSel.length !== 2) { showToast('Bitte 2 Schoko-Sorten wählen'); return; }
         }
-        addItem(id, name, unit, qty, size, extras, pickupOnly, null, null, bowlSauces.length ? bowlSauces : null, null, chocoSel.length ? chocoSel : null);
+        addItem(id, name, unit, qty, size, extras, pickupOnly, null, null, bowlSauces.length ? bowlSauces : null, null, chocoSel.length ? chocoSel : null, null, null, bowlExtras.length ? bowlExtras : null);
       } else if (hasMenue) {
         // Optionales Menü: nur wenn ein Softdrink gewählt wurde, sonst Grundpreis
         var scope = btn.closest('.mad-spec-info') || btn.closest('.content-element-2') || document;
@@ -892,6 +912,7 @@ var Cart = (function() {
       if (item.menue && item.menue.drink) nameHtml += '<br><small style="color:#9c7c1a">+ Menü mit ' + escapeHtml(item.menue.drink) + '</small>';
       if (item.sauce) nameHtml += '<br><small style="color:#9c7c1a">+ Sauce: ' + escapeHtml(item.sauce) + '</small>';
       if (item.sauces && item.sauces.length) nameHtml += '<br><small style="color:#9c7c1a">+ Saucen: ' + escapeHtml(item.sauces.join(', ')) + '</small>';
+      if (item.bowlExtras && item.bowlExtras.length) nameHtml += '<br><small style="color:#9c7c1a">+ Extras: ' + escapeHtml(item.bowlExtras.join(', ')) + '</small>';
       if (item.chocos && item.chocos.length) nameHtml += '<br><small style="color:#9c7c1a">+ Schoko: ' + escapeHtml(item.chocos.join(', ')) + '</small>';
       // Box-Details: mobil volle Zeile mit unzerbrechlichen Stücken (gold, keine Badges),
       // Desktop klassisch in der Info-Spalte.
@@ -990,6 +1011,7 @@ var Cart = (function() {
       if (item.menue && item.menue.drink) nameHtml += ' + Menü mit ' + escapeHtml(item.menue.drink);
       if (item.sauce) nameHtml += ' + Sauce: ' + escapeHtml(item.sauce);
       if (item.sauces && item.sauces.length) nameHtml += ' + Saucen: ' + escapeHtml(item.sauces.join(', '));
+      if (item.bowlExtras && item.bowlExtras.length) nameHtml += ' + Extras: ' + escapeHtml(item.bowlExtras.join(', '));
       if (item.chocos && item.chocos.length) nameHtml += ' + Schoko: ' + escapeHtml(item.chocos.join(', '));
       if (item.box) nameHtml += ' (' + escapeHtml(boxLines(item.box).join(' · ')) + ')';
       if (item.deal) nameHtml += ' (' + escapeHtml(dealLines(item.deal).join(' · ')) + ')';
@@ -1144,7 +1166,7 @@ document.addEventListener('DOMContentLoaded', function() {
         payment: formData.get('payment'),
         orderType: Cart.getOrderType(),
         wish_time: wishTime,
-        items: items.map(function(i) { return { id: i.id, name: i.name, price: i.price, qty: i.qty, size: i.size, extras: (i.extras || []).map(function(e) { return e.name; }), note: i.note || '', menue: i.menue || null, sauce: i.sauce || null, sauces: (i.sauces && i.sauces.length) ? i.sauces : null, box: i.box || null, chocos: (i.chocos && i.chocos.length) ? i.chocos : null, deal: i.deal || null, pasta: i.pasta || null }; }),
+        items: items.map(function(i) { return { id: i.id, name: i.name, price: i.price, qty: i.qty, size: i.size, extras: (i.extras || []).map(function(e) { return e.name; }), note: i.note || '', menue: i.menue || null, sauce: i.sauce || null, sauces: (i.sauces && i.sauces.length) ? i.sauces : null, bowlExtras: (i.bowlExtras && i.bowlExtras.length) ? i.bowlExtras : null, box: i.box || null, chocos: (i.chocos && i.chocos.length) ? i.chocos : null, deal: i.deal || null, pasta: i.pasta || null }; }),
         subtotal: Cart.getSubtotal(),
         delivery_fee: Cart.getDeliveryFee(Cart.getSubtotal()),
         discount: Cart.getDiscount().value,
