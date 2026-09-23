@@ -112,6 +112,9 @@
         <% } else if (p.slug === 'nexo-mittag-deal') { %>
         <%- include('../partials/deal-choices', { productId: p.id, dealLists: typeof dealLists !== 'undefined' ? dealLists : null }) %>
         <button type="button" class="kasse-add" data-id="<%= p.id %>" data-name="<%= p.name %>" data-price="<%= p.price %>" data-has-deal="1" data-deal-slug="nexo-mittag-deal">HINZUFÜGEN</button>
+        <% } else if (p.slug === 'party-pizza-aktion' || p.slug === 'familienpizza-aktion') { %>
+        <%- include('../partials/deal-day-choices', { productId: p.id, dealSlug: p.slug, dealLists: typeof dealLists !== 'undefined' ? dealLists : null }) %>
+        <button type="button" class="kasse-add" data-id="<%= p.id %>" data-name="<%= p.name %>" data-price="<%= p.price %>" data-has-deal="1" data-deal-slug="<%= p.slug %>" data-deal-day="1">HINZUFÜGEN</button>
         <% } else if (p.boxGroups) { %>
         <%- include('../partials/box-choices', { productId: p.id, boxSlug: p.slug, boxGroups: p.boxGroups }) %>
         <button type="button" class="kasse-add" data-id="<%= p.id %>" data-name="<%= p.name %>" data-price="<%= p.price %>" data-has-box="1" data-box-slug="<%= p.slug %>">HINZUFÜGEN</button>

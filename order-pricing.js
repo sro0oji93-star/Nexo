@@ -5,7 +5,7 @@
 // Aufrufer übergeben bereits geparste Items; das zurückgegebene items-Array ist
 // dasselbe (in-place bereinigt: echte Preise, qty clamp, Server-Extras).
 const db = require('./db');
-const { validateBox, BOX_SLUGS, validateDeal, DEAL_SLUG, validatePasta, PASTA_WUNSCH_SLUG } = require('./boxen');
+const { validateBox, BOX_SLUGS, validateDeal, DEAL_SLUG, validateDayDeal, DAY_DEALS, validatePasta, PASTA_WUNSCH_SLUG } = require('./boxen');
 const { validateExtras, TOPPINGS } = require('./extras');
 
 // Tageszeit-Angebote: Bestellfenster in Europe/Berlin (Server auf Render läuft in UTC!)
@@ -26,6 +26,20 @@ const TIME_DEALS = {
   'deal-night-abholung': { from: 21 * 60, to: 24 * 60, message: 'Der Night Deal ist erst ab 21:00 Uhr bestellbar (nur Abholer).' }
 };
 
+// Wochentag in Europe/Berlin als ISO-Nummer (1=Mo … 7=So). Server auf Render läuft in UTC!
+function berlinWeekday() {
+  try {
+    const s = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Berlin', weekday: 'short' }).format(new Date());
+    const map = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 };
+    if (map[s]) return map[s];
+  } catch (e) { /* Fallback unten */ }
+  const d = new Date().getDay();
+  return d === 0 ? 7 : d;
+}
+
+// 1,0-l-Anteil im Tages-Deal (Flasche à 4,00 € laut Karte) unterliegt 19 % MwSt.
+const DAYDEAL_BEVERAGE_19 = 4.00;
+
 // Wert des im Menü/Deal enthaltenen Softdrinks (0,33 l = 3,50 €). Dieser Anteil
 // unterliegt 19 % MwSt (Getränk), der Rest der Speisen 7 %.
 const BEVERAGE_19 = 3.50;
@@ -38,6 +52,7 @@ async function priceItems(parsedItems) {
   let calculatedSubtotal = 0;
   let gross7 = 0, gross19 = 0; // MwSt-Bruttobasen je Steuersatz
   const nowBerlinMin = berlinMinutes();
+  const nowBerlinDay = berlinWeekday();
   let hasPickupOnlyDeal = false;
   // Saucenliste für Gratis-Sauce (Rings, Pizza Brötchen) – einmal laden
   const sauceCatRow = await db.get("SELECT id FROM categories WHERE slug = 'saucen-dips'");
@@ -85,6 +100,11 @@ async function priceItems(parsedItems) {
     if (rule && (nowBerlinMin < rule.from || nowBerlinMin >= rule.to)) {
       fail(rule.message);
     }
+    // Tages-Deals: nur an den Kartentagen bestellbar (Mo/Di bzw. Mi/Do, Europe/Berlin)
+    const dayRule = DAY_DEALS[product.slug];
+    if (dayRule && dayRule.days.indexOf(nowBerlinDay) === -1) {
+      fail(dayRule.message);
+    }
     let realPrice;
     // Getränkeanteil im Menü/Deal (19 % MwSt) – wird pro Position gesetzt
     let beveragePart = 0;
@@ -126,6 +146,28 @@ async function priceItems(parsedItems) {
       delete item.menue;
       delete item.sauce;
       delete item.sauces;
+      delete item.chocos;
+    } else if (item.deal && item.deal.slug && DAY_DEALS[item.deal.slug]) {
+      // Tages-Deals (Party/Familie): Konfiguration serverseitig prüfen, Preis fix.
+      // Dip-Auswahl kommt aus saucen-dips (validSauces), Wochentag oben geprüft.
+      const found = await db.get('SELECT id, price FROM products WHERE id = $1 AND slug = $2', [item.id, item.deal.slug]);
+      if (!found) {
+        fail('Produkt nicht gefunden: ' + item.name);
+      }
+      const check = validateDayDeal(item.deal.slug, item.deal.choices, { dips: validSauces });
+      if (!check.ok) {
+        fail(check.error + ' (' + item.name + ')');
+      }
+      realPrice = parseFloat(found.price);
+      item.extras = check.lines;
+      // Deal enthält ein Getränk 1,0 l -> 19 %-Anteil abtrennen
+      beveragePart = Math.min(DAYDEAL_BEVERAGE_19, realPrice);
+      delete item.deal;
+      delete item.size;
+      delete item.menue;
+      delete item.sauce;
+      delete item.sauces;
+      delete item.bowlExtras;
       delete item.chocos;
     } else if (item.deal) {
       fail('Ungültiger Deal für: ' + item.name);
@@ -315,7 +357,7 @@ function splitVat(gross7, gross19, discount) {  const grossAll = gross7 + gross1
   return { vat7, vat19 };
 }
 
-module.exports = { priceItems, splitVat, validateDiscountCode, useDiscountCode, berlinMinutes, TIME_DEALS, BEVERAGE_19 };
+module.exports = { priceItems, splitVat, validateDiscountCode, useDiscountCode, berlinMinutes, berlinWeekday, TIME_DEALS, BEVERAGE_19 };
 
 // Rabattcode-Prüfung nach EXAKT den Online-Regeln (aktiv, Ablauf, Limit, Mindestwert).
 // Gibt { validCode, discount } zurück – computed wie bisher (prozent vom Subtotal

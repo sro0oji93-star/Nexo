@@ -3,7 +3,7 @@ const router = express.Router();
 const db = require('../db');
 const { TOPPINGS, BELAG_LABELS, FISH_TOPPINGS, EXTRA_PRICES, KAESERAND } = require('../extras');
 const { swapProductImages } = require('../image');
-const { resolveGroups, dealToppingsNoFish, DEAL_BASIS, DEAL_DRINKS, DEAL_MAX_TOPPINGS } = require('../boxen');
+const { resolveGroups, dealToppingsNoFish, DEAL_BASIS, DEAL_DRINKS, DEAL_MAX_TOPPINGS, DAY_DEALS, DAYDEAL_DRINKS_1L } = require('../boxen');
 const pizzaExtras = { toppings: TOPPINGS, labels: BELAG_LABELS, fish: FISH_TOPPINGS, prices: EXTRA_PRICES, kaeserand: KAESERAND };
 
 // Speisekarte immer frisch laden (kein Browser-Cache), damit Ausverkauft sofort wirkt
@@ -32,11 +32,13 @@ function attachBoxGroups(products, lists) {
 }
 
 // Listen für Mittag-Deal-Konfiguration (Toppings ohne Fisch + Croque-Sorten aus DB)
+// sowie Tages-Deals (Dips aus saucen-dips, Getränke 1,0 l, Tages-Definitionen).
 async function loadDealLists() {
-  const croques = (await db.all(
-    "SELECT name FROM products WHERE category_id = (SELECT id FROM categories WHERE slug = 'croque') AND is_available = 1 ORDER BY sort_order"
-  )).map(r => r.name);
-  return { basis: DEAL_BASIS, toppings: dealToppingsNoFish(), croques, drinks: DEAL_DRINKS, maxToppings: DEAL_MAX_TOPPINGS };
+  const names = (slug) => db.all(
+    "SELECT name FROM products WHERE category_id = (SELECT id FROM categories WHERE slug = $1) AND is_available = 1 ORDER BY sort_order", [slug]
+  ).then(rows => rows.map(r => r.name));
+  const [croques, dips] = await Promise.all([names('croque'), names('saucen-dips')]);
+  return { basis: DEAL_BASIS, toppings: dealToppingsNoFish(), toppingsAll: TOPPINGS, croques, drinks: DEAL_DRINKS, maxToppings: DEAL_MAX_TOPPINGS, dips, drinks1L: DAYDEAL_DRINKS_1L, dayDeals: DAY_DEALS };
 }
 
 router.get('/', async (req, res) => {

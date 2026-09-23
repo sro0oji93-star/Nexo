@@ -111,6 +111,24 @@
                 </div>
               </div>
             </div>
+            <% } else if (product.slug === 'party-pizza-aktion' || product.slug === 'familienpizza-aktion') { %>
+            <% var _dd = product.slug === 'party-pizza-aktion' ? { days: '1,2', hint: 'Nur Montag & Dienstag bestellbar' } : { days: '3,4', hint: 'Nur Mittwoch & Donnerstag bestellbar' }; %>
+            <div class="form-control content-element-6">
+              <div class="content-element-2">
+                <%- include('partials/deal-day-choices', { productId: product.id, dealSlug: product.slug, dealLists: typeof dealLists !== 'undefined' ? dealLists : null }) %>
+                <p class="mad-text-color-2 content-element">Anzahl:</p>
+                <div class="btn-set big-btns">
+                  <div class="quantity size-2">
+                    <input type="text" id="qtyInput" value="1" readonly>
+                    <button type="button" class="qty-plus"><i class="material-icons">add</i></button>
+                    <button type="button" class="qty-minus"><i class="material-icons">remove</i></button>
+                  </div>
+                  <button class="btn btn-big btn-style-3 add-to-cart" data-id="<%= product.id %>" data-name="<%= product.name %>" data-price="<%= product.price %>" data-has-deal="1" data-deal-slug="<%= product.slug %>" data-deal-day="1" data-deal-days="<%= _dd.days %>" data-deal-hint="<%= _dd.hint %>"
+                    <i class="material-icons-outlined">shopping_cart</i><span>In den Warenkorb</span>
+                  </button>
+                </div>
+              </div>
+            </div>
             <% } else if (product.boxGroups) { %>
             <div class="form-control content-element-6">
               <div class="content-element-2">
@@ -156,9 +174,14 @@
                     <button type="button" class="qty-minus"><i class="material-icons">remove</i></button>
                   </div>
                   <% var detailDeal = null; if (product.slug === 'nexo-mittag-deal') { detailDeal = { from: 720, to: 900, hint: 'Nur 12:00–15:00 Uhr bestellbar' }; } else if (product.slug === 'nexo-night-deal') { detailDeal = { from: 1260, to: 1440, hint: 'Ab 21:00 Uhr bestellbar · nur Abholer' }; } %>
+                  <% if (product.slug === 'night-deal-abholer') { %>
+                  <% var _tel = 'tel:' + String((typeof settings !== 'undefined' && settings.phone) ? settings.phone : '041314006817').replace(/[^+\d]/g, ''); %>
+                  <a href="<%= _tel %>" class="btn btn-big btn-style-3" style="display:inline-block">📞 Jetzt anrufen</a>
+                  <% } else { %>
                   <button class="btn btn-big btn-style-3 add-to-cart" data-id="<%= product.id %>" data-name="<%= product.name %>" data-price="<%= product.price %>"<%- detailDeal ? ' data-deal-from="' + detailDeal.from + '" data-deal-to="' + detailDeal.to + '" data-deal-hint="' + detailDeal.hint + '"' : '' %><%- product.slug === 'nexo-night-deal' ? ' data-pickup-only="1"' : '' %>>
                     <i class="material-icons-outlined">shopping_cart</i><span>In den Warenkorb</span>
                   </button>
+                  <% } %>
                 </div>
               </div>
             </div>

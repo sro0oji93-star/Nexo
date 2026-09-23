@@ -289,17 +289,29 @@ var Cart = (function() {
     }
   }
 
-  // Tageszeit-Angebote: Button außerhalb des Bestellfensters deaktivieren + Hinweis zeigen
+  // Tageszeit-/Wochentag-Angebote: Button außerhalb des Bestellfensters deaktivieren + Hinweis zeigen
   // (Serverseitig wird beim Checkout erneut streng geprüft)
   function applyDealWindows() {
     var now = new Date();
     var mins = now.getHours() * 60 + now.getMinutes();
-    var btns = document.querySelectorAll('.add-to-cart[data-deal-from]');
+    var isoDay = (now.getDay() + 6) % 7 + 1; // 1=Mo … 7=So
+    var btns = document.querySelectorAll('.add-to-cart[data-deal-from], .add-to-cart[data-deal-days]');
     for (var bi = 0; bi < btns.length; bi++) {
       (function(btn) {
-        var from = parseInt(String(btn.getAttribute('data-deal-from')).replace(/[^\d]/g, ''), 10);
-        var to = parseInt(String(btn.getAttribute('data-deal-to')).replace(/[^\d]/g, ''), 10);
-        if (isFinite(from) && isFinite(to) && mins >= from && mins < to) return;
+        var ok = true;
+        var fromRaw = btn.getAttribute('data-deal-from');
+        var toRaw = btn.getAttribute('data-deal-to');
+        if (fromRaw !== null && toRaw !== null) {
+          var from = parseInt(String(fromRaw).replace(/[^\d]/g, ''), 10);
+          var to = parseInt(String(toRaw).replace(/[^\d]/g, ''), 10);
+          if (isFinite(from) && isFinite(to) && (mins < from || mins >= to)) ok = false;
+        }
+        var daysRaw = btn.getAttribute('data-deal-days');
+        if (ok && daysRaw) {
+          var days = String(daysRaw).split(',').map(function(x) { return parseInt(x, 10); });
+          if (days.indexOf(isoDay) === -1) ok = false;
+        }
+        if (ok) return;
         btn.disabled = true;
         btn.style.opacity = '0.5';
         btn.style.cursor = 'not-allowed';
@@ -712,15 +724,25 @@ var Cart = (function() {
         var cunit = parseFloat(btn.getAttribute('data-price'));
         addItem(id, name, cunit, qty, null, [], pickupOnly, null, null, null, null, csel);
       } else if (btn.getAttribute('data-has-deal')) {
-        // Mittag Deal: Basis + (Beläge | Croque) + Getränk aus .deal-choices lesen
+        // Deal-Konfiguration aus .deal-choices lesen (Mittag) bzw. .deal-day-choices (Tages-Deals)
         var dscope = btn.closest('.mad-spec-info') || btn.closest('.content-element-2') || document;
-        var dbox = dscope ? dscope.querySelector('.deal-choices[data-deal-for="' + id + '"]') : null;
+        var dbox = dscope ? (dscope.querySelector('.deal-choices[data-deal-for="' + id + '"]') || dscope.querySelector('.deal-day-choices[data-deal-for="' + id + '"]')) : null;
         if (!dbox) { showToast('Bitte Deal konfigurieren'); return; }
         var dealSlug = btn.getAttribute('data-deal-slug') || 'nexo-mittag-deal';
         var bEl = dbox.querySelector('input[data-deal-basis]:checked');
-        if (!bEl) { showToast('Bitte Basis wählen (Pizza oder Baguette)'); return; }
-        var isPizza = bEl.value.indexOf('Pizza') === 0;
+        if (!bEl) { showToast('Bitte Basis wählen'); return; }
+        var isDayDeal = btn.getAttribute('data-deal-day') === '1';
         var deal = { slug: dealSlug, choices: { basis: bEl.value } };
+        if (isDayDeal) {
+          var tops = [];
+          dbox.querySelectorAll('input[data-deal-topping]:checked').forEach(function(c) { tops.push(c.value); });
+          if (tops.length > 3) { showToast('Maximal 3 Beläge'); return; }
+          deal.choices.belaege = tops;
+          var dip = dbox.querySelector('input[data-deal-dip]:checked');
+          if (!dip) { showToast('Bitte Dip wählen'); return; }
+          deal.choices.dip = dip.value;
+        } else {
+        var isPizza = bEl.value.indexOf('Pizza') === 0;
         if (isPizza) {
           var tops = [];
           dbox.querySelectorAll('input[data-deal-topping]:checked').forEach(function(c) { tops.push(c.value); });
@@ -731,8 +753,9 @@ var Cart = (function() {
           if (!cr) { showToast('Bitte Croque-Sorte wählen'); return; }
           deal.choices.croque = cr.value;
         }
+        }
         var dr = dbox.querySelector('input[data-deal-drink]:checked');
-        if (!dr) { showToast('Bitte Getränk 0,33 l wählen'); return; }
+        if (!dr) { showToast(isDayDeal ? 'Bitte Getränk 1,0 l wählen' : 'Bitte Getränk 0,33 l wählen'); return; }
         deal.choices.drink = dr.value;
         var dunit = parseFloat(btn.getAttribute('data-price'));
         addItem(id, name, dunit, qty, null, [], pickupOnly, null, null, null, null, null, deal);
@@ -818,7 +841,7 @@ var Cart = (function() {
     return amount.toFixed(2).replace('.', ',') + ' €';
   }
 
-  var DEAL_KEY_LABELS = { basis: 'Basis', belaege: 'Beläge', croque: 'Croque', drink: 'Getränk 0,33 l' };
+  var DEAL_KEY_LABELS = { basis: 'Basis', belaege: 'Beläge', croque: 'Croque', drink: 'Getränk', dip: 'Dip' };
   function pastaLines(pasta) {
     if (!pasta || !pasta.type) return [];
     var out = ['Nudeln: ' + pasta.type];
@@ -829,7 +852,9 @@ var Cart = (function() {
     if (!deal || !deal.choices) return [];
     return Object.keys(deal.choices).sort().map(function(k) {
       var v = deal.choices[k];
-      var label = DEAL_KEY_LABELS[k] || k;
+      var label = k === 'drink'
+        ? (deal.slug === 'nexo-mittag-deal' ? 'Getränk 0,33 l' : 'Getränk 1,0 l')
+        : (DEAL_KEY_LABELS[k] || k);
       return label + ': ' + (Array.isArray(v) ? (v.join(', ') || '–') : String(v));
     });
   }

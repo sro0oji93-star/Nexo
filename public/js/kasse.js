@@ -186,13 +186,22 @@
       if (csel.length !== 2) { toast('Bitte 2 Schoko-Sorten wählen'); return; }
       pushItem({ id: id, name: name, price: parseFloat(btn.getAttribute('data-price')), size: null, extras: [], pickupOnly: pickupOnly, menue: null, sauce: null, sauces: null, box: null, chocos: csel, deal: null, pasta: null, note: '' });
     } else if (btn.getAttribute('data-has-deal')) {
-      var dbox = scope.querySelector('.deal-choices[data-deal-for="' + id + '"]');
+      var dbox = scope.querySelector('.deal-choices[data-deal-for="' + id + '"]') || scope.querySelector('.deal-day-choices[data-deal-for="' + id + '"]');
       if (!dbox) { toast('Bitte Deal konfigurieren'); return; }
       var dealSlug = btn.getAttribute('data-deal-slug') || 'nexo-mittag-deal';
       var bEl = dbox.querySelector('input[data-deal-basis]:checked');
       if (!bEl) { toast('Bitte Basis wählen'); return; }
       var deal = { slug: dealSlug, choices: { basis: bEl.value } };
-      if (bEl.value.indexOf('Pizza') === 0) {
+      if (btn.getAttribute('data-deal-day') === '1') {
+        var tops = [];
+        var tcs = dbox.querySelectorAll('input[data-deal-topping]:checked');
+        for (var ti = 0; ti < tcs.length; ti++) tops.push(tcs[ti].value);
+        if (tops.length > 3) { toast('Maximal 3 Beläge'); return; }
+        deal.choices.belaege = tops;
+        var dip = dbox.querySelector('input[data-deal-dip]:checked');
+        if (!dip) { toast('Bitte Dip wählen'); return; }
+        deal.choices.dip = dip.value;
+      } else if (bEl.value.indexOf('Pizza') === 0) {
         var tops = [];
         var tcs = dbox.querySelectorAll('input[data-deal-topping]:checked');
         for (var ti = 0; ti < tcs.length; ti++) tops.push(tcs[ti].value);

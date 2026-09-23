@@ -1,0 +1,86 @@
+<% /* Tages-Deal-Konfiguration (Party/Familie) – Locals: productId, dealSlug, dealLists { dayDeals, toppings, dips, drinks1L }.
+      Feste Basis + bis zu 3 Beläge + 1 Dip + 1 Getränk 1,0 l. Attribute wie Mittag-Deal plus data-deal-dip. */ %>
+<% var _dd = (typeof dealLists !== 'undefined' && dealLists && dealLists.dayDeals && dealSlug) ? dealLists.dayDeals[dealSlug] : null; %>
+<% var _dt = (typeof dealLists !== 'undefined' && dealLists && (dealLists.toppingsAll || dealLists.toppings)) ? (dealLists.toppingsAll || dealLists.toppings) : []; %>
+<% var _ddips = (typeof dealLists !== 'undefined' && dealLists && dealLists.dips) ? dealLists.dips : []; %>
+<% var _ddrinks = (typeof dealLists !== 'undefined' && dealLists && dealLists.drinks1L) ? dealLists.drinks1L : []; %>
+<% if (_dd) { %>
+<div class="box-choices deal-choices deal-day-choices" data-deal-for="<%= productId %>" style="margin-top:10px;border:1px dashed #e5c8ce;border-radius:10px;padding:10px 12px;background:#fffdf7">
+  <div style="font-weight:700;font-size:13px;color:#232223">Basis: <%= _dd.basis %> <span style="font-weight:400;color:#7a7879;font-size:12px">– inklusive</span></div>
+  <input type="radio" name="deal_<%= productId %>_basis" value="<%= _dd.basis %>" data-deal-basis style="display:none" checked>
+  <details style="margin-top:8px">
+    <summary style="cursor:pointer;font-weight:700;font-size:13px;color:#232223">Beläge <span style="font-weight:400;color:#7a7879;font-size:12px">– bis zu 3 wählen, inklusive</span></summary>
+    <div style="margin-top:8px;display:flex;flex-direction:column;gap:2px;max-height:220px;overflow-y:auto;padding-right:4px">
+      <% _dt.forEach(function(t) { %>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:4px 6px;border-radius:8px;border:1.5px solid transparent">
+        <input type="checkbox" value="<%= t %>" data-deal-topping data-max="3" style="width:16px;height:16px;accent-color:#16a34a">
+        <span style="flex:1;font-weight:600;color:#232223"><%= t %></span>
+        <span class="sauce-tick" style="display:none;color:#16a34a;font-weight:900;font-size:14px">✓</span>
+      </label>
+      <% }); %>
+    </div>
+  </details>
+  <details style="margin-top:8px">
+    <summary style="cursor:pointer;font-weight:700;font-size:13px;color:#232223">Dip <span class="deal-current" style="font-weight:400;color:#9c7c1a;font-size:12px"><%= _ddips[0] || '' %></span></summary>
+    <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px">
+      <% _ddips.forEach(function(dp, di) { %>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 14px;border:2px solid #3a3a41;border-radius:10px;font-size:13px;background:#fff;color:#232223">
+        <input type="radio" name="deal_<%= productId %>_dip" value="<%= dp %>" data-deal-dip style="display:none" <%= di === 0 ? 'checked' : '' %>>
+        <span style="font-weight:600;font-size:13px"><%= dp %></span>
+        <span class="sauce-tick" style="display:none;color:#16a34a;font-weight:900">✓</span>
+      </label>
+      <% }); %>
+    </div>
+  </details>
+  <details style="margin-top:8px">
+    <summary style="cursor:pointer;font-weight:700;font-size:13px;color:#232223">Getränk 1,0 l <span class="deal-current" style="font-weight:400;color:#9c7c1a;font-size:12px"><%= _ddrinks[0] || '' %></span></summary>
+    <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px">
+      <% _ddrinks.forEach(function(dr, di) { %>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 14px;border:2px solid #3a3a41;border-radius:10px;font-size:13px;background:#fff;color:#232223">
+        <input type="radio" name="deal_<%= productId %>_drink" value="<%= dr %>" data-deal-drink style="display:none" <%= di === 0 ? 'checked' : '' %>>
+        <span style="font-weight:600;font-size:13px"><%= dr %></span>
+        <span class="sauce-tick" style="display:none;color:#16a34a;font-weight:900">✓</span>
+      </label>
+      <% }); %>
+    </div>
+  </details>
+</div>
+<script>
+(function() {
+  var box = document.querySelector('.deal-day-choices[data-deal-for="<%= productId %>"]');
+  if (!box || box.dataset.dealInit) return;
+  box.dataset.dealInit = '1';
+  function paint() {
+    var dip = box.querySelector('input[data-deal-dip]:checked');
+    var drink = box.querySelector('input[data-deal-drink]:checked');
+    var boxes = box.querySelectorAll('details');
+    for (var i = 0; i < boxes.length; i++) {
+      var cur = boxes[i].querySelector('.deal-current');
+      if (!cur) continue;
+      var sel = boxes[i].querySelector('input:checked');
+      if (boxes[i].querySelector('[data-deal-topping]')) {
+        var n = box.querySelectorAll('input[data-deal-topping]:checked').length;
+        cur.textContent = n ? n + ' gewählt' : '';
+      } else {
+        cur.textContent = sel ? sel.value : 'bitte wählen';
+      }
+    }
+    box.querySelectorAll('label').forEach(function(l) {
+      var inp = l.querySelector('input');
+      var tick = l.querySelector('.sauce-tick');
+      if (!inp || !tick) return;
+      tick.style.display = inp.checked ? '' : 'none';
+    });
+  }
+  box.addEventListener('change', function(e) {
+    if (e.target && e.target.hasAttribute('data-deal-topping')) {
+      var max = parseInt(e.target.getAttribute('data-max')) || 3;
+      var checked = box.querySelectorAll('input[data-deal-topping]:checked');
+      if (checked.length > max) { e.target.checked = false; }
+    }
+    paint();
+  });
+  paint();
+})();
+</script>
+<% } %>

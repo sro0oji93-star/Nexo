@@ -13,6 +13,37 @@ function dealToppingsNoFish() {
   return TOPPINGS.filter(t => !fish.has(t));
 }
 
+// Tages-Deals (party-pizza-aktion, familienpizza-aktion): feste Basis + max. 3 Beläge
+// + 1 Dip + 1 Getränk 1,0 l, alles inklusive. Wochentage: ISO 1=Mo … 7=So.
+const DAY_DEALS = {
+  'party-pizza-aktion': { basis: 'Party Pizza 60 × 40 cm', maxToppings: 3, fishOk: true, days: [1, 2], hint: 'Nur Montag & Dienstag bestellbar', message: 'Die Party Pizza gibt es nur Montag & Dienstag.' },
+  'familienpizza-aktion': { basis: 'Familienpizza 40 cm', maxToppings: 3, fishOk: true, days: [3, 4], hint: 'Nur Mittwoch & Donnerstag bestellbar', message: 'Die Familienpizza gibt es nur Mittwoch & Donnerstag.' }
+};
+const DAYDEAL_DRINKS_1L = ['Coca-Cola', 'Coca-Cola Zero', 'Fanta', 'Sprite', 'Mezzo Mix'];
+
+// choices: { basis, belaege[], dip, drink }. lists: { dips[] } (DB-Namen saucen-dips).
+// Gibt { ok, error, lines } zurück. lines: [{ name, price: 0 }] für Küche/Bon.
+function validateDayDeal(slug, choices, lists) {
+  const def = DAY_DEALS[slug];
+  if (!def) return { ok: false, error: 'Unbekannter Deal' };
+  if (!choices || typeof choices !== 'object') return { ok: false, error: 'Bitte Deal konfigurieren' };
+  if (choices.basis !== def.basis) return { ok: false, error: 'Bitte Basis wählen' };
+  const allowed = def.fishOk ? TOPPINGS : dealToppingsNoFish();
+  const arr = Array.isArray(choices.belaege) ? [...new Set(choices.belaege)] : [];
+  if (arr.some(v => !allowed.includes(v))) return { ok: false, error: 'Ungültiger Belag' };
+  if (arr.length > def.maxToppings) return { ok: false, error: 'Maximal ' + def.maxToppings + ' Beläge' };
+  const dips = (lists && lists.dips) || [];
+  if (typeof choices.dip !== 'string' || !dips.includes(choices.dip)) return { ok: false, error: 'Bitte Dip wählen' };
+  if (typeof choices.drink !== 'string' || !DAYDEAL_DRINKS_1L.includes(choices.drink)) {
+    return { ok: false, error: 'Bitte Getränk 1,0 l wählen' };
+  }
+  const lines = [{ name: 'Basis: ' + def.basis, price: 0 }];
+  if (arr.length) lines.push({ name: 'Beläge: ' + arr.join(', '), price: 0 });
+  lines.push({ name: 'Dip: ' + choices.dip, price: 0 });
+  lines.push({ name: 'Getränk 1,0 l: ' + choices.drink, price: 0 });
+  return { ok: true, lines };
+}
+
 // choices: { basis, belaege[], croque, drink }. lists: { croques[] } (DB-Namen).
 // Gibt { ok, error, lines } zurück. lines: [{ name, price: 0 }] für Küche/Bon.
 function validateDeal(choices, lists) {
@@ -130,4 +161,4 @@ function validatePasta(pasta, needSauce) {
   return { ok: true, lines };
 }
 
-module.exports = { BOX_DEFS, BOX_SLUGS, BURGER_OPTS, resolveGroups, validateBox, DEAL_SLUG, DEAL_BASIS, DEAL_DRINKS, DEAL_MAX_TOPPINGS, dealToppingsNoFish, validateDeal, PASTA_TYPES, PASTA_SAUCES, PASTA_WUNSCH_SLUG, validatePasta };
+module.exports = { BOX_DEFS, BOX_SLUGS, BURGER_OPTS, resolveGroups, validateBox, DEAL_SLUG, DEAL_BASIS, DEAL_DRINKS, DEAL_MAX_TOPPINGS, dealToppingsNoFish, validateDeal, DAY_DEALS, DAYDEAL_DRINKS_1L, validateDayDeal, PASTA_TYPES, PASTA_SAUCES, PASTA_WUNSCH_SLUG, validatePasta };
