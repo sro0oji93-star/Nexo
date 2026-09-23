@@ -34,6 +34,10 @@
 <div class="section-header-row">
   <h2><i class="fas fa-cash-register"></i> Kasse</h2>
   <span class="badge">Theke · Bar · Abholung</span>
+  <span style="display:flex;gap:6px;align-items:center;flex:1;min-width:200px;max-width:420px;margin-inline-start:auto">
+    <input type="text" id="kasseSearch" placeholder="🔍 Name oder Nr. suchen…" autocomplete="off" style="flex:1;min-height:42px;font-size:15px;padding:8px 12px;border:2px solid #e8e4de;border-radius:10px">
+    <button type="button" id="kasseSearchClear" title="Suche löschen" style="min-height:42px;min-width:42px;font-size:16px;border-radius:10px;border:2px solid #e8e4de;background:#fff;cursor:pointer">×</button>
+  </span>
 </div>
 
 <% var dealWindows = {
@@ -193,5 +197,79 @@ document.querySelectorAll('.size-picker').forEach(function(picker) {
     });
   });
 });
+</script>
+<script>
+// Kasse-Suche (Name oder Nr.): filtert seitenweit, nur Anzeige – Logik unberührt.
+(function() {
+  var inp = document.getElementById('kasseSearch');
+  var clearBtn = document.getElementById('kasseSearchClear');
+  if (!inp) return;
+  var lastAuto = null;
+  var lastQ = '';
+  function activeCat() {
+    var c = document.querySelector('.kasse-cat.active');
+    return c ? c.getAttribute('data-cat') : null;
+  }
+  function resetView() {
+    var ac = activeCat();
+    document.querySelectorAll('.kasse-prod').forEach(function(b) { b.style.display = ''; });
+    document.querySelectorAll('.kasse-catpage').forEach(function(p) {
+      p.style.display = p.getAttribute('data-catpage') === ac ? '' : 'none';
+    });
+    document.querySelectorAll('.kasse-opts.open').forEach(function(o) { o.classList.remove('open'); });
+    document.querySelectorAll('.kasse-prod.selected').forEach(function(b) { b.classList.remove('selected'); });
+    lastAuto = null;
+    lastQ = '';
+  }
+  function apply() {
+    var q = String(inp.value || '').toLowerCase().trim();
+    if (!q) {
+      if (lastQ) resetView();
+      lastQ = '';
+      return;
+    }
+    lastQ = q;
+    var firstBtn = null, matchCount = 0;
+    document.querySelectorAll('.kasse-prod').forEach(function(b) {
+      var nmEl = b.querySelector('span');
+      var txt = String((nmEl ? nmEl.textContent : b.textContent) || '').toLowerCase();
+      var pid = String(b.getAttribute('data-pid') || '');
+      var hit = txt.indexOf(q) !== -1 || pid === q;
+      b.style.display = hit ? '' : 'none';
+      if (hit) {
+        matchCount++;
+        if (!firstBtn) firstBtn = b;
+      } else if (b.classList.contains('selected')) {
+        b.classList.remove('selected');
+        var pid2 = b.getAttribute('data-pid');
+        var panel = document.querySelector('.kasse-opts[data-opts-for="' + pid2 + '"]');
+        if (panel) panel.classList.remove('open');
+      }
+    });
+    document.querySelectorAll('.kasse-catpage').forEach(function(p) {
+      var any = false;
+      p.querySelectorAll('.kasse-prod').forEach(function(b) { if (b.style.display !== 'none') any = true; });
+      p.style.display = any ? '' : 'none';
+    });
+    if (matchCount === 1 && firstBtn) {
+      var fp = firstBtn.getAttribute('data-pid');
+      if (fp !== lastAuto && !firstBtn.classList.contains('selected') && !firstBtn.disabled) {
+        lastAuto = fp;
+        firstBtn.click();
+        var panel = document.querySelector('.kasse-opts[data-opts-for="' + fp + '"]');
+        if (panel) panel.scrollIntoView({ block: 'nearest' });
+      }
+    } else {
+      lastAuto = null;
+    }
+  }
+  inp.addEventListener('input', apply);
+  if (clearBtn) clearBtn.addEventListener('click', function() { inp.value = ''; apply(); inp.focus(); });
+  // Kategorie-Wechsel setzt die Suche zurück (sonst widersprüchliche Ansicht)
+  document.addEventListener('click', function(e) {
+    var cat = e.target && e.target.closest ? e.target.closest('.kasse-cat') : null;
+    if (cat && inp.value) { inp.value = ''; resetView(); }
+  });
+})();
 </script>
 <%- include('footer') %>
