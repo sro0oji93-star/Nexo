@@ -1,16 +1,23 @@
 // Kunden-Tracking: aktive Bestellungen (Homepage-Widget) + Live-Status per SSE.
 // - KEIN Polling: genau EIN EventSource, nur solange Tracking-Token gespeichert sind.
-// - Einträge verschwinden NUR bei finalem Status (zugestellt/geliefert/storniert) –
-//   niemals nach fester Zeit. localStorage = gerätegebunden, überlebt Reloads.
+// - Einträge verschwinden bei finalem Status (zugestellt/geliefert/storniert)
+//   oder automatisch nach 24h. localStorage = gerätegebunden, überlebt Reloads.
 (function () {
   var LS_KEY = 'nexo_track_orders';
   var STREAM_URL = '/verfolgung/stream?tokens=';
+  // Bait-Aufträge o.ä. verschwinden von selbst: Einträge älter als 24h werden
+  // beim Laden verworfen (ohne ts = Altbestand -> sofort fällig).
+  var MAX_AGE_MS = 24 * 60 * 60 * 1000;
   var es = null;
 
   function load() {
     try {
       var arr = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
-      return Array.isArray(arr) ? arr.filter(function (o) { return o && o.n && o.t; }) : [];
+      if (!Array.isArray(arr)) return [];
+      var now = Date.now();
+      var kept = arr.filter(function (o) { return o && o.n && o.t && o.ts && (now - o.ts) < MAX_AGE_MS; });
+      if (kept.length !== arr.length) save(kept);
+      return kept;
     } catch (e) { return []; }
   }
   function save(list) {
@@ -20,7 +27,7 @@
   function add(orderNumber, token) {
     var list = load();
     if (!list.some(function (o) { return o.n === orderNumber; })) {
-      list.push({ n: orderNumber, t: token });
+      list.push({ n: orderNumber, t: token, ts: Date.now() });
       save(list);
     }
     render([]);
@@ -63,11 +70,12 @@
       merged.push({
         order_number: o.n,
         token: o.t,
+        ts: o.ts,
         label: s ? s.label : '',
         active: s ? s.active : true // noch unbekannt -> vorerst aktiv zeigen
       });
     });
-    if (changed) save(merged.map(function (m) { return { n: m.order_number, t: m.token }; }));
+    if (changed) save(merged.map(function (m) { return { n: m.order_number, t: m.token, ts: m.ts }; }));
     paint(merged);
   }
 
