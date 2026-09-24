@@ -378,10 +378,17 @@
         } else {
           foundKunde = null;
           telFields(true);
+          // Neue Nummer: alte Kundendaten sicher leeren (kein Adress-Mix mit Vorbestellung).
+          tset('telPhone', phone);
+          tset('telName', '');
+          tset('telStrasse', '');
+          tset('telHausnr', '');
+          tset('telPlz', '');
+          tset('telOrt', '');
+          tset('telNotes', '');
           var box = document.getElementById('telFound');
           box.style.display = '';
           box.textContent = 'Neuer Kunde – bitte Daten eingeben und speichern.';
-          if (!tval('telPhone')) tset('telPhone', phone);
         }
       })
       .catch(function () { toast('Netzwerkfehler'); });
@@ -400,8 +407,8 @@
         if (!j.success) { toast(j.message || 'Fehler'); return; }
         foundKunde = j.kunde;
         telFields(false);
-        telSummary('<strong>Gespeichert:</strong> ' + esc(j.kunde.name));
-        toast('Kunde gespeichert');
+        telSummary('<strong>✓ Gespeichert:</strong> ' + esc(j.kunde.name) + ' · ' + esc([j.kunde.strasse, j.kunde.hausnummer].filter(Boolean).join(' ')) + ', ' + esc(j.kunde.plz || '') + ' ' + esc(j.kunde.ort || ''));
+        toast('✓ Kunde gespeichert');
       })
       .catch(function () { toast('Netzwerkfehler'); });
   }
