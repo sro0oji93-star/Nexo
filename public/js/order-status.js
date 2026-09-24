@@ -1,5 +1,7 @@
 // Kunden-Tracking: aktive Bestellungen (Homepage-Widget) + Live-Status per SSE.
+// Dateiname bewusst neutral (Adblocker filtern "tracking.js").
 // - KEIN Polling: genau EIN EventSource, nur solange Tracking-Token gespeichert sind.
+// - Banner sofort aus gespeicherten Token malen, Stream korrigiert danach live.
 // - Einträge verschwinden bei finalem Status (zugestellt/geliefert/storniert)
 //   oder automatisch nach 24h. localStorage = gerätegebunden, überlebt Reloads.
 (function () {
@@ -80,8 +82,11 @@
   }
 
   function connect() {
+    // Sofort malen (gespeicherte Token), Stream bestätigt/korrigiert danach.
+    // So erscheint das Banner auch bei langsamem Stream sofort nach dem Laden.
+    render([]);
     var list = load();
-    if (!list.length) { render([]); return; }
+    if (!list.length) return;
     if (es) return; // genau EIN Stream (kein Reconnect-Loop, kein Polling)
     try {
       es = new EventSource(STREAM_URL + encodeURIComponent(list.map(function (o) { return o.t; }).join(',')));
