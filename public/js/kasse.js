@@ -347,18 +347,28 @@
   function tval(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; }
   function tset(id, v) { var el = document.getElementById(id); if (el) el.value = v == null ? '' : v; }
 
+  function telFields(show) {
+    var f = document.getElementById('telFields');
+    if (f) f.style.display = show ? '' : 'none';
+  }
+
+  function telSummary(html) {
+    var box = document.getElementById('telFound');
+    box.style.display = '';
+    box.innerHTML = html + ' <button type="button" id="telEdit" style="margin-inline-start:8px;text-decoration:underline;background:none;border:none;color:#15803d;font-weight:700;cursor:pointer;font-size:14px">Ändern</button>';
+  }
+
   function findKunde() {
     var phone = tval('telSearch') || tval('telPhone');
     if (!phone) { toast('Bitte Telefonnummer eingeben'); return; }
     fetch('/admin/kasse/telefon/kunde?phone=' + encodeURIComponent(phone), { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (j) {
-        var box = document.getElementById('telFound');
         if (j.success && j.found) {
           foundKunde = j.kunde;
-          box.style.display = '';
-          box.innerHTML = '<strong>Gefunden:</strong> ' + esc(j.kunde.name) + ' · ' + esc([j.kunde.strasse, j.kunde.hausnummer].filter(Boolean).join(' ')) + ', ' + esc(j.kunde.plz || '') + ' ' + esc(j.kunde.ort || '');
-          // Formular sofort mit übernehmen (kein extra Klick nötig – Button bleibt als Backup).
+          telSummary('<strong>Gefunden:</strong> ' + esc(j.kunde.name) + ' · ' + esc([j.kunde.strasse, j.kunde.hausnummer].filter(Boolean).join(' ')) + ', ' + esc(j.kunde.plz || '') + ' ' + esc(j.kunde.ort || ''));
+          telFields(false);
+          // Formular sofort mit übernehmen (kein extra Klick nötig).
           tset('telPhone', j.kunde.phone || phone);
           tset('telName', j.kunde.name || '');
           tset('telStrasse', j.kunde.strasse || '');
@@ -367,23 +377,14 @@
           tset('telOrt', j.kunde.ort || '');
         } else {
           foundKunde = null;
+          telFields(true);
+          var box = document.getElementById('telFound');
           box.style.display = '';
           box.textContent = 'Neuer Kunde – bitte Daten eingeben und speichern.';
           if (!tval('telPhone')) tset('telPhone', phone);
         }
       })
       .catch(function () { toast('Netzwerkfehler'); });
-  }
-
-  function takeKunde() {
-    if (!foundKunde) { toast('Bitte zuerst suchen'); return; }
-    tset('telPhone', foundKunde.phone || '');
-    tset('telName', foundKunde.name || '');
-    tset('telStrasse', foundKunde.strasse || '');
-    tset('telHausnr', foundKunde.hausnummer || '');
-    tset('telPlz', foundKunde.plz || '');
-    tset('telOrt', foundKunde.ort || '');
-    toast('Daten übernommen');
   }
 
   function saveKunde() {
@@ -398,6 +399,8 @@
       .then(function (j) {
         if (!j.success) { toast(j.message || 'Fehler'); return; }
         foundKunde = j.kunde;
+        telFields(false);
+        telSummary('<strong>Gespeichert:</strong> ' + esc(j.kunde.name));
         toast('Kunde gespeichert');
       })
       .catch(function () { toast('Netzwerkfehler'); });
@@ -486,8 +489,8 @@
     var mbtn = e.target.closest ? e.target.closest('#kasseMode button') : null;
     if (mbtn) { setMode(mbtn.getAttribute('data-mode')); return; }
     if (e.target.closest && e.target.closest('#telFind')) { findKunde(); return; }
-    if (e.target.closest && e.target.closest('#telTake')) { takeKunde(); return; }
     if (e.target.closest && e.target.closest('#telSave')) { saveKunde(); return; }
+    if (e.target.closest && e.target.closest('#telEdit')) { telFields(true); return; }
     var cat = e.target.closest ? e.target.closest('.kasse-cat') : null;
     if (cat) {
       var slug = cat.getAttribute('data-cat');
