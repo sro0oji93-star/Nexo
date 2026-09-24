@@ -358,7 +358,13 @@
           foundKunde = j.kunde;
           box.style.display = '';
           box.innerHTML = '<strong>Gefunden:</strong> ' + esc(j.kunde.name) + ' · ' + esc([j.kunde.strasse, j.kunde.hausnummer].filter(Boolean).join(' ')) + ', ' + esc(j.kunde.plz || '') + ' ' + esc(j.kunde.ort || '');
+          // Formular sofort mit übernehmen (kein extra Klick nötig – Button bleibt als Backup).
           tset('telPhone', j.kunde.phone || phone);
+          tset('telName', j.kunde.name || '');
+          tset('telStrasse', j.kunde.strasse || '');
+          tset('telHausnr', j.kunde.hausnummer || '');
+          tset('telPlz', j.kunde.plz || '');
+          tset('telOrt', j.kunde.ort || '');
         } else {
           foundKunde = null;
           box.style.display = '';
