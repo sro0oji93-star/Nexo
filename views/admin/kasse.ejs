@@ -64,6 +64,7 @@
       <div style="display:flex;gap:8px;margin-bottom:8px">
         <input type="text" id="telSearch" placeholder="Telefonnummer eingeben…" autocomplete="off" style="flex:1;min-height:48px;font-size:15px;padding:8px 12px;border:2px solid #e8e4de;border-radius:10px">
         <button type="button" class="btn btn-outline" id="telFind" style="min-height:48px">Suchen</button>
+        <button type="button" class="btn btn-outline" id="telDelete" title="Kunde löschen" style="min-height:48px;color:#c0392b;border-color:#e5b4b4">Löschen</button>
       </div>
       <div id="telFound" style="display:none;background:#f0fdf4;border:1px solid #15803d;border-radius:10px;padding:8px 12px;font-size:14px;margin-bottom:8px"></div>
       <div id="telFields" style="display:none">
@@ -192,7 +193,7 @@
 </div>
 <div class="kasse-toast" id="kasseToast"></div>
 <script src="/js/pizza-extras.js"></script>
-<script src="/js/kasse.js?v=20260924f"></script>
+<script src="/js/kasse.js?v=20260924g"></script>
 <script>
 // Größen-Auswahl exakt wie Kundenseite (menu.ejs): gewählte Box gold markieren.
 // Rein visuell – die Auswahl selbst lesen kasse.js/cart.js aus :checked (unverändert).

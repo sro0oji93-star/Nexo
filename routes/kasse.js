@@ -155,6 +155,20 @@ router.post('/kasse/telefon/kunde', auth, async (req, res) => {
   }
 });
 
+// Kunde löschen (Admin only). Alte Bestellungen bleiben unberührt (Snapshot in orders,
+// customer_id fällt per ON DELETE SET NULL auf NULL zurück).
+router.post('/kasse/telefon/kunde/loeschen', auth, async (req, res) => {
+  try {
+    const norm = normalizePhone(req.body.phone);
+    if (!norm) return res.status(400).json({ success: false, message: 'Keine Telefonnummer.' });
+    await db.run('DELETE FROM customers WHERE phone_norm = $1', [norm]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Telefon kunde-loeschen error:', err);
+    res.status(500).json({ success: false, message: 'Fehler beim Löschen' });
+  }
+});
+
 // Telefonbestellung anlegen (immer Lieferung, Zone wie online, kein Rabatt, Zahlung 'telefon').
 router.post('/kasse/telefon/order', auth, async (req, res) => {
   try {

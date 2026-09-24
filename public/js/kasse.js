@@ -413,6 +413,31 @@
       .catch(function () { toast('Netzwerkfehler'); });
   }
 
+  function delKunde() {
+    var phone = tval('telSearch') || tval('telPhone');
+    if (!phone) { toast('Bitte Telefonnummer eingeben'); return; }
+    if (!confirm('Kunde wirklich löschen? Alte Bestellungen bleiben erhalten.')) return;
+    fetch('/admin/kasse/telefon/kunde/loeschen', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-csrf-token': window.KASSE_CSRF || '' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ phone: phone })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j.success) { toast(j.message || 'Fehler'); return; }
+        foundKunde = null;
+        tset('telSearch', ''); tset('telPhone', ''); tset('telName', '');
+        tset('telStrasse', ''); tset('telHausnr', ''); tset('telPlz', ''); tset('telOrt', ''); tset('telNotes', '');
+        telFields(false);
+        var box = document.getElementById('telFound');
+        box.style.display = '';
+        box.textContent = 'Kunde gelöscht.';
+        toast('Kunde gelöscht');
+      })
+      .catch(function () { toast('Netzwerkfehler'); });
+  }
+
   // Lieferung-Abschluss: Kundendaten + Rabatt% wie Theke, Zone serverseitig.
   function submitTelefon() {
     var body = {
@@ -496,6 +521,7 @@
     var mbtn = e.target.closest ? e.target.closest('#kasseMode button') : null;
     if (mbtn) { setMode(mbtn.getAttribute('data-mode')); return; }
     if (e.target.closest && e.target.closest('#telFind')) { findKunde(); return; }
+    if (e.target.closest && e.target.closest('#telDelete')) { delKunde(); return; }
     if (e.target.closest && e.target.closest('#telSave')) { saveKunde(); return; }
     if (e.target.closest && e.target.closest('#telEdit')) { telFields(true); return; }
     var cat = e.target.closest ? e.target.closest('.kasse-cat') : null;
