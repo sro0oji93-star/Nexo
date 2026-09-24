@@ -60,8 +60,19 @@
   }
 
   // Bon im versteckten Iframe drucken (Drucker = Standarddrucker des PCs = TM-T88V)
+  // Lieferung mit Fahrer-QR: 1x Fahrerbon (mit QR) + 1x Kundenbeleg (ohne QR).
+  // Sonst wie bisher: Theke 1x, Abholung 2x identisch.
   function printBon(order) {
-    printQueue.push(order);
+    var isDriver = order && order.order_type !== 'abholung' && order.driver_token;
+    if (isDriver) {
+      printQueue.push({ id: order.id, typ: 'fahrer', copies: 1 });
+      printQueue.push({ id: order.id, typ: 'kunde', copies: 1 });
+    } else {
+      // Theken-Bestellungen (Kasse): genau 1 Kopie; sonst BON_COPIES identische Kopien.
+      // order_source ist der Marker (Fallback: alter notes-Text für Kompatibilität).
+      var copiesLeft = (order && (order.order_source === 'theke' || order.notes === 'Theken-Bestellung')) ? 1 : BON_COPIES;
+      printQueue.push({ id: order.id, typ: '', copies: copiesLeft });
+    }
     pumpQueue();
   }
   function pumpQueue() {
@@ -79,12 +90,10 @@
     var f = document.createElement('iframe');
     // Off-screen aber gerendert: visibility:hidden / 0x0 wird von Chrome teils nicht gedruckt
     f.style.cssText = 'position:fixed;left:-9999px;top:0;width:80mm;height:600px;border:0;background:#fff';
-    f.src = '/admin/bestellungen/' + order.id + '/bon';
+    f.src = '/admin/bestellungen/' + order.id + '/bon' + (order.typ === 'kunde' ? '?typ=kunde' : '');
     // Aufräumen erst nach Druckdialog (afterprint) – sonst wird der Druck abgebrochen
     var fallback = setTimeout(finish, 60000);
-    // Theken-Bestellungen (Kasse): genau 1 Kopie; Online + Telefon: 2 Kopien (Fahrerbon, Auto-Print).
-    // order_source ist der Marker (Fallback: alter notes-Text für Kompatibilität).
-    var copiesLeft = (order && (order.order_source === 'theke' || order.notes === 'Theken-Bestellung')) ? 1 : BON_COPIES;
+    var copiesLeft = order.copies || 1;
     f.onload = function () {
       try {
         var w = f.contentWindow;
