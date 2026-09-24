@@ -43,7 +43,7 @@
       <% } %>
       <% orders.forEach(function(o) { %>
       <tr class="<%= o.is_deleted ? 'row-deleted' : '' %>">
-        <td><strong><%= o.order_number %></strong><% if (o.is_deleted) { %><br><span class="badge-deleted">Gelöscht</span><% } %></td>
+        <td><strong><%= o.order_number %></strong><% if (o.is_deleted) { %><br><span class="badge-deleted">Gelöscht</span><% } %><% if (o.order_source === 'telefon' || o.payment_method === 'telefon') { %><br><span style="background:#fef3c7;color:#92400e;border:1px solid #92400e;padding:1px 8px;border-radius:8px;font-size:12px;font-weight:700">Telefon</span><% } else if (o.order_source === 'theke' || (o.customer_name === 'Theke' && o.notes === 'Theken-Bestellung')) { %><br><span style="background:#f1f5f9;color:#475569;border:1px solid #94a3b8;padding:1px 8px;border-radius:8px;font-size:12px;font-weight:700">Theke</span><% } %></td>
         <td><%= new Date(o.created_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) %><% if (o.wish_display) { %><br><small style="color:#15803d;font-weight:700">Wunsch: <%= o.wish_display %></small><% } %></td>
         <td><%= o.customer_name %><br><small><%= o.customer_phone || '' %></small></td>
         <td>

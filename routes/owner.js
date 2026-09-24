@@ -39,9 +39,19 @@ function parseItems(order) {
 function isKasseOrder(o) {
   return o && o.customer_name === 'Theke' && o.notes === 'Theken-Bestellung';
 }
+// Admin-Bestellungen (Theke + Telefon): vom Restaurant angelegt – sichtbar, aber
+// provisionsfrei. Marker: order_source (Fallbacks: alte Text-Marker + payment_method).
+function isAdminOrder(o) {
+  if (!o) return false;
+  if (o.order_source === 'theke' || o.order_source === 'telefon') return true;
+  if (isKasseOrder(o)) return true;
+  if (o.payment_method === 'telefon') return true;
+  return false;
+}
 // SQL-Gegenstück (NULL-sicher: COALESCE, damit alte NULL-Notizen als online zählen).
 const KASSE_SQL = "(customer_name = 'Theke' AND notes = 'Theken-Bestellung')";
-const ONLINE_SQL = "(COALESCE(customer_name,'') <> 'Theke' OR COALESCE(notes,'') <> 'Theken-Bestellung')";
+const ADMIN_SQL = "(COALESCE(order_source,'') IN ('theke','telefon') OR (customer_name = 'Theke' AND notes = 'Theken-Bestellung') OR COALESCE(payment_method,'') = 'telefon')";
+const ONLINE_SQL = "(COALESCE(order_source,'online') NOT IN ('theke','telefon') AND NOT (customer_name = 'Theke' AND notes = 'Theken-Bestellung') AND COALESCE(payment_method,'') <> 'telefon')";
 // Eigentümer-Sicht: owner_deleted blendet NUR beim Eigentümer aus (Admin unberührt).
 const OWNER_VISIBLE_SQL = 'COALESCE(owner_deleted,0) = 0';
 
@@ -110,7 +120,7 @@ router.get('/', requireOwner, async (req, res) => {
   const dayCount = (await db.get('SELECT COUNT(*) as count FROM orders WHERE created_at::date = $1 AND ' + OWNER_VISIBLE_SQL, [today])).count;
   const dayOnlineCount = (await db.get('SELECT COUNT(*) as count FROM orders WHERE created_at::date = $1 AND ' + OWNER_VISIBLE_SQL + ' AND ' + ONLINE_SQL, [today])).count;
   const dayOnlineRevenue = (await db.get("SELECT COALESCE(SUM(total),0) as total FROM orders WHERE created_at::date = $1 AND order_status != 'storniert' AND " + OWNER_VISIBLE_SQL + ' AND ' + ONLINE_SQL, [today])).total;
-  const dayKasseRevenue = (await db.get("SELECT COALESCE(SUM(total),0) as total FROM orders WHERE created_at::date = $1 AND order_status != 'storniert' AND " + OWNER_VISIBLE_SQL + ' AND ' + KASSE_SQL, [today])).total;
+  const dayKasseRevenue = (await db.get("SELECT COALESCE(SUM(total),0) as total FROM orders WHERE created_at::date = $1 AND order_status != 'storniert' AND " + OWNER_VISIBLE_SQL + ' AND ' + ADMIN_SQL, [today])).total;
   const dayDeleted = (await db.get('SELECT COUNT(*) as count FROM orders WHERE created_at::date = $1 AND ' + OWNER_VISIBLE_SQL + ' AND COALESCE(is_deleted,0) = 1', [today])).count;
   const monthCount = (await db.get("SELECT COUNT(*) as count FROM orders WHERE TO_CHAR(created_at,'YYYY-MM') = TO_CHAR(NOW(),'YYYY-MM') AND " + OWNER_VISIBLE_SQL)).count;
   const monthOnlineCount = (await db.get("SELECT COUNT(*) as count FROM orders WHERE TO_CHAR(created_at,'YYYY-MM') = TO_CHAR(NOW(),'YYYY-MM') AND " + OWNER_VISIBLE_SQL + ' AND ' + ONLINE_SQL)).count;
@@ -137,8 +147,8 @@ router.get('/bestellungen', requireOwner, async (req, res) => {
   orders.forEach(o => { o.wish_display = db.formatWishDisplay(o.wish_time); });
   const received = orders.length;
   const deleted = orders.filter(o => o.is_deleted).length;
-  const onlineOrders = orders.filter(o => !isKasseOrder(o));
-  const kasseOrders = orders.filter(o => isKasseOrder(o));
+  const onlineOrders = orders.filter(o => !isAdminOrder(o));
+  const kasseOrders = orders.filter(o => isAdminOrder(o));
   const onlineRevenue = onlineOrders.filter(o => o.order_status !== 'storniert').reduce((s, o) => s + parseFloat(o.total || 0), 0);
   const kasseRevenue = kasseOrders.filter(o => o.order_status !== 'storniert').reduce((s, o) => s + parseFloat(o.total || 0), 0);
   res.render('owner/orders', {
