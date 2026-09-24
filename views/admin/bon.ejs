@@ -59,7 +59,7 @@
   <% if (parseFloat(order.vat19 || 0) > 0) { %><div class="row"><span>19% MwSt:</span><span><%= parseFloat(order.vat19).toFixed(2).replace('.', ',') %> €</span></div><% } %>
   <div class="row total"><span>GESAMT</span><span><%= parseFloat(order.total).toFixed(2).replace('.', ',') %> €</span></div>
   <hr>
-  <div>Zahlung: <%= order.payment_method === 'bar' ? 'Bar' : (order.payment_method === 'karte' ? 'Karte' : (order.payment_method === 'telefon' ? 'Telefonische Bestellung' : 'Online')) %></div>
+  <div>Zahlung: <%= order.payment_method === 'telefon' ? 'Bar' : (order.payment_method === 'bar' ? 'Bar' : (order.payment_method === 'karte' ? 'Karte' : 'Online')) %></div>
   <% if (order.notes) { %><div>Hinweis: <%= order.notes %></div><% } %>
   <br><br>
   <div class="center">* * * Danke! * * *</div>

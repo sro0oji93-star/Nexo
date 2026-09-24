@@ -29,11 +29,17 @@
   .kasse-actions { display: flex; gap: 8px; margin-top: 12px; }
   .kasse-actions .btn { flex: 1; min-height: 54px; font-size: 16px; font-weight: 800; }
   .kasse-toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #0a0a0a; color: #f5d67b; padding: 12px 22px; border-radius: 12px; font-weight: 700; z-index: 99999; display: none; max-width: 92vw; text-align: center; }
+  .kasse-mode { display: flex; gap: 10px; margin-bottom: 14px; }
+  .kasse-mode button { flex: 1; min-height: 56px; font-size: 17px; font-weight: 800; border-radius: 12px; border: 2px solid #d4af37; background: #fff; cursor: pointer; }
+  .kasse-mode button.active { background: #0a0a0a; color: #f5d67b; border-color: #0a0a0a; }
+  .tel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .tel-grid input { min-height: 48px; font-size: 15px; padding: 8px 12px; border: 2px solid #e8e4de; border-radius: 10px; width: 100%; }
+  .tel-grid .full { grid-column: 1 / -1; }
 </style>
 
 <div class="section-header-row">
   <h2><i class="fas fa-cash-register"></i> Kasse</h2>
-  <span class="badge">Theke · Bar · Abholung</span>
+  <span class="badge" id="kasseModeBadge">Theke · Bar · Abholung</span>
   <span style="display:flex;gap:6px;align-items:center;flex:1;min-width:200px;max-width:420px;margin-inline-start:auto">
     <input type="text" id="kasseSearch" placeholder="🔍 Name oder Nr. suchen…" autocomplete="off" style="flex:1;min-height:42px;font-size:15px;padding:8px 12px;border:2px solid #e8e4de;border-radius:10px">
     <button type="button" id="kasseSearchClear" title="Suche löschen" style="min-height:42px;min-width:42px;font-size:16px;border-radius:10px;border:2px solid #e8e4de;background:#fff;cursor:pointer">×</button>
@@ -49,6 +55,32 @@
 
 <div class="kasse-wrap">
   <div class="kasse-left">
+    <div class="kasse-mode" id="kasseMode">
+      <button type="button" data-mode="abholung" class="active">Abholung (Theke)</button>
+      <button type="button" data-mode="lieferung">Lieferung (Telefon)</button>
+    </div>
+    <div id="telPanel" style="display:none;background:#fff;border:1px solid #e8e4de;border-radius:12px;padding:14px;margin-bottom:14px">
+      <h3 style="margin:0 0 8px"><i class="fas fa-user"></i> Kunde (per Telefon suchen)</h3>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <input type="text" id="telSearch" placeholder="Telefonnummer eingeben…" autocomplete="off" style="flex:1;min-height:48px;font-size:15px;padding:8px 12px;border:2px solid #e8e4de;border-radius:10px">
+        <button type="button" class="btn btn-outline" id="telFind" style="min-height:48px">Suchen</button>
+      </div>
+      <div id="telFound" style="display:none;background:#f0fdf4;border:1px solid #15803d;border-radius:10px;padding:8px 12px;font-size:14px;margin-bottom:8px"></div>
+      <div class="tel-grid">
+        <input type="text" id="telPhone" class="full" placeholder="Telefonnummer *" autocomplete="off">
+        <input type="text" id="telName" class="full" placeholder="Name *" autocomplete="off">
+        <input type="text" id="telStrasse" placeholder="Straße *" autocomplete="off">
+        <input type="text" id="telHausnr" placeholder="Hausnr. *">
+        <input type="text" id="telPlz" placeholder="PLZ *">
+        <input type="text" id="telOrt" placeholder="Ort *">
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button type="button" class="btn btn-outline" id="telTake" style="flex:1;min-height:48px">Daten übernehmen</button>
+        <button type="button" class="btn btn-outline" id="telSave" style="flex:1;min-height:48px">Kunde speichern</button>
+      </div>
+      <input type="text" id="telNotes" placeholder="Hinweis zur Bestellung (optional)" style="width:100%;min-height:48px;font-size:15px;padding:8px 12px;border:2px solid #e8e4de;border-radius:10px;margin-top:8px">
+      <p style="color:#777;font-size:12px;margin:6px 0 0">Lieferkosten werden serverseitig per Zone berechnet.</p>
+    </div>
     <div class="kasse-catrow" id="kasseCats">
       <% categories.forEach(function(cat, ci) { %>
       <button type="button" class="kasse-cat<%= ci === 0 ? ' active' : '' %>" data-cat="<%= cat.slug %>"><%= cat.name %></button>
@@ -149,6 +181,7 @@
       </div>
     </div>
     <div class="kasse-total"><span>Gesamt</span><span id="kasseTotal">0,00 €</span></div>
+    <p id="kasseFeeHint" style="display:none;color:#777;font-size:12px;margin:6px 0 0">+ Lieferkosten per Zone (automatisch).</p>
     <div class="kasse-actions">
       <button type="button" class="btn btn-outline" id="kasseClear">Leeren</button>
       <button type="button" class="btn btn-primary" id="kasseSubmit">Bestellen &amp; Drucken</button>
@@ -158,7 +191,7 @@
 </div>
 <div class="kasse-toast" id="kasseToast"></div>
 <script src="/js/pizza-extras.js"></script>
-<script src="/js/kasse.js?v=20260923a"></script>
+<script src="/js/kasse.js?v=20260924b"></script>
 <script>
 // Größen-Auswahl exakt wie Kundenseite (menu.ejs): gewählte Box gold markieren.
 // Rein visuell – die Auswahl selbst lesen kasse.js/cart.js aus :checked (unverändert).

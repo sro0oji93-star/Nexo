@@ -100,7 +100,8 @@ router.post('/kasse/order', auth, async (req, res) => {
   }
 });
 
-// ---------- Telefonbestellung (nur Lieferung, kein Payment-Selector, kein Rabatt) ----------
+// ---------- Telefonbestellung (nur Lieferung, kein Payment-Selector, Rabatt % wie Theke) ----------
+// UI: in /admin/kasse integriert (Tabs Abholung/Lieferung). APIs unten bleiben für das Lieferung-Tab.
 // Wiederverwendung: Produkte/Loader aus menu.js, priceItems/splitVat aus order-pricing.js,
 // Zonen/Geocoding-Logik aus order.js (identisch zu Online). Snapshot: Kundendaten werden
 // zum Erstellungszeitpunkt in die order-Zeile kopiert (alte Bestellungen bleiben unverändert).
@@ -113,28 +114,9 @@ function normalizePhone(p) {
   return digits;
 }
 
-// Touch-Oberfläche + Kundenformular (Admin only, auth). Zonen für Lieferkosten-Vorschau.
-router.get('/kasse/telefon', auth, async (req, res) => {
-  const [categories, products, boxLists, dealLists] = await Promise.all([
-    db.all('SELECT * FROM categories WHERE active = 1 ORDER BY sort_order'),
-    db.all("SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id IN (SELECT MIN(id) FROM products GROUP BY name) ORDER BY c.sort_order, p.sort_order"),
-    loadBoxLists(),
-    loadDealLists()
-  ]);
-  const { resolveGroups } = require('../boxen');
-  for (const p of products) {
-    const g = resolveGroups(p.slug, boxLists);
-    if (g) p.boxGroups = g;
-  }
-  res.render('admin/telefon', {
-    title: 'Telefonbestellung – Admin',
-    categories,
-    products,
-    boxLists,
-    dealLists,
-    deliveryZones: getDeliveryZones(res.locals.settings),
-    pizzaExtras: { toppings: TOPPINGS, labels: BELAG_LABELS, fish: FISH_TOPPINGS, prices: EXTRA_PRICES, kaeserand: KAESERAND }
-  });
+// Alte Telefon-Seite: in /admin/kasse integriert (Tabs) – Redirect für Kompatibilität.
+router.get('/kasse/telefon', auth, (req, res) => {
+  res.redirect('/admin/kasse');
 });
 
 // Kunde per Telefon suchen (Admin only, exakt 1 Query).
@@ -226,8 +208,19 @@ router.post('/kasse/telefon/order', auth, async (req, res) => {
     const deliveryFee = parseFloat(settings.delivery_fee) || 4.50;
     const freeFrom = parseFloat(settings.free_delivery_from) || 0;
     const fee = zone ? ((zone.free > 0 && subtotal >= zone.free - 1e-9) ? 0 : zone.fee) : (subtotal >= freeFrom ? 0 : deliveryFee);
-    const total = Math.max(0, subtotal + fee); // kein Rabatt für Telefonbestellung
-    const { vat7, vat19 } = splitVat(priced.gross7 + fee, priced.gross19, 0);
+    // Rabatt wie Theke: EIN Prozentwert (0–100), ersetzt immer den vorherigen (kein Stapeln).
+    let telPctRaw = req.body.discount_percent;
+    if (telPctRaw === undefined || telPctRaw === null || String(telPctRaw).trim() === '') telPctRaw = '0';
+    const telDiscountPercent = parseFloat(String(telPctRaw).replace(',', '.'));
+    if (!isFinite(telDiscountPercent) || telDiscountPercent < 0 || telDiscountPercent > 100) {
+      return res.status(400).json({ success: false, message: 'Ungültiger Rabattprozentsatz (0–100).' });
+    }
+    const telDiscount = Math.round(subtotal * telDiscountPercent) / 100;
+    const telDiscountLabel = telDiscountPercent > 0
+      ? (String(Number.isInteger(telDiscountPercent) ? telDiscountPercent : Math.round(telDiscountPercent * 100) / 100) + '%')
+      : null;
+    const total = Math.max(0, subtotal + fee - telDiscount);
+    const { vat7, vat19 } = splitVat(priced.gross7 + fee, priced.gross19, telDiscount);
     const deliveryMinutes = (zone && isFinite(zone.time)) ? zone.time : DEFAULT_DELIVERY_MINUTES;
     const orderNumber = 'FEIN-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
     const confirmToken = crypto.randomBytes(32).toString('hex');
@@ -236,7 +229,7 @@ router.post('/kasse/telefon/order', auth, async (req, res) => {
     const ins = await db.run(`INSERT INTO orders (order_number, customer_name, customer_email, customer_phone, delivery_address, delivery_city, delivery_zip, notes, items, subtotal, delivery_fee, discount, discount_code, total, payment_method, payment_status, order_status, order_type, vat7, vat19, wish_time, confirm_token, driver_token, delivery_minutes, order_source, customer_id)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26) RETURNING id`,
       [orderNumber, name, '', phone, address, ort, plz, notes || null,
-      JSON.stringify(priced.items), subtotal, fee, 0, null, total,
+      JSON.stringify(priced.items), subtotal, fee, telDiscount, telDiscountLabel, total,
       'telefon', 'telefon', 'neu', 'lieferung', vat7, vat19, null, confirmToken, driverToken, deliveryMinutes, 'telefon', custRow ? custRow.id : null]
     );
     const orderId = ins.rows && ins.rows[0] ? ins.rows[0].id : null;

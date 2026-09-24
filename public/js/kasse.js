@@ -9,6 +9,8 @@
   var items = [];
   var fee = 0;
   var discountPercent = 0; // EIN Prozentwert (0–100), ersetzt immer den vorherigen (kein Stapeln)
+  var mode = 'abholung'; // 'abholung' (Theke) oder 'lieferung' (Telefon) – ein UI, zwei Endpoints
+  var foundKunde = null;
 
   function fmt(n) { return (parseFloat(n) || 0).toFixed(2).replace('.', ',') + ' €'; }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -287,6 +289,7 @@
 
   function submit() {
     if (!items.length) { toast('Bon ist leer'); return; }
+    if (mode === 'lieferung') { submitTelefon(); return; }
     var btn = document.getElementById('kasseSubmit');
     if (btn) btn.disabled = true;
     fetch('/admin/kasse/order', {
@@ -298,35 +301,152 @@
       .then(function (j) {
         if (btn) btn.disabled = false;
         if (!j.success) { toast(j.message || 'Fehler'); return; }
-        // Druck läuft über das bestehende Auto-Print-System (Theke: genau 1 Kopie).
-        // Manueller Nachdruck bei Bedarf über den Bon-Link (ohne Autoprint).
-        var last = document.getElementById('kasseLast');
-        if (last) {
-          last.textContent = '';
-          var s = document.createElement('span');
-          s.textContent = 'Bestellung ' + j.orderNumber + ' (' + fmt(j.total) + ') gespeichert. ';
-          last.appendChild(s);
-          if (j.id) {
-            var a = document.createElement('a');
-            a.href = '/admin/bestellungen/' + encodeURIComponent(j.id) + '/bon';
-            a.target = '_blank';
-            a.textContent = 'Bon drucken';
-            last.appendChild(a);
-          }
-        }
-        items = [];
-        fee = 0;
-        discountPercent = 0;
-        var di = document.getElementById('kasseDiscPercent');
-        if (di) di.value = '';
-        paintFees();
-        render();
-        toast('Bestellung ' + j.orderNumber + ' gespeichert');
+        afterSubmit(j, false);
       })
       .catch(function () {
         if (btn) btn.disabled = false;
         toast('Netzwerkfehler');
       });
+  }
+
+  // Erfolg für beide Modi: Theke 1 Link (Bon), Lieferung 2 Links (Fahrerbon + Kundenbeleg).
+  // Druck läuft über das bestehende Auto-Print-System (Theke: 1 Kopie, Lieferung: 2 Kopien).
+  function afterSubmit(j, isTelefon) {
+    var last = document.getElementById('kasseLast');
+    if (last) {
+      last.textContent = '';
+      var s = document.createElement('span');
+      s.textContent = 'Bestellung ' + j.orderNumber + ' (' + fmt(j.total) + ') gespeichert. ';
+      last.appendChild(s);
+      if (j.id) {
+        var a = document.createElement('a');
+        a.href = '/admin/bestellungen/' + encodeURIComponent(j.id) + '/bon';
+        a.target = '_blank';
+        a.textContent = isTelefon ? 'Fahrerbon drucken' : 'Bon drucken';
+        last.appendChild(a);
+        if (isTelefon) {
+          last.appendChild(document.createTextNode(' · '));
+          var b = document.createElement('a');
+          b.href = '/admin/bestellungen/' + encodeURIComponent(j.id) + '/bon?typ=kunde';
+          b.target = '_blank';
+          b.textContent = 'Kundenbeleg';
+          last.appendChild(b);
+        }
+      }
+    }
+    items = [];
+    fee = 0;
+    discountPercent = 0;
+    var di = document.getElementById('kasseDiscPercent');
+    if (di) di.value = '';
+    paintFees();
+    render();
+    toast('Bestellung ' + j.orderNumber + ' gespeichert');
+  }
+
+  function tval(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; }
+  function tset(id, v) { var el = document.getElementById(id); if (el) el.value = v == null ? '' : v; }
+
+  function findKunde() {
+    var phone = tval('telSearch') || tval('telPhone');
+    if (!phone) { toast('Bitte Telefonnummer eingeben'); return; }
+    fetch('/admin/kasse/telefon/kunde?phone=' + encodeURIComponent(phone), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        var box = document.getElementById('telFound');
+        if (j.success && j.found) {
+          foundKunde = j.kunde;
+          box.style.display = '';
+          box.innerHTML = '<strong>Gefunden:</strong> ' + esc(j.kunde.name) + ' · ' + esc([j.kunde.strasse, j.kunde.hausnummer].filter(Boolean).join(' ')) + ', ' + esc(j.kunde.plz || '') + ' ' + esc(j.kunde.ort || '');
+          tset('telPhone', j.kunde.phone || phone);
+        } else {
+          foundKunde = null;
+          box.style.display = '';
+          box.textContent = 'Neuer Kunde – bitte Daten eingeben und speichern.';
+          if (!tval('telPhone')) tset('telPhone', phone);
+        }
+      })
+      .catch(function () { toast('Netzwerkfehler'); });
+  }
+
+  function takeKunde() {
+    if (!foundKunde) { toast('Bitte zuerst suchen'); return; }
+    tset('telPhone', foundKunde.phone || '');
+    tset('telName', foundKunde.name || '');
+    tset('telStrasse', foundKunde.strasse || '');
+    tset('telHausnr', foundKunde.hausnummer || '');
+    tset('telPlz', foundKunde.plz || '');
+    tset('telOrt', foundKunde.ort || '');
+    toast('Daten übernommen');
+  }
+
+  function saveKunde() {
+    var body = { phone: tval('telPhone'), name: tval('telName'), strasse: tval('telStrasse'), hausnummer: tval('telHausnr'), plz: tval('telPlz'), ort: tval('telOrt') };
+    fetch('/admin/kasse/telefon/kunde', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-csrf-token': window.KASSE_CSRF || '' },
+      credentials: 'same-origin',
+      body: JSON.stringify(body)
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j.success) { toast(j.message || 'Fehler'); return; }
+        foundKunde = j.kunde;
+        toast('Kunde gespeichert');
+      })
+      .catch(function () { toast('Netzwerkfehler'); });
+  }
+
+  // Lieferung-Abschluss: Kundendaten + Rabatt% wie Theke, Zone serverseitig.
+  function submitTelefon() {
+    var body = {
+      items: items,
+      name: tval('telName'), phone: tval('telPhone'),
+      strasse: tval('telStrasse'), hausnummer: tval('telHausnr'),
+      plz: tval('telPlz'), ort: tval('telOrt'),
+      notes: (document.getElementById('telNotes') || {}).value ? document.getElementById('telNotes').value.trim() : '',
+      discount_percent: discountPercent
+    };
+    if (!body.name || !body.phone || !body.strasse || !body.hausnummer || !body.plz || !body.ort) {
+      toast('Bitte Kundendaten vollständig eingeben');
+      return;
+    }
+    var btn = document.getElementById('kasseSubmit');
+    if (btn) btn.disabled = true;
+    fetch('/admin/kasse/telefon/order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-csrf-token': window.KASSE_CSRF || '' },
+      credentials: 'same-origin',
+      body: JSON.stringify(body)
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (btn) btn.disabled = false;
+        if (!j.success) { toast(j.message || 'Fehler'); return; }
+        afterSubmit(j, true);
+      })
+      .catch(function () {
+        if (btn) btn.disabled = false;
+        toast('Netzwerkfehler');
+      });
+  }
+
+  // Modus-Umschalter Abholung/Lieferung: ein UI, zwei Endpoints.
+  // Abholung: kein Kundenformular, keine Auto-Lieferkosten. Lieferung: Kunde Pflicht, Zone automatisch.
+  function setMode(m) {
+    mode = (m === 'lieferung') ? 'lieferung' : 'abholung';
+    var tel = mode === 'lieferung';
+    document.querySelectorAll('#kasseMode button').forEach(function (b) {
+      b.classList.toggle('active', b.getAttribute('data-mode') === mode);
+    });
+    document.getElementById('telPanel').style.display = tel ? '' : 'none';
+    document.getElementById('kasseFeeHint').style.display = tel ? '' : 'none';
+    document.getElementById('kasseFeePanel').style.display = 'none';
+    var feeBtn = document.querySelector('.kasse-cat.fee-btn');
+    if (feeBtn) feeBtn.style.display = tel ? 'none' : '';
+    var badge = document.getElementById('kasseModeBadge');
+    if (badge) badge.textContent = tel ? 'Telefon · Bar · Lieferung' : 'Theke · Bar · Abholung';
+    if (tel) { fee = 0; paintFees(); render(); }
   }
 
   function paintFees() {
@@ -357,6 +477,11 @@
         mbox._kasseMenue = mr;
       }
     }
+    var mbtn = e.target.closest ? e.target.closest('#kasseMode button') : null;
+    if (mbtn) { setMode(mbtn.getAttribute('data-mode')); return; }
+    if (e.target.closest && e.target.closest('#telFind')) { findKunde(); return; }
+    if (e.target.closest && e.target.closest('#telTake')) { takeKunde(); return; }
+    if (e.target.closest && e.target.closest('#telSave')) { saveKunde(); return; }
     var cat = e.target.closest ? e.target.closest('.kasse-cat') : null;
     if (cat) {
       var slug = cat.getAttribute('data-cat');
