@@ -194,11 +194,11 @@ router.post('/', async (req, res) => {
 
     // Online-Zahlung: Bestellung parken (kein Druck/Ton), erst Webhook gibt sie frei
     const isOnline = payment === 'online';
-    const ins = await db.run(`INSERT INTO orders (order_number, customer_name, customer_email, customer_phone, delivery_address, delivery_city, delivery_zip, notes, items, subtotal, delivery_fee, discount, discount_code, total, payment_method, payment_status, order_status, order_type, vat7, vat19, wish_time, confirm_token, driver_token, delivery_minutes)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24) RETURNING id`,
+    const ins = await db.run(`INSERT INTO orders (order_number, customer_name, customer_email, customer_phone, delivery_address, delivery_city, delivery_zip, notes, items, subtotal, delivery_fee, discount, discount_code, total, payment_method, payment_status, order_status, order_type, vat7, vat19, wish_time, confirm_token, driver_token, delivery_minutes, order_source)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25) RETURNING id`,
       [orderNumber, name, email, phone, address, city, zip, notes,
       JSON.stringify(parsedItems), calculatedSubtotal, calculatedDelivery, calculatedDiscount, validCode, calculatedTotal,
-      payment, isOnline ? 'ausstehend' : 'bar', isOnline ? 'wartet_auf_zahlung' : 'neu', type, vat7, vat19, wishIso, confirmToken, driverToken, deliveryMinutes]
+      payment, isOnline ? 'ausstehend' : 'bar', isOnline ? 'wartet_auf_zahlung' : 'neu', type, vat7, vat19, wishIso, confirmToken, driverToken, deliveryMinutes, 'online']
     );
     const orderId = ins.rows && ins.rows[0] ? ins.rows[0].id : null;
 
@@ -270,12 +270,16 @@ router.get('/bestellung/:orderNumber', async (req, res) => {
 
   // Rechnung für alle normalen Online-Bestellungen – nie für Theke (siehe invoice.js).
   const { isKasseOrder } = require('./invoice');
+  const { isTelefonOrder } = require('./invoice');
   res.render('order-confirmation', {
     title: 'Bestellung ' + order.order_number + ' – ' + settings.site_name,
     order,
     settings,
-    showInvoice: !isKasseOrder(order)
+    showInvoice: !isKasseOrder(order) && !isTelefonOrder(order)
   });
 });
 
 module.exports = router;
+// Wiederverwendung für Telefonbestellung (kein Duplikat): Zone-Prüfung + Telefon-Validierung.
+module.exports.checkDeliveryArea = checkDeliveryArea;
+module.exports.isValidPhone = isValidPhone;

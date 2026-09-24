@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title><%= title %></title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; background: #f5f2ec; color: #1a1a1a; padding: 16px; max-width: 560px; margin: 0 auto; }
+  .card { background: #fff; border-radius: 14px; padding: 18px; margin-bottom: 14px; box-shadow: 0 2px 10px rgba(0,0,0,.07); border: 1px solid #e8e4de; }
+  h1 { font-size: 20px; margin-bottom: 4px; }
+  .muted { color: #777; font-size: 13px; }
+  .addr { font-size: 17px; font-weight: 700; line-height: 1.5; margin: 8px 0; }
+  .item { display: flex; justify-content: space-between; gap: 8px; padding: 8px 0; border-bottom: 1px dashed #e8e4de; font-size: 15px; }
+  .item small { display: block; color: #777; font-size: 12px; }
+  .total { display: flex; justify-content: space-between; font-size: 19px; font-weight: 800; padding-top: 10px; }
+  .btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 58px; font-size: 18px; font-weight: 800; border-radius: 12px; text-decoration: none; margin-top: 10px; border: none; cursor: pointer; }
+  .btn-call { background: #15803d; color: #fff; }
+  .btn-maps { background: #0a0a0a; color: #f5d67b; }
+  .err { text-align: center; padding: 40px 20px; }
+  .err .big { font-size: 22px; font-weight: 800; margin-bottom: 10px; }
+</style>
+</head>
+<body>
+<% if (typeof fahrerError !== 'undefined' && fahrerError) { %>
+  <div class="card err">
+    <% if (fahrerError === 'expired') { %>
+      <div class="big">Die Fahrer-Sitzung ist abgelaufen.</div>
+      <p class="muted">Die 30 Minuten sind um. Bitte einen neuen QR-Code anfordern.</p>
+    <% } else if (fahrerError === 'revoked') { %>
+      <div class="big">Dieser QR-Code ist ungültig.</div>
+      <p class="muted">Bitte an der Kasse nachfragen.</p>
+    <% } else { %>
+      <div class="big">Dieser QR-Code wurde bereits verwendet oder ist nicht mehr gültig.</div>
+      <p class="muted">Jeder QR-Code erstellt nur eine Fahrer-Sitzung.</p>
+    <% } %>
+  </div>
+<% } else { %>
+  <div class="card">
+    <h1><%= order.order_source === 'telefon' ? 'Telefonische Bestellung' : 'Lieferung' %> · <%= order.order_number %></h1>
+    <p class="muted"><%= order.order_status === 'unterwegs' ? 'Fahrer ist unterwegs' : order.order_status %></p>
+  </div>
+  <div class="card">
+    <div class="muted">Kunde</div>
+    <div class="addr"><%= order.customer_name %></div>
+    <div class="muted">Adresse</div>
+    <div class="addr"><%= order.delivery_address %><br><%= order.delivery_zip %> <%= order.delivery_city %></div>
+    <% if (order.customer_phone) { %><div class="muted">Telefon: <%= order.customer_phone %></div><% } %>
+  </div>
+  <div class="card">
+    <div class="muted" style="margin-bottom:6px">Bestellung</div>
+    <% items.forEach(function(it) { %>
+      <div class="item">
+        <div><%= it.qty %>× <%= it.name %><% if (it.size && it.size.label) { %> (<%= it.size.label %>)<% } %>
+          <% if (it.extras && it.extras.length) { %><small>+ <%= it.extras.map(function(e){ return e.name; }).join(', ') %></small><% } %>
+          <% if (it.note) { %><small>Notiz: <%= it.note %></small><% } %>
+        </div>
+        <strong><%= (it.qty * it.price).toFixed(2).replace('.', ',') %> €</strong>
+      </div>
+    <% }); %>
+    <div class="total"><span>Gesamt</span><span><%= parseFloat(order.total).toFixed(2).replace('.', ',') %> €</span></div>
+    <% if (order.notes) { %><p class="muted" style="margin-top:8px">Hinweis: <%= order.notes %></p><% } %>
+  </div>
+  <% if (tel) { %><a class="btn btn-call" href="tel:<%= tel %>">📞 Kunde anrufen</a><% } %>
+  <a class="btn btn-maps" href="<%= mapsUrl %>" target="_blank" rel="noopener">📍 Route öffnen</a>
+<% } %>
+</body>
+</html>

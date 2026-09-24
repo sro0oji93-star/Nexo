@@ -50,7 +50,7 @@
           <% (o.itemsParsed || []).forEach(function(it) { %>
           <div><%= it.qty %>× <%= it.name %><% if (it.size && it.size.label) { %> (<%= it.size.label %>)<% } %></div>
           <% }); %>
-          <div class="items-mini"><%= parseFloat(o.total).toFixed(2) %> € via <%= o.payment_method === 'bar' ? 'Bar' : (o.payment_method === 'karte' ? 'Karte' : 'Online') %></div>
+          <div class="items-mini"><%= parseFloat(o.total).toFixed(2) %> € via <%= o.payment_method === 'bar' ? 'Bar' : (o.payment_method === 'karte' ? 'Karte' : (o.payment_method === 'telefon' ? 'Telefon' : 'Online')) %></div>
         </td>
         <td><%= o.order_type === 'abholung' ? 'Abholung' : 'Lieferung' %></td>
         <td><strong><%= parseFloat(o.total).toFixed(2) %> €</strong></td>

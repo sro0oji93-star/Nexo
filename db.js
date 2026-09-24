@@ -914,6 +914,35 @@ async function initialize() {
     console.error('Bestell-Token-Migration übersprungen:', e.message);
   }
 
+  // Auto-Migration Telefonbestellung 2026-09-24: Kunden-Tabelle + order_source +
+  // Fahrer-QR One-Time-Session (nullable, alte Bestellungen bleiben gültig). Idempotent.
+  // order_source: 'online' | 'theke' | 'telefon' (statt Text-Matching auf name/notes).
+  try {
+    await query(`CREATE TABLE IF NOT EXISTS customers (
+      id SERIAL PRIMARY KEY,
+      phone TEXT NOT NULL,
+      phone_norm TEXT UNIQUE NOT NULL,
+      name TEXT NOT NULL,
+      strasse TEXT,
+      hausnummer TEXT,
+      plz TEXT,
+      ort TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`);
+    await query("ALTER TABLE orders ADD COLUMN IF NOT EXISTS order_source TEXT DEFAULT 'online'");
+    await query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_id INTEGER REFERENCES customers(id) ON DELETE SET NULL');
+    await query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS fahrer_used_at TIMESTAMP');
+    await query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS fahrer_session_token TEXT');
+    await query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS fahrer_session_expires_at TIMESTAMP');
+    await query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS fahrer_revoked INTEGER DEFAULT 0');
+    // Backfill: bestehende Theken-Bestellungen als 'theke' markieren (Text-Marker bleibt zusätzlich bestehen).
+    await query("UPDATE orders SET order_source = 'theke' WHERE customer_name = 'Theke' AND notes = 'Theken-Bestellung' AND (order_source IS NULL OR order_source = 'online')");
+    await query("UPDATE orders SET order_source = 'online' WHERE order_source IS NULL OR order_source = ''");
+  } catch (e) {
+    console.error('Telefonbestellung-Migration übersprungen:', e.message);
+  }
+
   // Auto-Migration Croque-Saucen 2026-09-06: 1 Sauce nach Wahl (inklusive) als Auswahl.
   // Saucenliste kommt aus der Kategorie Saucen & Dips (nur setzen, wenn noch keine Auswahl da ist).
   try {

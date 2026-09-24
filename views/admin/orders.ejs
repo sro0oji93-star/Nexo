@@ -34,11 +34,11 @@
     <tbody>
       <% orders.forEach(function(o) { %>
       <tr>
-        <td><a href="/admin/bestellungen/<%= o.id %>"><%= o.order_number %></a><% if (o.wish_display) { %><br><span class="badge" style="background:#e8f5e9;color:#15803d;border:1px solid #15803d">Wunsch: <%= o.wish_display %></span><% } %></td>
+        <td><a href="/admin/bestellungen/<%= o.id %>"><%= o.order_number %></a><% if (o.order_source === 'telefon') { %><br><span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #92400e">Telefonische Bestellung</span><% } %><% if (o.wish_display) { %><br><span class="badge" style="background:#e8f5e9;color:#15803d;border:1px solid #15803d">Wunsch: <%= o.wish_display %></span><% } %></td>
         <td><%= o.customer_name %></td>
         <td><%= o.customer_email %></td>
         <td><strong><%= parseFloat(o.total).toFixed(2) %> €</strong></td>
-        <td><span class="badge badge-payment"><%= o.payment_method === 'bar' ? 'Bar' : (o.payment_method === 'karte' ? 'Karte' : 'Online') %></span></td>
+        <td><span class="badge badge-payment"><%= o.payment_method === 'bar' ? 'Bar' : (o.payment_method === 'karte' ? 'Karte' : (o.payment_method === 'telefon' ? 'Telefon' : 'Online')) %></span></td>
         <td>
           <form method="POST" action="/admin/bestellungen/status/<%= o.id %>" class="status-form"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <select name="status" onchange="this.form.submit()">

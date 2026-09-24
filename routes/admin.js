@@ -297,13 +297,19 @@ router.post('/api/bestellungen/:id/gedruckt', auth, async (req, res) => {
 });
 
 // Thermo-Bon (80mm) für TM-T88V – wird im versteckten Iframe gedruckt
+// ?typ=fahrer (Standard, Auto-Print: Fahrerbon + Fahrer-QR) oder ?typ=kunde
+// (manueller Kundenbeleg für Telefonbestellung: ohne QR/Fahrer-Infos, ohne Online-Zahlung).
 router.get('/bestellungen/:id/bon', auth, async (req, res) => {
   const order = await db.get('SELECT * FROM orders WHERE id = $1 AND COALESCE(is_deleted,0) = 0', [req.params.id]);
   if (!order) return res.status(404).send('Bestellung nicht gefunden');
   try { order.items = JSON.parse(order.items); } catch (e) { order.items = []; }
   order.wish_display = db.formatWishDisplay(order.wish_time);
   const settings = res.locals.settings;
+  if (req.query.typ === 'kunde') {
+    return res.render('admin/bon-kunde', { order, settings });
+  }
   // Fahrer-QR NUR für Lieferung, ganz unten auf dem Bon (wird live erzeugt, nie gespeichert).
+  // URL unverändert (/fahrer/:token) – öffnet jetzt die einheitliche Fahrer-Seite (One-Time + 30 Min).
   // Abholer-Bons bleiben dadurch Byte-identisch zu bisher.
   let fahrerQr = null;
   if (order.order_type !== 'abholung' && order.driver_token) {
@@ -316,6 +322,12 @@ router.get('/bestellungen/:id/bon', auth, async (req, res) => {
     }
   }
   res.render('admin/bon', { order, settings, fahrerQr });
+});
+
+// Fahrer-QR manuell entwerten (Admin only): QR + laufende Session sofort ungültig.
+router.post('/bestellungen/:id/qr-revoke', auth, async (req, res) => {
+  await db.run('UPDATE orders SET fahrer_revoked = 1, fahrer_session_token = NULL, fahrer_session_expires_at = NULL WHERE id = $1', [req.params.id]);
+  res.redirect('/admin/bestellungen/' + req.params.id);
 });
 
 router.get('/bestellungen/:id', auth, async (req, res) => {

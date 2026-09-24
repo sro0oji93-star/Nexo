@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Bon <%= order.order_number %></title>
+<title>Kundenbeleg <%= order.order_number %></title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: 'Courier New', Courier, monospace; font-size: 15px; font-weight: bold; color: #000; background: #fff; width: 72mm; margin: 0 auto; padding: 4mm 2mm; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -32,13 +32,11 @@
     <% if (typeof settings !== 'undefined' && settings.phone) { %><div>Tel: <%= settings.phone %></div><% } %>
   </div>
   <hr>
-  <div class="center medium"><%= order.order_type === 'abholung' ? '*** ABHOLUNG ***' : '*** LIEFERUNG ***' %></div>
-  <% if (order.wish_display) { %><div class="center medium"><strong>WUNSCHTERMIN: <%= order.wish_display %></strong></div><% } %>
+  <div class="center medium">Bestellübersicht</div>
   <div class="center"><strong><%= order.order_number %></strong></div>
   <div class="center"><%= new Date(order.created_at).toLocaleDateString('de-DE') %> <%= new Date(order.created_at).toLocaleTimeString('de-DE', {hour:'2-digit', minute:'2-digit'}) %></div>
   <hr>
   <div><strong>Kunde:</strong> <%= order.customer_name %></div>
-  <% if (order.customer_phone) { %><div><strong>Tel:</strong> <%= order.customer_phone %></div><% } %>
   <% if (order.order_type !== 'abholung') { %>
     <div><%= order.delivery_address || '' %></div>
     <div><%= order.delivery_zip || '' %> <%= order.delivery_city || '' %></div>
@@ -59,16 +57,10 @@
   <% if (parseFloat(order.vat19 || 0) > 0) { %><div class="row"><span>19% MwSt:</span><span><%= parseFloat(order.vat19).toFixed(2).replace('.', ',') %> €</span></div><% } %>
   <div class="row total"><span>GESAMT</span><span><%= parseFloat(order.total).toFixed(2).replace('.', ',') %> €</span></div>
   <hr>
-  <div>Zahlung: <%= order.payment_method === 'bar' ? 'Bar' : (order.payment_method === 'karte' ? 'Karte' : (order.payment_method === 'telefon' ? 'Telefonische Bestellung' : 'Online')) %></div>
   <% if (order.notes) { %><div>Hinweis: <%= order.notes %></div><% } %>
-  <br><br>
-  <div class="center">* * * Danke! * * *</div>
+  <br>
+  <div class="center">Vielen Dank!</div>
   <br><br><br>
-  <% if (order.order_type !== 'abholung' && typeof fahrerQr !== 'undefined' && fahrerQr) { %>
-  <hr>
-  <div class="center medium">FAHRER: BITTE SCANNEN</div>
-  <div class="center"><img src="<%= fahrerQr %>" style="width:45mm;height:45mm;" alt="Fahrer-QR"></div>
-  <% } %>
 <script>
   if (new URLSearchParams(location.search).get('autoprint') === '1') { window.onload = function() { setTimeout(function(){ window.print(); }, 300); }; }
 </script>

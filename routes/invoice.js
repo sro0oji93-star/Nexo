@@ -24,6 +24,12 @@ function isKasseOrder(order) {
     && (order.customer_phone === null || order.customer_phone === undefined || order.customer_phone === '');
 }
 
+// Telefonbestellungen bekommen ebenfalls KEINE PDF-Rechnung (kein Online-Payment,
+// kein Payment-Selector). Marker: order_source (Fallback: payment_method).
+function isTelefonOrder(order) {
+  return !!order && (order.order_source === 'telefon' || order.payment_method === 'telefon');
+}
+
 function eur(n) {
   return (parseFloat(n) || 0).toFixed(2).replace('.', ',') + ' €';
 }
@@ -115,8 +121,9 @@ router.get('/rechnung/:orderNumber', async (req, res) => {
     try { tokenOk = tokensEqual(token, expected); } catch (e) { tokenOk = false; }
   }
   // Rechnung für ALLE normalen Online-Bestellungen (bezahlt oder nicht, Lieferung
-  // oder Abholung) – aber NIE für Kasse-Bestellungen (Theke). Sonst 404 wie bisher.
-  if (!tokenOk || isKasseOrder(order)) {
+  // oder Abholung) – aber NIE für Kasse-Bestellungen (Theke) und NIE für
+  // Telefonbestellungen. Sonst 404 wie bisher.
+  if (!tokenOk || isKasseOrder(order) || isTelefonOrder(order)) {
     return res.status(404).render('404', { title: 'Bestellung nicht gefunden' });
   }
   let pdf;
@@ -139,3 +146,4 @@ router.get('/rechnung/:orderNumber', async (req, res) => {
 module.exports = router;
 module.exports.buildInvoicePdf = buildInvoicePdf;
 module.exports.isKasseOrder = isKasseOrder;
+module.exports.isTelefonOrder = isTelefonOrder;

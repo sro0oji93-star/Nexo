@@ -143,9 +143,41 @@ router.get('/verfolgung/:orderNumber', async (req, res) => {
   });
 });
 
-// --- Fahrer-QR: genau EINE Aktion (idempotent) ---
-// 1) Token prüfen 2) unterwegs + Startzeit + Frist speichern 3) Google Maps öffnen.
-// Kein "Zugestellt"-Knopf, kein GPS, keine App. Erneutes Scannen ändert nichts.
+// --- Fahrer-QR (einheitlich für Online-Lieferung + Telefonbestellung) ---
+// One-Time-Use + 30-Minuten-Session, alles serverseitig:
+// 1) Erster Scan: Token prüfen -> used_at + Session-Token + Ablauf setzen (atomar),
+//    unterwegs/Startzeit/Frist wie bisher speichern, Session-Cookie setzen, Fahrer-Seite zeigen.
+// 2) Erneuter Aufruf: nur mit gültigem, nicht abgelaufenem Session-Cookie -> Seite.
+//    Sonst: "bereits verwendet / abgelaufen". QR enthält NUR den Token (keine PII).
+// Alte Bons/QRs laufen in dasselbe System (driver_token unverändert, neue Spalten nullable).
+function getCookie(req, cname) {
+  const header = req.headers && req.headers.cookie;
+  if (!header) return null;
+  const parts = header.split(';');
+  for (const part of parts) {
+    const i = part.indexOf('=');
+    if (i === -1) continue;
+    if (part.slice(0, i).trim() === cname) return decodeURIComponent(part.slice(i + 1).trim());
+  }
+  return null;
+}
+
+function setFahrerCookie(res, orderId, sessToken) {
+  const cname = 'fahrer_' + orderId;
+  const val = encodeURIComponent(sessToken);
+  // 30 Minuten, HttpOnly + Lax (Fahrer-Handy-Browser). Secure nur hinter HTTPS.
+  res.setHeader('Set-Cookie', cname + '=' + val + '; Path=/; Max-Age=1800; HttpOnly; SameSite=Lax');
+}
+
+function fahrerPageData(order) {
+  let items = [];
+  try { items = JSON.parse(order.items || '[]'); } catch (e) { items = []; }
+  const q = [order.delivery_address, order.delivery_zip, order.delivery_city].filter(Boolean).join(', ');
+  const mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q || '');
+  const tel = String(order.customer_phone || '').replace(/[^+\d]/g, '').slice(0, 20);
+  return { order, items, mapsUrl, tel };
+}
+
 router.get('/fahrer/:token', fahrerLimiter, async (req, res) => {
   const token = String(req.params.token || '');
   const order = await db.get('SELECT * FROM orders WHERE driver_token = $1 AND COALESCE(is_deleted,0) = 0', [token]);
@@ -154,21 +186,47 @@ router.get('/fahrer/:token', fahrerLimiter, async (req, res) => {
   if (!order || !tokensEqual(token, order.driver_token || '') || order.order_type !== 'lieferung') {
     return res.status(404).render('404', { title: 'Nicht gefunden' });
   }
-  if (!order.driver_started_at) {
-    const mins = (order.delivery_minutes != null && isFinite(order.delivery_minutes)) ? order.delivery_minutes : 15;
-    const upd = await db.run(
-      "UPDATE orders SET order_status = 'unterwegs', driver_started_at = NOW(), delivery_due_at = NOW() + (($1 + 2) * INTERVAL '1 minute') WHERE id = $2 AND driver_started_at IS NULL RETURNING delivery_due_at",
-      [mins, order.id]
-    );
-    if (upd && upd.rowCount > 0) {
-      try { events.emit('order:status', { id: order.id }); } catch (e) { /* still */ }
-      const due = upd.rows && upd.rows[0] ? upd.rows[0].delivery_due_at : null;
-      if (due) { try { scheduler.arm(order.id, due); } catch (e) { /* Timer folgt per Boot */ } }
-    }
+  if (order.fahrer_revoked) {
+    return res.status(410).render('fahrer', { title: 'QR ungültig', fahrerError: 'revoked' });
   }
-  const q = [order.delivery_address, order.delivery_zip, order.delivery_city].filter(Boolean).join(', ');
-  const mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q || '');
-  return res.redirect(302, mapsUrl);
+  const cname = 'fahrer_' + order.id;
+  const cookieSess = getCookie(req, cname);
+  // Erster Scan: Token verbrauchen + Session erzeugen (atomar gegen Doppel-Scan).
+  if (!order.fahrer_used_at) {
+    const sessToken = crypto.randomBytes(32).toString('hex');
+    const upd = await db.run(
+      "UPDATE orders SET fahrer_used_at = NOW(), fahrer_session_token = $1, fahrer_session_expires_at = NOW() + INTERVAL '30 minutes' WHERE id = $2 AND fahrer_used_at IS NULL RETURNING fahrer_session_expires_at",
+      [sessToken, order.id]
+    );
+    if (!upd || upd.rowCount === 0) {
+      // Gleichzeitiger Zweit-Scan: ohne gültige Session ablehnen.
+      return res.status(410).render('fahrer', { title: 'QR bereits verwendet', fahrerError: 'used' });
+    }
+    if (!order.driver_started_at) {
+      const mins = (order.delivery_minutes != null && isFinite(order.delivery_minutes)) ? order.delivery_minutes : 15;
+      const upd2 = await db.run(
+        "UPDATE orders SET order_status = 'unterwegs', driver_started_at = NOW(), delivery_due_at = NOW() + (($1 + 2) * INTERVAL '1 minute') WHERE id = $2 AND driver_started_at IS NULL RETURNING delivery_due_at",
+        [mins, order.id]
+      );
+      if (upd2 && upd2.rowCount > 0) {
+        try { events.emit('order:status', { id: order.id }); } catch (e) { /* still */ }
+        const due = upd2.rows && upd2.rows[0] ? upd2.rows[0].delivery_due_at : null;
+        if (due) { try { scheduler.arm(order.id, due); } catch (e) { /* Timer folgt per Boot */ } }
+      }
+    }
+    setFahrerCookie(res, order.id, sessToken);
+    const fresh = await db.get('SELECT * FROM orders WHERE id = $1', [order.id]);
+    return res.render('fahrer', Object.assign({ title: 'Fahrer – ' + order.order_number }, fahrerPageData(fresh || order)));
+  }
+  // Token bereits verbraucht: nur mit gültiger, nicht abgelaufener Session weiter.
+  const sessOk = cookieSess && order.fahrer_session_token
+    && tokensEqual(cookieSess, order.fahrer_session_token)
+    && order.fahrer_session_expires_at && new Date(order.fahrer_session_expires_at).getTime() > Date.now();
+  if (sessOk) {
+    return res.render('fahrer', Object.assign({ title: 'Fahrer – ' + order.order_number }, fahrerPageData(order)));
+  }
+  const expired = order.fahrer_session_expires_at && new Date(order.fahrer_session_expires_at).getTime() <= Date.now();
+  return res.status(410).render('fahrer', { title: expired ? 'Sitzung abgelaufen' : 'QR bereits verwendet', fahrerError: expired ? 'expired' : 'used' });
 });
 
 module.exports = router;
