@@ -1,6 +1,8 @@
 /* Lieferadresse: Photon-Autocomplete + OSRM-Fahrstrecke ab Restaurant (nur Checkout-Seite) */
 (function () {
-  var addrInput = document.getElementById('address');
+  var streetInput = document.getElementById('street');
+  var hnrInput = document.getElementById('housenumber');
+  var addrInput = document.getElementById('address'); // hidden: "Straße Hausnummer" für den Server
   var cityInput = document.getElementById('city');
   var zipInput = document.getElementById('zip');
   var box = document.getElementById('addrSuggest');
@@ -8,7 +10,7 @@
   var lonField = document.getElementById('delivery_lon');
   var noteOk = document.getElementById('deliveryDistanceNote');
   var noteBlocked = document.getElementById('deliveryBlockedNote');
-  if (!addrInput || !box) return;
+  if (!streetInput || !box) return;
   var cfg = window.deliveryConfig || { restaurant_lat: 53.295344, restaurant_lon: 10.391293, max_km: 12, phone: '04131 4006817' };
 
   // Zustand für den Submit-Check in cart.js
@@ -113,15 +115,22 @@
     }).catch(function () { /* still -> Server entscheidet */ });
   }
 
+  // Hidden-Feld für den Server synchron halten ("Straße Hausnummer" wie bisher)
+  function syncAddress() {
+    if (!addrInput) return;
+    var s = (streetInput && streetInput.value || '').trim();
+    var h = (hnrInput && hnrInput.value || '').trim();
+    addrInput.value = (s + (h ? ' ' + h : '')).trim();
+  }
+
   function pickFeature(f) {
     var p = f.properties || {};
-    var parts = [];
-    if (p.street) parts.push(p.street + (p.housenumber ? ' ' + p.housenumber : ''));
-    else if (p.name) parts.push(p.name);
-    if (addrInput) addrInput.value = parts.join(' ');
+    if (streetInput) streetInput.value = p.street || p.name || streetInput.value;
+    if (hnrInput && p.housenumber) hnrInput.value = p.housenumber;
     if (p.postcode && zipInput && !zipInput.value) zipInput.value = p.postcode;
     if ((p.city || p.town || p.village) && cityInput && !cityInput.value) cityInput.value = p.city || p.town || p.village;
     box.style.display = 'none';
+    syncAddress();
     var coords = (f.geometry && f.geometry.coordinates) || null;
     if (coords && coords.length === 2) checkDistance(coords[1], coords[0]);
   }
@@ -129,7 +138,7 @@
   var timer = null;
   var lastQ = '';
   function search() {
-    var q = (addrInput.value || '').trim();
+    var q = ((streetInput.value || '').trim() + ' ' + (hnrInput && hnrInput.value || '').trim()).trim();
     if (cityInput && cityInput.value.trim()) q += ' ' + cityInput.value.trim();
     if (zipInput && zipInput.value.trim()) q += ' ' + zipInput.value.trim();
     if (q.length < 3 || q === lastQ) { if (q.length < 3) box.style.display = 'none'; return; }
@@ -163,12 +172,13 @@
     }).catch(function () { box.style.display = 'none'; });
   }
 
-  ['address', 'city', 'zip'].forEach(function (id) {
+  ['street', 'housenumber', 'city', 'zip'].forEach(function (id) {
     var el = document.getElementById(id);
     if (!el) return;
     el.addEventListener('input', function () {
-      if (id === 'address') {
+      if (id === 'street' || id === 'housenumber') {
         resetCheck();
+        syncAddress();
         if (timer) clearTimeout(timer);
         timer = setTimeout(search, 350);
       } else {
@@ -176,7 +186,7 @@
       }
     });
     el.addEventListener('blur', function () { setTimeout(function () { box.style.display = 'none'; }, 200); });
-    el.addEventListener('focus', function () { if (id === 'address' && box.children.length) box.style.display = 'block'; });
+    el.addEventListener('focus', function () { if (id === 'street' && box.children.length) box.style.display = 'block'; });
   });
 
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') box.style.display = 'none'; });

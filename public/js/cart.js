@@ -403,12 +403,13 @@ var Cart = (function() {
     var isPickup = (t === 'abholung');
     var card = document.getElementById('addressCard');
     var payCard = document.getElementById('paymentCard');
-    var addr = document.getElementById('address');
+    var street = document.getElementById('street');
+    var hnr = document.getElementById('housenumber');
     var city = document.getElementById('city');
     var zip = document.getElementById('zip');
     if (card) card.style.display = isPickup ? 'none' : '';
     if (payCard) payCard.style.display = isPickup ? 'none' : '';
-    [addr, city, zip].forEach(function(f) { if (f) f.required = !isPickup; });
+    [street, hnr, city, zip].forEach(function(f) { if (f) f.required = !isPickup; });
     paintTimeGroups();
   }
 
@@ -1132,6 +1133,26 @@ document.addEventListener('DOMContentLoaded', function() {
       e.preventDefault();
       var items = Cart.getItems();
       if (items.length === 0) { alert('Ihr Warenkorb ist leer.'); return; }
+
+      // Straße + Hausnummer prüfen (nur Lieferung; Abholung blendet die Karte aus)
+      if (Cart.getOrderType() === 'lieferung') {
+        var streetEl = document.getElementById('street');
+        var hnrEl = document.getElementById('housenumber');
+        var addrHidden = document.getElementById('address');
+        var streetVal = streetEl ? streetEl.value.trim() : '';
+        var hnrVal = hnrEl ? hnrEl.value.trim() : '';
+        if (!streetVal) {
+          alert('Bitte geben Sie Ihre Straße an.');
+          if (streetEl) { streetEl.style.borderColor = 'var(--primary)'; streetEl.focus(); }
+          return;
+        }
+        if (!/^\d/.test(hnrVal)) {
+          alert('Bitte geben Sie eine gültige Hausnummer an (z. B. 12 oder 12a).');
+          if (hnrEl) { hnrEl.style.borderColor = 'var(--primary)'; hnrEl.focus(); }
+          return;
+        }
+        if (addrHidden) addrHidden.value = (streetVal + ' ' + hnrVal).trim();
+      }
 
       var formData = new FormData(checkoutForm);
 

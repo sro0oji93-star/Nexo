@@ -109,7 +109,7 @@
         <% if (catProducts.length === 0) { %>
         <p class="align-center" style="color:#7a7879;font-size:1.1rem;padding:20px 0">Bald verfügbar</p>
         <% } else { %>
-        <div class="row">
+        <div class="row<%= cat.slug === 'nexo-deals' ? ' deals-cols' : '' %>">
           <% var half = Math.ceil(catProducts.length / 2); %>
           <div class="col-lg-6">
             <% catProducts.slice(0, half).forEach(function(p) { %>
@@ -252,6 +252,11 @@
 </div>
 
 <style>
+/* NEXO Deals (nur Desktop): mehr Luft zwischen den zwei Spalten */
+@media (min-width: 769px) {
+  .deals-cols > .col-lg-6:first-child { padding-right: 45px; }
+  .deals-cols > .col-lg-6:last-child { padding-left: 45px; }
+}
 @media (max-width: 767px) {
   .mad-spec-item { flex-direction:column !important; align-items:center !important; text-align:center !important; }
   .mad-spec-item figure { max-width:140px !important; min-width:140px !important; height:140px !important; margin-right:0 !important; margin-bottom:12px !important; border-radius:24px !important; background:#fff !important; }

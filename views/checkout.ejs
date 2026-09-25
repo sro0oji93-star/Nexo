@@ -75,10 +75,16 @@
           <div class="checkout-card" id="addressCard">
             <h3><i class="fas fa-map-marker-alt"></i> Lieferadresse</h3>
             <div class="form-grid">
-              <div class="form-group" style="position:relative">
-                <input type="text" id="address" name="address" required placeholder="Straße & Hausnummer *" autocomplete="off">
-                <div id="addrSuggest" class="addr-suggest" style="display:none"></div>
+              <div class="addr-split">
+                <div class="form-group" style="position:relative">
+                  <input type="text" id="street" name="street" required placeholder="Straße *" autocomplete="off">
+                  <div id="addrSuggest" class="addr-suggest" style="display:none"></div>
+                </div>
+                <div class="form-group">
+                  <input type="text" id="housenumber" name="housenumber" required placeholder="Hausnummer *" autocomplete="off">
+                </div>
               </div>
+              <input type="hidden" id="address" name="address">
               <div class="form-group">
                 <input type="text" id="city" name="city" required placeholder="Stadt *">
               </div>
@@ -184,6 +190,15 @@
 .time-choice{display:flex;align-items:center;gap:8px;margin:7px 0;font-size:14px;cursor:pointer;padding:9px 12px;border:1px solid #e8e4de;border-radius:10px;background:#fff;transition:border-color .2s,background .2s}
 .time-choice:has(input:checked){border-color:#d4af37;background:rgba(212,175,55,.12);font-weight:700}
 .time-choice input{margin:0;accent-color:#d4af37}
+/* Desktop: Bestellbutton-Text bleibt im Kreis (zweizeilig statt Überlauf) */
+@media (min-width: 769px) {
+  #submitOrder{white-space:normal;line-height:1.4;font-size:15px;text-align:center}
+}
+/* Adresse: Straße breit + Hausnummer schmal nebeneinander (Desktop), gestapelt (Mobil) */
+.addr-split{display:grid;grid-template-columns:1fr 150px;gap:16px;grid-column:1/-1}
+@media (max-width: 768px) {
+  .addr-split{grid-template-columns:1fr}
+}
 </style>
 <script src="/js/checkout-address.js?v=20260905b"></script>
 
