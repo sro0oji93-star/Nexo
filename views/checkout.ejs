@@ -77,23 +77,19 @@
             <div class="form-grid">
               <div class="addr-split">
                 <div class="form-group" style="position:relative">
-                  <label for="street">Straße *</label>
-                  <input type="text" id="street" name="street" required placeholder="z. B. Große Straße" autocomplete="off">
+                  <input type="text" id="street" name="street" required placeholder="Straße *" autocomplete="off">
                   <div id="addrSuggest" class="addr-suggest" style="display:none"></div>
                 </div>
                 <div class="form-group">
-                  <label for="housenumber">Hausnummer *</label>
-                  <input type="text" id="housenumber" name="housenumber" required placeholder="z. B. 12a" autocomplete="off">
+                  <input type="text" id="housenumber" name="housenumber" required placeholder="Hausnummer *" autocomplete="off">
                 </div>
               </div>
               <input type="hidden" id="address" name="address">
               <div class="form-group">
-                <label for="city">Stadt *</label>
-                <input type="text" id="city" name="city" required placeholder="z. B. Bardowick">
+                <input type="text" id="city" name="city" required placeholder="Stadt *">
               </div>
               <div class="form-group">
-                <label for="zip">PLZ *</label>
-                <input type="text" id="zip" name="zip" required placeholder="z. B. 21357">
+                <input type="text" id="zip" name="zip" required placeholder="PLZ *">
               </div>
             </div>
             <input type="hidden" id="delivery_lat" name="delivery_lat">
@@ -198,12 +194,7 @@
 @media (min-width: 769px) {
   #submitOrder{white-space:normal;line-height:1.4;font-size:15px;text-align:center}
 }
-/* Lieferadresse: Luft + Labels + weiche Karten-Optik (nur diese Karte) */
-#addressCard .form-grid{gap:18px}
-#addressCard .form-group label{font-size:12px;font-weight:700;color:#6b6b6b;letter-spacing:.3px}
-#addressCard .form-group input{background:#fff;border:1.5px solid #e8e4de;border-radius:12px;padding:13px 16px;font-size:14px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
-#addressCard .form-group input:focus{border-color:#d4af37;box-shadow:0 0 0 3px rgba(212,175,55,.15)}
-#addressCard .form-group input::placeholder{color:#b0aca6}
+/* Adresse: Straße breit + Hausnummer schmal nebeneinander (Desktop), gestapelt (Mobil) */
 .addr-split{display:grid;grid-template-columns:1fr 150px;gap:16px;grid-column:1/-1}
 @media (max-width: 768px) {
   .addr-split{grid-template-columns:1fr}
