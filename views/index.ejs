@@ -168,7 +168,18 @@ a.rabatt-l3 { font-size:clamp(22px,2.8vw,40px);text-decoration:none; }
     current = i;
   }
   paint(0, true);
-  interval = setInterval(function() { paint((current + 1) % slides.length); }, 6000);
+  function start() { stop(); interval = setInterval(function() { paint((current + 1) % slides.length); }, 6000); }
+  function stop() { if (interval) clearInterval(interval); interval = null; }
+  start();
+  // Pause bei Berührung (Touch) und Maus – weiter nach Loslassen/Verlassen
+  var heroSec = (slides[0].closest) ? slides[0].closest('section') : null;
+  if (heroSec) {
+    heroSec.addEventListener('touchstart', stop, { passive: true });
+    heroSec.addEventListener('touchend', start, { passive: true });
+    heroSec.addEventListener('touchcancel', start, { passive: true });
+    heroSec.addEventListener('mouseenter', stop);
+    heroSec.addEventListener('mouseleave', start);
+  }
 })();
 </script>
 
