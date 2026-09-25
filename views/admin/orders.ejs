@@ -1,7 +1,6 @@
 <%- include('layout') %>
 <div class="section-header-row">
-  <h2><i class="fas fa-clipboard-list"></i> Bestellungen</h2>
-  <form method="GET" action="/admin/bestellungen" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+  <h2><i class="fas fa-clipboard-list"></i> Bestellungen</h2>  <form method="GET" action="/admin/bestellungen" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
     <input type="hidden" name="status" value="<%= currentStatus %>">
     <a href="/admin/bestellungen?status=<%= currentStatus %>&datum=<%= new Date(new Date(datum).getTime() - 86400000).toISOString().slice(0,10) %>" class="btn btn-sm btn-outline">‹</a>
     <input type="date" name="datum" value="<%= datum %>" onchange="this.form.submit()" style="padding:8px 12px;border-radius:8px;border:1px solid #e8e4de;font-size:13px">
@@ -16,6 +15,10 @@
     <a href="/admin/bestellungen?status=geliefert&datum=<%= datum %>" class="btn btn-sm <%= currentStatus === 'geliefert' ? 'btn-primary' : 'btn-outline' %>">Geliefert</a>
   </div>
 </div>
+
+<% if (typeof deleteBlocked !== 'undefined' && deleteBlocked) { %>
+<div class="alert alert-warning" style="margin-bottom:14px"><i class="fas fa-exclamation-triangle"></i> Löschen blockiert: Erst <strong>stornieren</strong> oder als <strong>geliefert/zugestellt</strong> markieren, dann löschen.</div>
+<% } %>
 
 <div class="table-container">
   <table class="admin-table">
@@ -56,10 +59,14 @@
         <td>
           <a href="/admin/bestellungen/<%= o.id %>" class="btn btn-sm btn-outline"><i class="fas fa-eye"></i></a>
           <a href="/admin/bestellungen/<%= o.id %>/bon?autoprint=1" target="_blank" class="btn btn-sm btn-outline" title="Bon drucken (TM-T88V)"><i class="fas fa-print"></i></a>
+          <% if (['storniert', 'zugestellt', 'geliefert'].indexOf(o.order_status) !== -1) { %>
           <form method="POST" action="/admin/bestellungen/loeschen/<%= o.id %>" style="display:inline" onsubmit="return confirm('Bestellung wirklich löschen?')">
             <input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <button type="submit" class="btn btn-sm btn-danger" style="padding:4px 8px"><i class="fas fa-trash"></i></button>
           </form>
+          <% } else { %>
+          <span class="muted" title="Erst stornieren oder liefern, dann löschen" style="padding:4px 8px;font-size:12px">🔒</span>
+          <% } %>
         </td>
       </tr>
       <% }); %>

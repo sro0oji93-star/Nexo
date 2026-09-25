@@ -197,7 +197,7 @@ router.get('/bestellungen', auth, async (req, res) => {
   const dayCount = orders.length;
   const dayRevenue = orders.filter(o => o.order_status !== 'storniert').reduce((s, o) => s + parseFloat(o.total || 0), 0);
   orders.forEach(o => { o.wish_display = db.formatWishDisplay(o.wish_time); });
-  res.render('admin/orders', { title: 'Bestellungen – Admin', orders, currentStatus: status, datum, dayCount, dayRevenue });
+  res.render('admin/orders', { title: 'Bestellungen – Admin', orders, currentStatus: status, datum, dayCount, dayRevenue, deleteBlocked: req.query.deleteBlocked === '1' });
 });
 
 router.post('/bestellungen/status/:id', auth, async (req, res) => {
@@ -381,9 +381,19 @@ router.get('/bestellungen/:id', auth, async (req, res) => {
 });
 
 router.post('/bestellungen/loeschen/:id', auth, async (req, res) => {
+  // Schutz vor "hängenden" Kundenseiten: Löschen nur nach Storno oder Lieferung.
+  // Aktive Bestellungen (neu/in Bearbeitung/unterwegs/wartet_auf_zahlung) zuerst stornieren.
+  const order = await db.get('SELECT * FROM orders WHERE id = $1 AND COALESCE(is_deleted,0) = 0', [req.params.id]);
+  const back = req.get('Referer') || '/admin/bestellungen';
+  const safeBack = back.startsWith('/admin/bestellungen') ? back : '/admin/bestellungen';
+  if (!order) return res.redirect(safeBack);
+  if (['storniert', 'zugestellt', 'geliefert'].indexOf(order.order_status) === -1) {
+    const sep = safeBack.includes('?') ? '&' : '?';
+    return res.redirect(safeBack + sep + 'deleteBlocked=1');
+  }
   // Soft-Delete: Bestellung bleibt für den Eigentümer sichtbar + provisionspflichtig
   await db.run('UPDATE orders SET is_deleted = 1, deleted_at = NOW() WHERE id = $1', [req.params.id]);
-  res.redirect('/admin/bestellungen');
+  res.redirect(safeBack);
 });
 
 router.get('/rabatte', auth, async (req, res) => {

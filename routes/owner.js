@@ -5,6 +5,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const db = require('../db');
+const events = require('../events');
 
 function requireOwner(req, res, next) {
   if (req.session && req.session.owner) return next();
@@ -157,6 +158,18 @@ router.get('/bestellungen', requireOwner, async (req, res) => {
     onlineReceived: onlineOrders.length,
     commission: onlineOrders.length * rate
   });
+});
+
+// Status ändern (inkl. gelöschter): gleiche Stati wie /admin, inkl. Live-Push
+// (Kunden-Tracking + Admin-Seiten aktualisieren sich sofort).
+router.post('/bestellungen/status/:id', requireOwner, async (req, res) => {
+  const allowed = ['wartet_auf_zahlung', 'neu', 'in_bearbeitung', 'unterwegs', 'geliefert', 'zugestellt', 'storniert'];
+  const status = String(req.body.status || '');
+  if (allowed.indexOf(status) === -1) return res.status(400).send('Ungültiger Status');
+  await db.run('UPDATE orders SET order_status = $1 WHERE id = $2 AND COALESCE(owner_deleted,0) = 0', [status, req.params.id]);
+  try { events.emit('order:status', { id: parseInt(req.params.id, 10) }); } catch (e) { /* still */ }
+  const datum = validDate(req.body.datum);
+  res.redirect('/eigentuemer/bestellungen?datum=' + datum);
 });
 
 // Eigentümer-Löschen: NUR owner_deleted-Flag (eigene Spalte). is_deleted/deleted_at
