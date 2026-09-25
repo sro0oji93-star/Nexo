@@ -20,7 +20,7 @@
 (function() {
   var shop = { lat: <%= parseFloat(settings.restaurant_lat || settings.latitude) || 53.295344 %>, lon: <%= parseFloat(settings.restaurant_lon || settings.longitude) || 10.391293 %> };
   var map = L.map('liveMap').setView([shop.lat, shop.lon], 13);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 19, subdomains: 'abcd', attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>' }).addTo(map);
+  L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', { maxZoom: 19, subdomains: ['a', 'b', 'c'], attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://www.openstreetmap.fr/">OSM France</a>' }).addTo(map);
 
   var shopMarker = L.marker([shop.lat, shop.lon], {
     icon: L.divIcon({ className: '', html: '<div style="background:#0a0a0a;color:#f5d67b;border:2px solid #d4af37;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:17px">🏠</div>', iconSize: [34, 34], iconAnchor: [17, 17] })
