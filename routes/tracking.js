@@ -98,11 +98,15 @@ router.get('/verfolgung/stream', async (req, res) => {
   const wanted = String(req.query.tokens || '').split(',').map((s) => s.trim()).filter(Boolean).slice(0, 20);
   if (!wanted.length) return res.status(401).end();
   const allowed = new Map(); // confirm_token -> order id
+  const dead = []; // order_numbers gelöschter Bestellungen -> Widget räumt sofort auf
   for (const t of wanted) {
-    const row = await db.get('SELECT id, confirm_token FROM orders WHERE confirm_token = $1 AND COALESCE(is_deleted,0) = 0', [t]).catch(() => null);
-    if (row && tokensEqual(t, row.confirm_token)) allowed.set(row.confirm_token, row.id);
+    const row = await db.get('SELECT id, confirm_token, order_number, COALESCE(is_deleted,0) as is_deleted FROM orders WHERE confirm_token = $1', [t]).catch(() => null);
+    if (row && tokensEqual(t, row.confirm_token)) {
+      if (!row.is_deleted) allowed.set(row.confirm_token, row.id);
+      else if (row.order_number) dead.push(row.order_number);
+    }
   }
-  if (!allowed.size) return res.status(401).end();
+  if (!allowed.size && !dead.length) return res.status(401).end();
 
   res.set({
     'Content-Type': 'text/event-stream; charset=utf-8',
@@ -122,6 +126,10 @@ router.get('/verfolgung/stream', async (req, res) => {
   }
 
   // Startzustand sofort senden (Catch-up beim Connect).
+  // Gelöschte zuerst als inaktiv melden, damit das Homepage-Widget sie sofort entfernt.
+  for (const num of dead) {
+    try { res.write('event: status\ndata: ' + JSON.stringify({ order_number: num, status: 'deleted', label: '', active: false }) + '\n\n'); } catch (e) { /* still */ }
+  }
   for (const id of allowed.values()) {
     try { await pushOrder(id); } catch (e) { /* still */ }
   }
