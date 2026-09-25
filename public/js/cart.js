@@ -1125,6 +1125,23 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // Checkout form
+  // Gespeicherte Kundendaten beim Öffnen der Kasse einfüllen (nur leere Felder, Eingaben nie überschreiben)
+  try {
+    if (document.getElementById('checkoutForm')) {
+      var savedCust = JSON.parse(localStorage.getItem('feinCustomer') || 'null');
+      if (savedCust) {
+        [['name', savedCust.name], ['email', savedCust.email], ['phone', savedCust.phone], ['street', savedCust.street], ['housenumber', savedCust.housenumber], ['city', savedCust.city], ['zip', savedCust.zip]].forEach(function(pair) {
+          var el = document.getElementById(pair[0]);
+          if (el && !el.value && pair[1]) el.value = pair[1];
+        });
+        var addrH = document.getElementById('address');
+        var stH = document.getElementById('street');
+        var hnH = document.getElementById('housenumber');
+        if (addrH && stH && hnH && !addrH.value) addrH.value = ((stH.value || '').trim() + ' ' + (hnH.value || '').trim()).trim();
+      }
+    }
+  } catch (e) { /* kein Speicher -> Felder bleiben leer */ }
+
   var checkoutForm = document.getElementById('checkoutForm');
   if (checkoutForm) {
     Cart.renderCheckoutSummary();
@@ -1233,6 +1250,20 @@ document.addEventListener('DOMContentLoaded', function() {
         if (result.success) {
           localStorage.removeItem('feinCart');
           localStorage.removeItem('feinDiscount');
+          // Kundendaten für die nächste Bestellung merken (nur dieses Gerät/Browser)
+          try {
+            var sEl = document.getElementById('street');
+            var hEl = document.getElementById('housenumber');
+            localStorage.setItem('feinCustomer', JSON.stringify({
+              name: data.name || '',
+              email: data.email || '',
+              phone: data.phone || '',
+              street: sEl ? sEl.value.trim() : '',
+              housenumber: hEl ? hEl.value.trim() : '',
+              city: data.city || '',
+              zip: data.zip || ''
+            }));
+          } catch (e) { /* ignore */ }
           // Tracking merken (gleiche Gerät, überlebt Reload): Homepage-Widget + Sendungsverfolgung.
           try {
             if (window.NexoTracking && result.orderNumber && result.confirmToken) {
