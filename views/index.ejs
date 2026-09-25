@@ -75,7 +75,7 @@
         </div>
         <div style="flex:1;min-width:350px;max-width:700px;position:relative;min-height:550px;display:flex;align-items:center;justify-content:center">
           <div style="position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center">
-            <img src="<%= slide.main_image || '/images/revolution/75ec1-big1.png' %>" alt="" <%- idx === 0 ? 'fetchpriority="high" decoding="async"' : 'loading="lazy" decoding="async"' %> style="max-width:100%;max-height:550px;object-fit:contain;animation:gentleFloat 3.5s ease-in-out infinite">
+            <img src="<%= slide.main_image || '/images/revolution/75ec1-big1.png' %>" alt="" <%- idx === 0 ? 'fetchpriority="high" decoding="async"' : 'loading="lazy" decoding="async"' %> style="width:100%;height:550px;max-width:100%;object-fit:contain;animation:gentleFloat 3.5s ease-in-out infinite">
             <% if (slide.drink_tl) { %><img src="<%= slide.drink_tl %>" alt="" <%- idx === 0 ? 'decoding="async"' : 'loading="lazy" decoding="async"' %> style="position:absolute;top:24%;left:-2%;width:22%;animation:revFloat 3.5s ease-in-out infinite"><% } %>
             <% if (slide.drink_tr) { %><img src="<%= slide.drink_tr %>" alt="" <%- idx === 0 ? 'decoding="async"' : 'loading="lazy" decoding="async"' %> style="position:absolute;top:28%;right:-3%;width:20%;animation:revFloat 3.5s ease-in-out infinite 0.3s"><% } %>
             <% if (slide.drink_br) { %><img src="<%= slide.drink_br %>" alt="" <%- idx === 0 ? 'decoding="async"' : 'loading="lazy" decoding="async"' %> style="position:absolute;bottom:0;right:0;width:20%;animation:revFloat 3.5s ease-in-out infinite 0.6s"><% } %>
@@ -124,15 +124,17 @@ a.rabatt-l3 { font-size:clamp(22px,2.8vw,40px);text-decoration:none; }
 .rabatt-l3 .rabatt-ico { color:#f5d67b; }
 .rabatt-l4 { margin-top:12px;font-size:clamp(13px,1.4vw,18px);color:rgba(255,255,255,.9);max-width:80%;text-shadow:0 1px 3px rgba(0,0,0,.9), 0 0 12px rgba(0,0,0,.6); }
 @media (max-width:767px) {
-  .hero-slide-items { min-height:720px !important; }
-  .hero-slide-items > .hero-inner > div { flex-direction:column !important; }
+  /* Kompakt: Text + Bild + Button sofort im ersten Bildschirm (kein Scroll nötig) */
+  .hero-slide-items { min-height:0 !important; }
+  .hero-slide-items > .hero-inner { padding:96px 16px 26px !important; }
+  .hero-slide-items > .hero-inner > div { flex-direction:column !important; gap:14px !important; }
   .hero-slide-items .mad-hero-text { max-width:100% !important;min-width:auto !important;text-align:center; }
   .hero-slide-items .mad-hero-text p { max-width:100% !important; }
   .hero-slide-items .mad-hero-title span { font-size:clamp(24px,7vw,42px) !important; }
   .hero-slide-items .mad-hero-title span:nth-child(3) { font-size:clamp(32px,9vw,55px) !important; }
   .hero-slide-items .mad-hero-title br + span { font-size:clamp(20px,5vw,36px) !important; }
-  .hero-slide-items div[style*="flex:1;min-width:350px"] { min-width:auto !important;min-height:340px !important;max-width:440px !important;width:100% !important; }
-  .hero-slide-items img[style*="max-width:100%"] { max-height:380px !important; }
+  .hero-slide-items div[style*="flex:1;min-width:350px"] { min-width:auto !important;min-height:0 !important;max-width:340px !important;width:100% !important;margin:0 auto !important; }
+  .hero-slide-items img[style*="max-width:100%"] { width:100% !important;height:230px !important;object-fit:contain !important; }
   .hero-slide-items img[style*="position:absolute"] { width:22% !important; }
   .hero-slide-items img[style*="right:-2%"] { width:18% !important; }
   .hero-slide-items img[style*="bottom:-2%"] { width:16% !important; }
