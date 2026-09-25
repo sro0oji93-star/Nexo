@@ -8,6 +8,7 @@ const auth = require('../middleware/auth');
 const { optimizeUpload } = require('../image');
 const { verifyCsrf } = require('../middleware/csrf');
 const events = require('../events');
+const driverLive = require('./tracking');
 
 // Middleware-Variante: prüft CSRF nach multer (req.body ist dann gefüllt).
 const csrfAfterUpload = (req, res, next) => {
@@ -285,6 +286,46 @@ router.get('/api/orders-stream', auth, async (req, res) => {
   });
 });
 
+// --- Fahrer Live-Karte: Seite + SSE-Stream (Memory-only, kein DB-Polling) ---
+router.get('/live-karte', auth, async (req, res) => {
+  res.render('admin/live-map', { title: 'Fahrer Live-Karte – Admin', settings: res.locals.settings });
+});
+
+router.get('/api/driver-stream', auth, async (req, res) => {
+  res.set({
+    'Content-Type': 'text/event-stream; charset=utf-8',
+    'Cache-Control': 'no-cache, no-transform',
+    'Connection': 'keep-alive',
+    'X-Accel-Buffering': 'no'
+  });
+  res.flushHeaders();
+  res.write('retry: 3000\n\n');
+
+  // Catch-up: aktuelle Trips einmalig senden (aus Server-Memory, kein DB-Zugriff).
+  try {
+    for (const t of driverLive.tripSnapshot()) {
+      res.write('event: driver\ndata: ' + JSON.stringify(t) + '\n\n');
+    }
+  } catch (e) { /* still */ }
+
+  const heartbeat = setInterval(() => {
+    try { res.write(': ping\n\n'); } catch (e) { /* tot */ }
+  }, 25000);
+
+  const onDriver = (payload) => {
+    try { res.write('event: driver\ndata: ' + JSON.stringify(payload) + '\n\n'); } catch (e) { /* tot */ }
+  };
+  events.on('driver:location', onDriver);
+  events.on('driver:returned', onDriver);
+  events.on('driver:stopped', onDriver);
+  req.on('close', () => {
+    clearInterval(heartbeat);
+    events.removeListener('driver:location', onDriver);
+    events.removeListener('driver:returned', onDriver);
+    events.removeListener('driver:stopped', onDriver);
+  });
+});
+
 // Als gedruckt markieren (damit kein Doppel-Druck bei mehreren Tabs/PCs)
 router.post('/api/bestellungen/:id/gedruckt', auth, async (req, res) => {
   try {
@@ -555,6 +596,16 @@ router.get('/einstellungen', auth, async (req, res) => {
 
 router.post('/einstellungen', auth, async (req, res) => {
   const allowed = ['site_name','site_description','address','phone','email','opening_hours','delivery_fee','free_delivery_from','max_delivery_km','restaurant_lat','restaurant_lon','social_instagram','social_facebook','social_tiktok','about_title','about_text','latitude','longitude','primary_color','secondary_color','accent_color','header_bg','hero_theme','logo_url','font_family','impressum_company','impressum_owner','impressum_legal_form','ust_idnr','impressum_register','min_preorder_minutes_delivery','min_preorder_minutes_pickup'];
+  // Fahrer Live-Tracking: Master-Toggle (Checkbox: nur bei ON gesendet) + Radius 20–500 m.
+  await db.run("UPDATE settings SET value = $1 WHERE key = 'live_tracking'", [req.body.live_tracking ? '1' : '0']);
+  // Kill-Switch: bei OFF sofort alle aktiven Trips beenden (Admin-Map räumt per SSE auf).
+  if (!req.body.live_tracking) {
+    try { driverLive.stopAllTrips(); } catch (e) { /* still */ }
+  }
+  let radius = parseInt(req.body.live_tracking_radius, 10);
+  if (!isFinite(radius)) radius = 75;
+  radius = Math.max(20, Math.min(500, radius));
+  await db.run("UPDATE settings SET value = $1 WHERE key = 'live_tracking_radius'", [String(radius)]);
   const isHexColor = v => typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v);
   for (const key of allowed) {
     if (req.body[key] !== undefined) {

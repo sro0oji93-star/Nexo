@@ -17,6 +17,10 @@
   .btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 58px; font-size: 18px; font-weight: 800; border-radius: 12px; text-decoration: none; margin-top: 10px; border: none; cursor: pointer; }
   .btn-call { background: #15803d; color: #fff; }
   .btn-maps { background: #0a0a0a; color: #f5d67b; }
+  .btn-delivered { background: #d4af37; color: #0a0a0a; }
+  .btn-live { background: #1d4ed8; color: #fff; }
+  .btn-live.off { background: #6b7280; }
+  .live-status { font-size: 13px; color: #555; text-align: center; margin-top: 8px; min-height: 18px; }
   .err { text-align: center; padding: 40px 20px; }
   .err .big { font-size: 22px; font-weight: 800; margin-bottom: 10px; }
 </style>
@@ -63,6 +67,98 @@
   </div>
   <% if (tel) { %><a class="btn btn-call" href="tel:<%= tel %>">📞 Kunde anrufen</a><% } %>
   <a class="btn btn-maps" href="<%= mapsUrl %>" target="_blank" rel="noopener">📍 Route öffnen</a>
+  <% if (typeof trackingOn !== 'undefined' && trackingOn) { %>
+  <button type="button" class="btn btn-delivered" id="deliveredBtn">✅ Zugestellt – Rückweg antreten</button>
+  <button type="button" class="btn btn-live" id="liveBtn">📍 Live-Tracking starten</button>
+  <div class="live-status" id="liveStatus"></div>
+<script>
+(function() {
+  var liveBtn = document.getElementById('liveBtn');
+  if (!liveBtn) return;
+  var statusEl = document.getElementById('liveStatus');
+  var deliveredBtn = document.getElementById('deliveredBtn');
+  var csrf = '<%= typeof csrfToken !== "undefined" ? csrfToken : "" %>';
+  var basePath = window.location.pathname.replace(/\/$/, '');
+  var watchId = null;
+  var timer = null;
+  var lastPos = null;
+  var running = false;
+
+  function status(t) { if (statusEl) statusEl.textContent = t; }
+
+  function post(path, body) {
+    return fetch(basePath + path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrf },
+      body: JSON.stringify(body || {})
+    }).then(function(r) { return r.json().catch(function() { return { success: false }; }); });
+  }
+
+  function sendLocation() {
+    if (!running || !lastPos) return;
+    post('/location', { lat: lastPos.coords.latitude, lon: lastPos.coords.longitude, acc: lastPos.coords.accuracy })
+      .then(function(j) {
+        if (j && j.success && j.returned) { stop('Zurück im Haus – Tracking beendet.'); return; }
+        if (j && j.tracking === false) { stop('Live-Tracking wurde deaktiviert.'); return; }
+        if (j && !j.success) { stop('Tracking gestoppt (Sitzung ungültig).'); return; }
+        status(j && j.phase === 'returning' ? 'Live aktiv – Rückweg zum Shop…' : 'Live aktiv – unterwegs zum Kunden…');
+      })
+      .catch(function() { status('Sendefehler – versuche weiter…'); });
+  }
+
+  function start() {
+    if (!navigator.geolocation) { status('GPS wird von diesem Gerät nicht unterstützt.'); return; }
+    if (running) return;
+    status('GPS wird aktiviert…');
+    watchId = navigator.geolocation.watchPosition(function(pos) {
+      lastPos = pos;
+      if (!running) {
+        running = true;
+        liveBtn.textContent = '⏸ Live-Tracking stoppen';
+        liveBtn.classList.add('off');
+        sendLocation();
+        timer = setInterval(sendLocation, 10000);
+      }
+    }, function() {
+      status('GPS-Zugriff verweigert – Tracking bleibt aus.');
+      stop(null);
+    }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 });
+  }
+
+  function stop(msg) {
+    running = false;
+    if (watchId != null) { try { navigator.geolocation.clearWatch(watchId); } catch (e) {} watchId = null; }
+    if (timer) { clearInterval(timer); timer = null; }
+    liveBtn.textContent = '📍 Live-Tracking starten';
+    liveBtn.classList.remove('off');
+    if (msg) status(msg);
+  }
+
+  liveBtn.addEventListener('click', function() { running ? stop('Tracking pausiert.') : start(); });
+
+  if (deliveredBtn) {
+    deliveredBtn.addEventListener('click', function() {
+      if (!confirm('Wirklich als zugestellt markieren? Ziel wechselt danach zum Shop.')) return;
+      deliveredBtn.disabled = true;
+      post('/delivered', {}).then(function(j) {
+        if (j && j.success) {
+          deliveredBtn.textContent = '✅ Zugestellt – bitte zurück zum Shop';
+          status('Zugestellt! Ziel: Shop – GPS läuft weiter…');
+        } else {
+          deliveredBtn.disabled = false;
+          status('Konnte nicht gespeichert werden – bitte erneut versuchen.');
+        }
+      }).catch(function() {
+        deliveredBtn.disabled = false;
+        status('Netzwerkfehler – bitte erneut versuchen.');
+      });
+    });
+  }
+})();
+</script>
+  <% } else { %>
+  <p class="muted" style="text-align:center;margin-top:10px">Live-Tracking ist derzeit deaktiviert.</p>
+  <% } %>
 <% } %>
 </body>
 </html>

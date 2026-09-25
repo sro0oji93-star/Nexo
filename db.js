@@ -1606,6 +1606,8 @@ async function initialize() {
     ['impressum_legal_form', ''],
     ['ust_idnr', ''],
     ['impressum_register', ''],
+    ['live_tracking', '0'],
+    ['live_tracking_radius', '75'],
   ];
   for (const [key, value] of defaultSettings) {
     await query(

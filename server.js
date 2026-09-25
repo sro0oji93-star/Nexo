@@ -54,9 +54,9 @@ app.use(helmet({
     useDefaults: true,
     directives: {
       'default-src': ["'self'"],
-      'script-src': ["'self'", "'unsafe-inline'"],
+      'script-src': ["'self'", "'unsafe-inline'", 'https://unpkg.com'],
       'script-src-attr': ["'unsafe-inline'"],
-      'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://cdnjs.cloudflare.com'],
+      'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://cdnjs.cloudflare.com', 'https://unpkg.com'],
       'font-src': ["'self'", 'data:', 'https://fonts.gstatic.com', 'https://cdnjs.cloudflare.com'],
       'img-src': ["'self'", 'data:', 'https:'],
       'connect-src': ["'self'", 'https://router.project-osrm.org', 'https://photon.komoot.io'],

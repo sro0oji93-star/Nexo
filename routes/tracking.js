@@ -21,6 +21,15 @@ const fahrerLimiter = rateLimit({
   handler: (req, res) => res.status(429).send('Zu viele Versuche – bitte später erneut versuchen.'),
 });
 
+// GPS-Updates: eigenes Limit (alle ~10s + Spielraum; teilt sich nichts mit dem QR-Limit).
+const driverLocLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 150,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => res.status(429).json({ success: false, message: 'Zu viele Updates – bitte kurz warten.' }),
+});
+
 const ACTIVE_STATI = ['neu', 'in_bearbeitung', 'unterwegs'];
 const STATUS_LABEL = {
   neu: 'Bestellung eingegangen',
@@ -216,14 +225,14 @@ router.get('/fahrer/:token', fahrerLimiter, async (req, res) => {
     }
     setFahrerCookie(res, order.id, sessToken);
     const fresh = await db.get('SELECT * FROM orders WHERE id = $1', [order.id]);
-    return res.render('fahrer', Object.assign({ title: 'Fahrer – ' + order.order_number }, fahrerPageData(fresh || order)));
+    return res.render('fahrer', Object.assign({ title: 'Fahrer – ' + order.order_number, trackingOn: trackingOn(res.locals.settings) }, fahrerPageData(fresh || order)));
   }
   // Token bereits verbraucht: nur mit gültiger, nicht abgelaufener Session weiter.
   const sessOk = cookieSess && order.fahrer_session_token
     && tokensEqual(cookieSess, order.fahrer_session_token)
     && order.fahrer_session_expires_at && new Date(order.fahrer_session_expires_at).getTime() > Date.now();
   if (sessOk) {
-    return res.render('fahrer', Object.assign({ title: 'Fahrer – ' + order.order_number }, fahrerPageData(order)));
+    return res.render('fahrer', Object.assign({ title: 'Fahrer – ' + order.order_number, trackingOn: trackingOn(res.locals.settings) }, fahrerPageData(order)));
   }
   const expired = order.fahrer_session_expires_at && new Date(order.fahrer_session_expires_at).getTime() <= Date.now();
   return res.status(410).render('fahrer', { title: expired ? 'Sitzung abgelaufen' : 'QR bereits verwendet', fahrerError: expired ? 'expired' : 'used' });
@@ -232,3 +241,194 @@ router.get('/fahrer/:token', fahrerLimiter, async (req, res) => {
 module.exports = router;
 module.exports.STATUS_LABEL = STATUS_LABEL;
 module.exports.ACTIVE_STATI = ACTIVE_STATI;
+
+// --- Fahrer Live-Tracking (Trip-basiert, Memory-only) ---
+// WICHTIG: GPS wird NIE in der DB gespeichert (kein History, kein INSERT).
+// Trip-Status lebt nur in dieser Map: orderId -> { phase, lat, lon, acc, ts, orderNumber }.
+// phases: 'to_customer' (Shop -> Kunde) | 'returning' (Kunde -> Shop nach "Zugestellt").
+// Ende: Radius um den Shop (nur in 'returning') -> löschen + 'driver:returned'.
+// Toggle OFF / Session-Ende / Timeout -> löschen + 'driver:stopped'.
+const trips = new Map();
+
+function trackingOn(settings) {
+  return String((settings || {}).live_tracking) === '1';
+}
+
+function shopCoords(settings) {
+  const s = settings || {};
+  const lat = parseFloat(s.restaurant_lat || s.latitude);
+  const lon = parseFloat(s.restaurant_lon || s.longitude);
+  if (!isFinite(lat) || !isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
+  return { lat, lon };
+}
+
+function trackingRadiusM(settings) {
+  const r = parseFloat((settings || {}).live_tracking_radius);
+  if (!isFinite(r)) return 75;
+  return Math.max(20, Math.min(500, r));
+}
+
+function haversineM(aLat, aLon, bLat, bLon) {
+  const R = 6371000;
+  const t = Math.PI / 180;
+  const dLat = (bLat - aLat) * t;
+  const dLon = (bLon - aLon) * t;
+  const h = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(aLat * t) * Math.cos(bLat * t) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+function tripPublic(orderId) {
+  const t = trips.get(orderId);
+  if (!t) return null;
+  return { orderId, orderNumber: t.orderNumber, phase: t.phase, addr: t.addr || '', lat: t.lat, lon: t.lon, acc: t.acc, ts: t.ts };
+}
+
+function tripSnapshot() {
+  const out = [];
+  for (const id of trips.keys()) {
+    const p = tripPublic(id);
+    if (p) out.push(p);
+  }
+  return out;
+}
+
+function stopTrip(orderId, reason) {
+  if (!trips.has(orderId)) return false;
+  const t = trips.get(orderId);
+  trips.delete(orderId);
+  try { events.emit(reason === 'returned' ? 'driver:returned' : 'driver:stopped', { id: orderId, orderNumber: t.orderNumber, ended: reason }); } catch (e) { /* still */ }
+  return true;
+}
+
+// Kill-Switch (Toggle OFF): alle Trips sofort beenden (Admin-Map räumt live auf).
+function stopAllTrips() {
+  const ids = [...trips.keys()];
+  for (const id of ids) stopTrip(id, 'stopped');
+  return ids.length;
+}
+
+// Veraltete Trips (Fahrer hat Seite geschlossen): nach 5 Min. Funkstille beenden. Memory-only, kein DB-Zugriff.
+setInterval(() => {
+  try {
+    const now = Date.now();
+    for (const [id, t] of trips) {
+      if (now - t.ts > 5 * 60 * 1000) stopTrip(id, 'stopped');
+    }
+  } catch (e) { /* still */ }
+}, 60 * 1000);
+
+// Gemeinsame Prüfung für Tracking-POSTs: Token + Session + Toggle.
+// Gibt { order } zurück oder sendet direkt die Fehlerantwort (false).
+// orderId kommt IMMER aus dem Server-Lookup (Token), nie aus dem Client-Body.
+async function loadTrackingOrder(req, res, settings) {
+  const token = String(req.params.token || '');
+  const order = await db.get('SELECT * FROM orders WHERE driver_token = $1 AND COALESCE(is_deleted,0) = 0', [token]).catch(() => null);
+  if (!order || !tokensEqual(token, order.driver_token || '') || order.order_type !== 'lieferung' || order.fahrer_revoked) {
+    res.status(404).json({ success: false });
+    return false;
+  }
+  if (order.order_status === 'storniert') {
+    res.status(410).json({ success: false, message: 'Bestellung storniert' });
+    return false;
+  }
+  const cname = 'fahrer_' + order.id;
+  const cookieSess = getCookie(req, cname);
+  const sessOk = cookieSess && order.fahrer_session_token
+    && tokensEqual(cookieSess, order.fahrer_session_token)
+    && order.fahrer_session_expires_at && new Date(order.fahrer_session_expires_at).getTime() > Date.now();
+  if (!sessOk || !order.fahrer_used_at) {
+    res.status(410).json({ success: false, message: 'Sitzung ungültig' });
+    return false;
+  }
+  // Sichere Sliding-Verlängerung: nur wenn < 5 Min. übrig (NICHT bei jedem GPS-Update).
+  try {
+    const remain = new Date(order.fahrer_session_expires_at).getTime() - Date.now();
+    if (remain < 5 * 60 * 1000) {
+      const sessToken = crypto.randomBytes(32).toString('hex');
+      await db.run("UPDATE orders SET fahrer_session_token = $1, fahrer_session_expires_at = NOW() + INTERVAL '30 minutes' WHERE id = $2", [sessToken, order.id]);
+      setFahrerCookie(res, order.id, sessToken);
+    }
+  } catch (e) { /* still – Ablauf bleibt wie bisher */ }
+  if (!trackingOn(settings)) {
+    stopTrip(order.id, 'stopped');
+    res.status(403).json({ success: false, tracking: false, message: 'Live-Tracking deaktiviert' });
+    return false;
+  }
+  return { order };
+}
+
+// POST /fahrer/:token/location – GPS-Update (alle ~10s), Memory-only.
+router.post('/fahrer/:token/location', driverLocLimiter, async (req, res) => {
+  const found = await loadTrackingOrder(req, res, res.locals.settings);
+  if (!found) return;
+  const order = found.order;
+  const lat = parseFloat(req.body && req.body.lat);
+  const lon = parseFloat(req.body && req.body.lon);
+  const acc = req.body && req.body.acc != null ? parseFloat(req.body.acc) : null;
+  if (!isFinite(lat) || !isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+    return res.status(400).json({ success: false, message: 'Ungültige Koordinaten' });
+  }
+  const now = Date.now();
+  let trip = trips.get(order.id);
+  if (!trip) {
+    // Trip-Start (nach QR-Scan): Phase aus Order-Status rekonstruieren (Restart-sicher).
+    // Adresse einmalig aus der ohnehin geladenen Bestellung übernehmen (kein Extra-Query).
+    const addrParts = [order.delivery_address, order.delivery_zip, order.delivery_city].filter(Boolean);
+    trip = {
+      phase: order.order_status === 'zugestellt' ? 'returning' : 'to_customer',
+      orderNumber: order.order_number, addr: addrParts.join(', '), lat: 0, lon: 0, acc: null, ts: now
+    };
+    trips.set(order.id, trip);
+  }
+  trip.lat = lat;
+  trip.lon = lon;
+  trip.acc = (acc != null && isFinite(acc) && acc >= 0) ? acc : null;
+  trip.ts = now;
+  try { events.emit('driver:location', tripPublic(order.id)); } catch (e) { /* still */ }
+  // Ankunft am Shop? Nur in 'returning' + brauchbare Genauigkeit.
+  const shop = shopCoords(res.locals.settings);
+  if (trip.phase === 'returning' && shop && (trip.acc == null || trip.acc <= 100)) {
+    const d = haversineM(lat, lon, shop.lat, shop.lon);
+    if (d <= trackingRadiusM(res.locals.settings)) {
+      stopTrip(order.id, 'returned');
+      return res.json({ success: true, returned: true });
+    }
+  }
+  res.json({ success: true, phase: trip.phase });
+});
+
+// POST /fahrer/:token/delivered – "Zugestellt": Ziel wechselt Kunde -> Shop (GPS bleibt an, kein Löschen).
+router.post('/fahrer/:token/delivered', fahrerLimiter, async (req, res) => {
+  const found = await loadTrackingOrder(req, res, res.locals.settings);
+  if (!found) return;
+  const order = found.order;
+  if (['neu', 'in_bearbeitung', 'unterwegs', 'zugestellt'].indexOf(order.order_status) === -1) {
+    return res.status(409).json({ success: false, message: 'Status passt nicht' });
+  }
+  const upd = await db.run(
+    "UPDATE orders SET order_status = 'zugestellt' WHERE id = $1 AND order_status IN ('neu', 'in_bearbeitung', 'unterwegs') AND COALESCE(is_deleted,0) = 0",
+    [order.id]
+  ).catch(() => null);
+  if (upd && upd.rowCount > 0) {
+    try { events.emit('order:status', { id: order.id }); } catch (e) { /* still */ }
+  }
+  const trip = trips.get(order.id);
+  if (trip && trip.phase !== 'returning') {
+    trip.phase = 'returning';
+    trip.ts = Date.now();
+    try { events.emit('driver:location', tripPublic(order.id)); } catch (e) { /* still */ }
+  }
+  try { scheduler.clear(order.id); } catch (e) { /* still */ }
+  res.json({ success: true, phase: 'returning' });
+});
+
+module.exports.trips = trips;
+module.exports.tripPublic = tripPublic;
+module.exports.tripSnapshot = tripSnapshot;
+module.exports.stopTrip = stopTrip;
+module.exports.stopAllTrips = stopAllTrips;
+module.exports.trackingOn = trackingOn;
+module.exports.shopCoords = shopCoords;
+module.exports.trackingRadiusM = trackingRadiusM;
+module.exports.haversineM = haversineM;

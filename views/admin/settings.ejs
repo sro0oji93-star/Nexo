@@ -129,6 +129,20 @@
   </div>
 
   <div class="settings-card">
+    <h3><i class="fas fa-satellite-dish"></i> Fahrer Live-Tracking</h3>
+    <div class="form-grid">
+      <div class="form-group">
+        <label><input type="checkbox" name="live_tracking" value="1" <%= String(settings.live_tracking) === '1' ? 'checked' : '' %>> Live-Tracking aktivieren (GPS nach QR-Scan)</label>
+      </div>
+      <div class="form-group">
+        <label>„Zurück im Haus"-Radius (Meter, 20–500)</label>
+        <input type="number" min="20" max="500" step="5" name="live_tracking_radius" value="<%= settings.live_tracking_radius || '75' %>">
+      </div>
+    </div>
+    <p style="font-size:12px;color:#6b6b6b;margin-top:6px">OFF beendet sofort alle aktiven Trips (kein GPS, kein Senden). Es wird kein Standort in der Datenbank gespeichert – nur Live im Speicher.</p>
+  </div>
+
+  <div class="settings-card">
     <h3>Wunschtermin-Vorlauf</h3>
     <div class="form-grid">
       <div class="form-group">

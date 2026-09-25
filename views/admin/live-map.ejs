@@ -1,0 +1,166 @@
+<%- include('layout') %>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<div class="section-header-row">
+  <h2><i class="fas fa-map-marked-alt"></i> Fahrer Live-Karte</h2>
+  <span class="badge" id="tripCount">0 aktiv</span>
+</div>
+
+<% if (String(settings.live_tracking) !== '1') { %>
+<div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i> Live-Tracking ist <strong>deaktiviert</strong>. Unter <a href="/admin/einstellungen">Einstellungen → Fahrer Live-Tracking</a> aktivieren.</div>
+<% } %>
+
+<div class="card" style="padding:12px">
+  <div id="liveMap" style="height:60vh;min-height:380px;border-radius:12px;z-index:0"></div>
+  <div id="tripList" style="margin-top:12px;display:flex;flex-direction:column;gap:8px"></div>
+  <p class="muted" style="margin-top:8px">Route &amp; ETA: optional via OSRM (kostenlos). Fällt der Dienst aus, bleibt die Live-Position per Haversine bestehen.</p>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function() {
+  var shop = { lat: <%= parseFloat(settings.restaurant_lat || settings.latitude) || 53.295344 %>, lon: <%= parseFloat(settings.restaurant_lon || settings.longitude) || 10.391293 %> };
+  var map = L.map('liveMap').setView([shop.lat, shop.lon], 13);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
+
+  var shopMarker = L.marker([shop.lat, shop.lon], {
+    icon: L.divIcon({ className: '', html: '<div style="background:#0a0a0a;color:#f5d67b;border:2px solid #d4af37;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:17px">🏠</div>', iconSize: [34, 34], iconAnchor: [17, 17] })
+  }).addTo(map).bindPopup('Shop');
+
+  var drivers = {};   // orderId -> { marker, line, routeLine, customer, custCoords, lastRouteFetch, data }
+  var geoCache = {};  // addr -> {lat,lon}
+
+  function haversineM(aLat, aLon, bLat, bLon) {
+    var R = 6371000, t = Math.PI / 180;
+    var dLat = (bLat - aLat) * t, dLon = (bLon - aLon) * t;
+    var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(aLat * t) * Math.cos(bLat * t) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return 2 * R * Math.asin(Math.sqrt(h));
+  }
+  function fmtM(m) { return m >= 1000 ? (m / 1000).toFixed(1).replace('.', ',') + ' km' : Math.round(m) + ' m'; }
+  function fmtAge(ts) { var s = Math.max(0, Math.round((Date.now() - ts) / 1000)); return s < 60 ? s + 's' : Math.floor(s / 60) + 'm'; }
+
+  function geocodeCustomer(addr, cb) {
+    if (!addr) return cb(null);
+    if (geoCache[addr]) return cb(geoCache[addr]);
+    fetch('https://photon.komoot.io/api/?q=' + encodeURIComponent(addr) + '&limit=1&lang=de')
+      .then(function(r) { return r.json(); })
+      .then(function(j) {
+        var f = j && j.features && j.features[0];
+        if (!f || !f.geometry || !f.geometry.coordinates) return cb(null);
+        var c = { lon: f.geometry.coordinates[0], lat: f.geometry.coordinates[1] };
+        geoCache[addr] = c;
+        cb(c);
+      })
+      .catch(function() { cb(null); });
+  }
+
+  // Echte Route (optional): OSRM, direkt im Admin-Browser – kein Server-Load. Max. alle 30s je Trip.
+  function refreshRoute(id) {
+    var d = drivers[id];
+    if (!d || !d.data) return;
+    var now = Date.now();
+    if (now - (d.lastRouteFetch || 0) < 30000) return;
+    d.lastRouteFetch = now;
+    var target = d.data.phase === 'returning' ? shop : d.custCoords;
+    if (!target) return;
+    var url = 'https://router.project-osrm.org/route/v1/driving/' + d.data.lon + ',' + d.data.lat + ';' + target.lon + ',' + target.lat + '?overview=full&geometries=geojson';
+    fetch(url).then(function(r) { return r.json(); }).then(function(j) {
+      var route = j && j.routes && j.routes[0];
+      if (!route || !route.geometry || !route.geometry.coordinates) return;
+      var latlngs = route.geometry.coordinates.map(function(c) { return [c[1], c[0]]; });
+      if (d.routeLine) map.removeLayer(d.routeLine);
+      d.routeLine = L.polyline(latlngs, { color: '#1d4ed8', weight: 4 }).addTo(map);
+      d.roadInfo = { dist: route.distance, dur: route.duration };
+      renderList();
+    }).catch(function() { /* still – Haversine bleibt */ });
+  }
+
+  function ensureTrip(id, data) {
+    var d = drivers[id];
+    if (!d) {
+      d = drivers[id] = {
+        data: null, custCoords: null, lastRouteFetch: 0, roadInfo: null,
+        marker: L.marker([data.lat, data.lon], {
+          icon: L.divIcon({ className: '', html: '<div style="background:#1d4ed8;color:#fff;border:2px solid #fff;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:15px">🛵</div>', iconSize: [30, 30], iconAnchor: [15, 15] })
+        }).addTo(map),
+        line: L.polyline([], { color: '#1d4ed8', weight: 2, dashArray: '6 6' }).addTo(map),
+        routeLine: null,
+        customer: null
+      };
+      if (data.addr) {
+        geocodeCustomer(data.addr, function(c) {
+          if (!c || !drivers[id]) return;
+          drivers[id].custCoords = c;
+          drivers[id].customer = L.marker([c.lat, c.lon], {
+            icon: L.divIcon({ className: '', html: '<div style="background:#15803d;color:#fff;border:2px solid #fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px">📦</div>', iconSize: [28, 28], iconAnchor: [14, 14] })
+          }).addTo(map).bindPopup(data.addr);
+          renderList();
+        });
+      }
+    }
+    d.data = data;
+    d.marker.setLatLng([data.lat, data.lon]);
+    d.marker.bindPopup((data.orderNumber || '') + (data.phase === 'returning' ? ' – Rückweg' : ' – zum Kunden'));
+    d.line.setLatLngs([[shop.lat, shop.lon], [data.lat, data.lon]]);
+    refreshRoute(id);
+    renderList();
+  }
+
+  function removeTrip(id, reason) {
+    var d = drivers[id];
+    if (!d) return;
+    if (d.marker) map.removeLayer(d.marker);
+    if (d.line) map.removeLayer(d.line);
+    if (d.routeLine) map.removeLayer(d.routeLine);
+    if (d.customer) map.removeLayer(d.customer);
+    delete drivers[id];
+    var list = document.getElementById('tripList');
+    var note = document.createElement('div');
+    note.className = 'alert ' + (reason === 'returned' ? 'alert-success' : 'alert-warning');
+    note.textContent = (d.data && d.data.orderNumber ? d.data.orderNumber + ': ' : '') + (reason === 'returned' ? 'Fahrer ist zurück im Haus.' : 'Tracking beendet.');
+    list.prepend(note);
+    setTimeout(function() { if (note.parentNode) note.parentNode.removeChild(note); }, 15000);
+    renderList();
+  }
+
+  function renderList() {
+    var ids = Object.keys(drivers);
+    document.getElementById('tripCount').textContent = ids.length + ' aktiv';
+    var list = document.getElementById('tripList');
+    list.querySelectorAll('[data-trip]').forEach(function(el) { el.parentNode.removeChild(el); });
+    ids.forEach(function(id) {
+      var d = drivers[id];
+      var target = d.data.phase === 'returning' ? shop : d.custCoords;
+      var distTxt = target ? fmtM(haversineM(d.data.lat, d.data.lon, target.lat, target.lon)) : '…';
+      var etaTxt = '';
+      if (d.roadInfo && d.roadInfo.dur) {
+        var mins = Math.round(d.roadInfo.dur / 60);
+        etaTxt = ' · 🚗 ' + fmtM(d.roadInfo.dist) + ' · ETA ~' + mins + ' Min.';
+      }
+      var row = document.createElement('div');
+      row.setAttribute('data-trip', id);
+      row.className = 'card';
+      row.style.padding = '10px 14px';
+      var stale = (Date.now() - d.data.ts) > 60000;
+      row.innerHTML = '<strong>' + (d.data.orderNumber || id) + '</strong> · ' +
+        (d.data.phase === 'returning' ? '↩ Rückweg zum Shop' : '➡ unterwegs zum Kunden') +
+        ' · noch ' + distTxt + etaTxt +
+        ' · <span' + (stale ? ' style="color:#b8001f;font-weight:700"' : '') + '>Update vor ' + fmtAge(d.data.ts) + '</span>' +
+        (d.data.acc != null ? ' · ±' + Math.round(d.data.acc) + 'm' : '');
+      row.style.cursor = 'pointer';
+      row.addEventListener('click', function() { map.setView([d.data.lat, d.data.lon], 14); });
+      list.appendChild(row);
+    });
+  }
+
+  setInterval(renderList, 15000); // Alter der Updates aktuell halten (nur Anzeige).
+
+  var es = new EventSource('/admin/api/driver-stream');
+  es.addEventListener('driver', function(ev) {
+    try {
+      var data = JSON.parse(ev.data);
+      if (data && data.lat != null) ensureTrip(String(data.orderId), data);
+      else if (data && data.id != null) removeTrip(String(data.id), data.ended);
+    } catch (e) { /* ignore */ }
+  });
+})();
+</script>
