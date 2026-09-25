@@ -1,4 +1,11 @@
 <%- include('partials/header') %>
+<style>
+/* Desktop: Aktions-Buttons umbrechen statt aus der Karte zu laufen (Mobil bleibt Spalte) */
+@media (min-width: 769px) {
+  .confirmation-actions{flex-wrap:wrap}
+  .confirmation-actions .btn{white-space:nowrap}
+}
+</style>
 
 <div class="page-hero confirmation-hero" style="background:linear-gradient(135deg,rgba(35,34,35,.5),rgba(35,34,35,.3)),url('/images/384x384_img2.jpg') center/cover">
   <div class="page-hero-overlay"></div>
