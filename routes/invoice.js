@@ -96,6 +96,7 @@ function buildInvoicePdf(order, settings) {
       if (parseFloat(order.discount) > 0) doc.text('Rabatt' + (order.discount_code ? ' ' + order.discount_code : '') + ': -' + eur(order.discount));
       if (parseFloat(order.vat7) > 0) doc.text('7% MwSt: ' + eur(order.vat7));
       if (parseFloat(order.vat19) > 0) doc.text('19% MwSt: ' + eur(order.vat19));
+      doc.text('Nettobetrag: ' + eur((parseFloat(order.total) || 0) - (parseFloat(order.vat7) || 0) - (parseFloat(order.vat19) || 0)));
       doc.font('Helvetica-Bold').fontSize(12).text('Gesamt: ' + eur(order.total));
       doc.font('Helvetica').fontSize(10);
       doc.text('Zahlung: ' + paymentLabel(order.payment_method));

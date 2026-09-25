@@ -35,6 +35,10 @@
           <span>Inkl. MwSt</span>
           <strong><% if (parseFloat(order.vat7 || 0) > 0) { %>7%: <%= parseFloat(order.vat7).toFixed(2) %> €<% } %><% if (parseFloat(order.vat7 || 0) > 0 && parseFloat(order.vat19 || 0) > 0) { %> · <% } %><% if (parseFloat(order.vat19 || 0) > 0) { %>19%: <%= parseFloat(order.vat19).toFixed(2) %> €<% } %></strong>
         </div>
+        <div class="confirmation-row">
+          <span>Nettobetrag</span>
+          <strong><%= (parseFloat(order.total) - parseFloat(order.vat7 || 0) - parseFloat(order.vat19 || 0)).toFixed(2) %> €</strong>
+        </div>
         <% } %>
         <div class="confirmation-row">
           <span>Bestellart</span>

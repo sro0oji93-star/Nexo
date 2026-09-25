@@ -316,7 +316,7 @@ router.get('/bestellungen/:id/bon', auth, async (req, res) => {
     try {
       const QRCode = require('qrcode');
       const base = (process.env.SITE_URL || (req.protocol + '://' + req.get('host'))).replace(/\/$/, '');
-      fahrerQr = await QRCode.toDataURL(base + '/fahrer/' + order.driver_token, { width: 220, margin: 1 });
+      fahrerQr = await QRCode.toDataURL(base + '/fahrer/' + order.driver_token, { width: 200, margin: 1, errorCorrectionLevel: 'L' });
     } catch (e) {
       console.error('Fahrer-QR übersprungen:', e.message);
     }

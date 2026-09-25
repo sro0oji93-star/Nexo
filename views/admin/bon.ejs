@@ -15,6 +15,8 @@
   .item-name { font-weight: bold; }
   .extra, .note { font-size: 12px; padding-left: 6px; }
   .total { font-size: 17px; font-weight: bold; }
+  .qr { page-break-inside: avoid; }
+  .qr img { width: 32mm; height: 32mm; display: block; margin: 0 auto; image-rendering: pixelated; }
   @media print {
     @page { size: 80mm auto; margin: 0; }
     body { width: 72mm; padding: 2mm; }
@@ -57,6 +59,7 @@
   <% if (parseFloat(order.delivery_fee) > 0) { %><div class="row"><span>Lieferung</span><span><%= parseFloat(order.delivery_fee).toFixed(2).replace('.', ',') %> €</span></div><% } %>
   <% if (parseFloat(order.vat7 || 0) > 0) { %><div class="row"><span>7% MwSt:</span><span><%= parseFloat(order.vat7).toFixed(2).replace('.', ',') %> €</span></div><% } %>
   <% if (parseFloat(order.vat19 || 0) > 0) { %><div class="row"><span>19% MwSt:</span><span><%= parseFloat(order.vat19).toFixed(2).replace('.', ',') %> €</span></div><% } %>
+  <div class="row"><span>Nettobetrag</span><span><%= (parseFloat(order.total) - parseFloat(order.vat7 || 0) - parseFloat(order.vat19 || 0)).toFixed(2).replace('.', ',') %> €</span></div>
   <div class="row total"><span>GESAMT</span><span><%= parseFloat(order.total).toFixed(2).replace('.', ',') %> €</span></div>
   <hr>
   <div>Zahlung: <%= order.payment_method === 'telefon' ? 'Bar' : (order.payment_method === 'bar' ? 'Bar' : (order.payment_method === 'karte' ? 'Karte' : 'Online')) %></div>
@@ -67,7 +70,7 @@
   <% if (order.order_type !== 'abholung' && typeof fahrerQr !== 'undefined' && fahrerQr) { %>
   <hr>
   <div class="center medium">FAHRER: BITTE SCANNEN</div>
-  <div class="center"><img src="<%= fahrerQr %>" style="width:45mm;height:45mm;" alt="Fahrer-QR"></div>
+  <div class="center qr"><img src="<%= fahrerQr %>" alt="Fahrer-QR"></div>
   <% } %>
 <script>
   if (new URLSearchParams(location.search).get('autoprint') === '1') { window.onload = function() { setTimeout(function(){ window.print(); }, 300); }; }
