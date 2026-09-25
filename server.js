@@ -39,6 +39,7 @@ const contactLimiter = rateLimit({
 });
 
 const app = express();
+app.disable('x-powered-by'); // Technik-Version nicht verraten (Sicherheit durch Sparsamkeit)
 const PORT = process.env.PORT || 3000;
 
 app.set('trust proxy', 1);
