@@ -78,7 +78,7 @@
                 <% } %>
                 <% if (product.category_name === 'Snacks') { %><%- include('partials/snacks-menue', { productId: product.id }) %><% } %>
                 <% if (product.category_name === 'Bowls') { %><%- include('partials/bowls-sauces', { productId: product.id }) %><% } %>
-                <% if (product.category_name === 'Pizza Brötchen') { %><%- include('partials/free-sauce', { productId: product.id }) %><% } %>
+                <% if (product.category_name === 'Pizza Brötchen') { %><%- include('partials/free-sauce', { productId: product.id, options: (typeof dealLists !== 'undefined' && dealLists && dealLists.dips && dealLists.dips.length ? dealLists.dips : null) }) %><% } %>
                 <% if (['crepe-nutella','crepe-frucht','crepe-lotus','crepe-oreo','crepe-bueno','mini-pancakes','mini-waffel'].indexOf(product.slug) !== -1) { %><%- include('partials/choco-box', { productId: product.id }) %><% } %>
                 <% if (isPizza) { %><%- include('partials/pizza-extras', { productId: product.id }) %><% } %>
                 <p class="mad-text-color-2 content-element">Anzahl:</p>

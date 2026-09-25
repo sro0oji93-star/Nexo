@@ -143,7 +143,7 @@
         <% } %>
         <% if (cat.slug === 'snacks') { %><%- include('../partials/snacks-menue', { productId: p.id }) %><% } %>
         <% if (cat.slug === 'bowls') { %><%- include('../partials/bowls-sauces', { productId: p.id }) %><% } %>
-        <% if (cat.slug === 'pizza-broetchen') { %><%- include('../partials/free-sauce', { productId: p.id }) %><% } %>
+        <% if (cat.slug === 'pizza-broetchen') { %><%- include('../partials/free-sauce', { productId: p.id, options: (typeof dealLists !== 'undefined' && dealLists && dealLists.dips && dealLists.dips.length ? dealLists.dips : null) }) %><% } %>
         <% if (['crepe-nutella','crepe-frucht','crepe-lotus','crepe-oreo','crepe-bueno','mini-pancakes','mini-waffel'].indexOf(p.slug) !== -1) { %><%- include('../partials/choco-box', { productId: p.id }) %><% } %>
         <% if (cat.slug === 'pizza') { %><%- include('../partials/pizza-extras', { productId: p.id, wunsch: p.slug === 'nexo-wunsch' }) %><% } %>
         <% if (cat.slug === 'burger') { %><button type="button" class="kasse-add" data-id="<%= p.id %>" data-name="<%= p.name %>" data-price="<%= p.price %>" data-has-menue="1">HINZUFÜGEN</button><% } else if (cat.slug === 'snacks') { %><button type="button" class="kasse-add" data-id="<%= p.id %>" data-name="<%= p.name %>" data-has-snacks-menue="1">HINZUFÜGEN</button><% } else if (cat.slug === 'pizza-broetchen') { %><button type="button" class="kasse-add" data-id="<%= p.id %>" data-name="<%= p.name %>" data-price="<%= p.price %>" data-has-sauce="1">HINZUFÜGEN</button><% } else { %><button type="button" class="kasse-add" data-id="<%= p.id %>" data-name="<%= p.name %>" data-has-sizes="1">HINZUFÜGEN</button><% } %>
