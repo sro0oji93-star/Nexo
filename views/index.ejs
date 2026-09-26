@@ -1,8 +1,8 @@
 <%- include('partials/header') %>
 <style>
-/* Desktop-Test: Banner rechts unter BESTELLEN (statt zentriert) */
-@media (min-width: 769px) {
-  #nexo-active-orders > div { max-width:460px !important; margin:14px 20px 0 auto !important; }
+/* Desktop >1440px: Header ist absolute (Overlay) – Banner darunter freistellen, zentriert wie mobil */
+@media (min-width: 1441px) {
+  #nexo-active-orders > div { max-width:1200px !important; margin:150px auto 0 !important; }
 }
 </style>
 
