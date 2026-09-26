@@ -1,4 +1,10 @@
 <%- include('partials/header') %>
+<style>
+/* Desktop-Test: Banner rechts unter BESTELLEN (statt zentriert) */
+@media (min-width: 769px) {
+  #nexo-active-orders > div { max-width:460px !important; margin:14px 20px 0 auto !important; }
+}
+</style>
 
 <!-- Aktive Bestellungen (wird per JS nur bei vorhandenen Tracking-Token befüllt, sonst unsichtbar) -->
 <div id="nexo-active-orders" style="display:none"></div>
