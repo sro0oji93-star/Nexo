@@ -207,6 +207,11 @@ a:hover{color:var(--red-dark)}
   .settings-card .form-grid{grid-template-columns:1fr}
   .settings-form .btn-lg{width:100%;min-height:52px}
   .actions-cell{white-space:normal}
+  /* Eigentümer mobil */
+  .owner-cards{grid-template-columns:1fr 1fr;gap:12px}
+  .owner-card{padding:14px}
+  .owner-card .v{font-size:21px}
+  .date-filter input{flex:1;min-width:0}
 }
 @media(max-width:480px){
   .dashboard-stats{grid-template-columns:1fr}

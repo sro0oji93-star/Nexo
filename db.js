@@ -901,6 +901,24 @@ async function initialize() {
     console.error('Eigentümer-Migration übersprungen:', e.message);
   }
 
+  // Monatsabrechnung Eigentümer: festgeschriebene Auszahlungen (unveränderlich).
+  // Offene Provision = Online-Bestellungen (ohne Storno) des laufenden Monats.
+  try {
+    await query(`
+    CREATE TABLE IF NOT EXISTS payouts (
+      id SERIAL PRIMARY KEY,
+      month TEXT NOT NULL,
+      orders_count INTEGER NOT NULL DEFAULT 0,
+      amount NUMERIC(10,2) NOT NULL DEFAULT 0,
+      rate NUMERIC(10,2) NOT NULL DEFAULT 0,
+      last_order_id INTEGER NOT NULL DEFAULT 0,
+      note TEXT DEFAULT '',
+      settled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );`);
+  } catch (e) {
+    console.error('Payouts-Migration übersprungen:', e.message);
+  }
+
   // Bestell-Bestätigung: geheimer Token schützt die Bestellübersicht vor Übernahme (IDOR).
   // Bestehende Bestellungen erhalten einen generierten Token. Idempotent.
   try {

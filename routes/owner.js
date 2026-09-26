@@ -119,24 +119,64 @@ router.get('/', requireOwner, async (req, res) => {
   const today = todayStr();
   const rate = commissionRate(res.locals.settings);
   const dayCount = (await db.get('SELECT COUNT(*) as count FROM orders WHERE created_at::date = $1 AND ' + OWNER_VISIBLE_SQL, [today])).count;
-  const dayOnlineCount = (await db.get('SELECT COUNT(*) as count FROM orders WHERE created_at::date = $1 AND ' + OWNER_VISIBLE_SQL + ' AND ' + ONLINE_SQL, [today])).count;
+  // Provision: nur Online (Theke/Telefon zählen nie) und nie Stornierte.
+  const dayOnlineCount = (await db.get("SELECT COUNT(*) as count FROM orders WHERE created_at::date = $1 AND order_status != 'storniert' AND " + OWNER_VISIBLE_SQL + ' AND ' + ONLINE_SQL, [today])).count;
   const dayOnlineRevenue = (await db.get("SELECT COALESCE(SUM(total),0) as total FROM orders WHERE created_at::date = $1 AND order_status != 'storniert' AND " + OWNER_VISIBLE_SQL + ' AND ' + ONLINE_SQL, [today])).total;
   const dayKasseRevenue = (await db.get("SELECT COALESCE(SUM(total),0) as total FROM orders WHERE created_at::date = $1 AND order_status != 'storniert' AND " + OWNER_VISIBLE_SQL + ' AND ' + ADMIN_SQL, [today])).total;
   const dayDeleted = (await db.get('SELECT COUNT(*) as count FROM orders WHERE created_at::date = $1 AND ' + OWNER_VISIBLE_SQL + ' AND COALESCE(is_deleted,0) = 1', [today])).count;
   const monthCount = (await db.get("SELECT COUNT(*) as count FROM orders WHERE TO_CHAR(created_at,'YYYY-MM') = TO_CHAR(NOW(),'YYYY-MM') AND " + OWNER_VISIBLE_SQL)).count;
-  const monthOnlineCount = (await db.get("SELECT COUNT(*) as count FROM orders WHERE TO_CHAR(created_at,'YYYY-MM') = TO_CHAR(NOW(),'YYYY-MM') AND " + OWNER_VISIBLE_SQL + ' AND ' + ONLINE_SQL)).count;
+  const monthOnlineCount = (await db.get("SELECT COUNT(*) as count FROM orders WHERE TO_CHAR(created_at,'YYYY-MM') = TO_CHAR(NOW(),'YYYY-MM') AND order_status != 'storniert' AND " + OWNER_VISIBLE_SQL + ' AND ' + ONLINE_SQL)).count;
   const monthRevenue = (await db.get("SELECT COALESCE(SUM(total),0) as total FROM orders WHERE TO_CHAR(created_at,'YYYY-MM') = TO_CHAR(NOW(),'YYYY-MM') AND order_status != 'storniert' AND " + OWNER_VISIBLE_SQL)).total;
   let visitorsToday = 0, visitorsWeek = [];
   try {
     visitorsToday = (await db.get('SELECT COUNT(*) as count FROM visitor_days WHERE day = $1', [today])).count;
     visitorsWeek = await db.all("SELECT day, COUNT(*) as count FROM visitor_days WHERE day >= CURRENT_DATE - INTERVAL '6 days' GROUP BY day ORDER BY day DESC");
   } catch (e) { console.error('Besucherzahlen übersprungen:', e.message); }
+  // Monatsabrechnung: offen = alles seit letzter Abrechnung (kein Doppelzählen,
+  // auch bei Nachzüglern im selben Monat). Verlauf ist festgeschrieben.
+  const openMonth = new Date().toISOString().slice(0, 7); // YYYY-MM (Anzeige)
+  const lastSettled = await db.get('SELECT COALESCE(MAX(last_order_id),0) as max_id FROM payouts').catch(() => ({ max_id: 0 }));
+  const sinceId = (lastSettled && lastSettled.max_id) || 0;
+  const openRow = await db.get(
+    "SELECT COUNT(*) as count, COALESCE(MAX(id),0) as max_id FROM orders WHERE id > $1 AND order_status != 'storniert' AND " + OWNER_VISIBLE_SQL + ' AND ' + ONLINE_SQL,
+    [sinceId]
+  ).catch(() => ({ count: 0, max_id: sinceId }));
+  const openCount = (openRow && openRow.count) || 0;
+  const openMaxId = (openRow && openRow.max_id) || sinceId;
+  const openAmount = Math.round(openCount * rate * 100) / 100;
+  const lastPayout = await db.get('SELECT * FROM payouts ORDER BY id DESC LIMIT 1').catch(() => null);
+  const payouts = await db.all('SELECT * FROM payouts ORDER BY id DESC LIMIT 24').catch(() => []);
   res.render('owner/dashboard', {
     title: 'Eigentümer Dashboard',
     today, rate, dayCount, dayOnlineCount, dayOnlineRevenue, dayKasseRevenue, dayDeleted, monthCount, monthOnlineCount, monthRevenue,
     visitorsToday, visitorsWeek,
-    success: null
+    openMonth, openCount, openAmount, openMaxId, lastPayout, payouts,
+    success: req.query.ok ? 'Abgerechnet: ' + req.query.n + ' Bestellungen, ' + req.query.a + ' €.' : null,
+    error: req.query.err === 'leer' ? 'Keine offenen Bestellungen zum Abrechnen.' : null
   });
+});
+
+// ---------- Monatsabrechnung: Monat (bzw. alles seit letzter Abrechnung) festschreiben ---
+// Ein Snapshot (Anzahl × Satz); danach zählt der Zähler neu ab last_order_id.
+// Stornierte und Theke/Telefon zählen nie (wie Provision). Verlauf unveränderlich.
+router.post('/abrechnung', requireOwner, async (req, res) => {
+  const rate = commissionRate(res.locals.settings);
+  const lastSettled = await db.get('SELECT COALESCE(MAX(last_order_id),0) as max_id FROM payouts').catch(() => ({ max_id: 0 }));
+  const sinceId = (lastSettled && lastSettled.max_id) || 0;
+  const openRow = await db.get(
+    "SELECT COUNT(*) as count, COALESCE(MAX(id),0) as max_id FROM orders WHERE id > $1 AND order_status != 'storniert' AND " + OWNER_VISIBLE_SQL + ' AND ' + ONLINE_SQL,
+    [sinceId]
+  ).catch(() => null);
+  const count = (openRow && openRow.count) || 0;
+  if (!count) return res.redirect('/eigentuemer?err=leer');
+  const maxId = (openRow && openRow.max_id) || sinceId;
+  const amount = Math.round(count * rate * 100) / 100;
+  const month = new Date().toISOString().slice(0, 7);
+  await db.run(
+    'INSERT INTO payouts (month, orders_count, amount, rate, last_order_id, note) VALUES ($1,$2,$3,$4,$5,$6)',
+    [month, count, amount, rate, maxId, String(req.body.note || '').slice(0, 200)]
+  );
+  res.redirect('/eigentuemer?ok=1&n=' + count + '&a=' + amount.toFixed(2).replace('.', ','));
 });
 
 // ---------- Alle Bestellungen (inkl. gelöschte) ----------
@@ -150,13 +190,14 @@ router.get('/bestellungen', requireOwner, async (req, res) => {
   const deleted = orders.filter(o => o.is_deleted).length;
   const onlineOrders = orders.filter(o => !isAdminOrder(o));
   const kasseOrders = orders.filter(o => isAdminOrder(o));
+  const settledOrders = onlineOrders.filter(o => o.order_status !== 'storniert');
   const onlineRevenue = onlineOrders.filter(o => o.order_status !== 'storniert').reduce((s, o) => s + parseFloat(o.total || 0), 0);
   const kasseRevenue = kasseOrders.filter(o => o.order_status !== 'storniert').reduce((s, o) => s + parseFloat(o.total || 0), 0);
   res.render('owner/orders', {
     title: 'Alle Bestellungen',
     datum, rate, orders, received, deleted, onlineRevenue, kasseRevenue,
-    onlineReceived: onlineOrders.length,
-    commission: onlineOrders.length * rate
+    onlineReceived: settledOrders.length,
+    commission: settledOrders.length * rate
   });
 });
 

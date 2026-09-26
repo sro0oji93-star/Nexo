@@ -53,6 +53,36 @@
 </div>
 <% } %>
 
+<div class="settings-card" style="border-color:#d4af37">
+  <h3><i class="fas fa-hand-holding-usd"></i> Monatsabrechnung (<%= openMonth %>)</h3>
+  <div class="owner-cards" style="margin-bottom:12px">
+    <div class="owner-card gold">
+      <div class="v"><%= parseFloat(openAmount).toFixed(2) %> €</div>
+      <div class="l">Offen (<%= openCount %> Bestellungen seit letzter Abrechnung)</div>
+    </div>
+    <div class="owner-card">
+      <div class="v"><%= lastPayout ? parseFloat(lastPayout.amount).toFixed(2) + ' €' : '–' %></div>
+      <div class="l">Zuletzt abgerechnet<%= lastPayout ? ' (' + lastPayout.month + ')' : '' %></div>
+    </div>
+  </div>
+  <form method="POST" action="/eigentuemer/abrechnung" onsubmit="return confirm('Wirklich abrechnen? Danach startet der Zähler neu.')" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <input type="text" name="note" placeholder="Notiz (optional)" style="padding:10px 14px;border-radius:8px;border:1px solid #e8e4de;font-size:14px;flex:1;min-width:160px">
+    <button type="submit" class="btn btn-primary" <%= openCount ? '' : 'disabled' %>>Als abgerechnet markieren</button>
+  </form>
+  <% if (typeof payouts !== 'undefined' && payouts && payouts.length) { %>
+  <table class="admin-table" style="margin-top:14px">
+    <thead><tr><th>Monat</th><th>Bestellungen</th><th>Betrag</th><th>Abgerechnet am</th><th>Notiz</th></tr></thead>
+    <tbody>
+      <% payouts.forEach(function(p) { %>
+      <tr><td><%= p.month %></td><td><%= p.orders_count %></td><td><strong><%= parseFloat(p.amount).toFixed(2) %> €</strong></td><td><%= new Date(p.settled_at).toLocaleDateString('de-DE') %></td><td><%= p.note || '' %></td></tr>
+      <% }); %>
+    </tbody>
+  </table>
+  <% } %>
+  <p style="font-size:12px;color:#6b6b6b;margin-top:8px">Stornierte sowie Theken-/Telefonbestellungen zählen nie. Abgerechnete Monate sind festgeschrieben – der Zähler startet danach neu.</p>
+</div>
+
 <div class="settings-card">
   <h3>Provision pro Bestellung</h3>
   <form method="POST" action="/eigentuemer/provision" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -61,9 +91,12 @@
     <span>€</span>
     <button type="submit" class="btn btn-primary">Speichern</button>
   </form>
-  <p style="font-size:12px;color:#6b6b6b;margin-top:8px">Gelöschte Bestellungen zählen trotzdem – Löschen reduziert deine Provision nicht.</p>
+  <p style="font-size:12px;color:#6b6b6b;margin-top:8px">Gelöschte Bestellungen zählen trotzdem – nur stornierte sind ausgenommen. Theken-/Telefonbestellungen zählen nie.</p>
 </div>
 
+<% if (typeof error !== 'undefined' && error) { %>
+<div class="alert alert-error"><i class="fas fa-exclamation-triangle"></i> <%= error %></div>
+<% } %>
 <% if (typeof success !== 'undefined' && success) { %>
 <div class="alert alert-success"><i class="fas fa-check-circle"></i> <%= success %></div>
 <% } %>

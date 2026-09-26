@@ -11,15 +11,15 @@
 <% } %>
 
 <div class="table-container" style="margin-bottom:24px">
-  <table class="admin-table">
+  <table class="admin-table card-mobile">
     <thead><tr><th>Benutzername</th><th>Name</th><th>Rolle</th><th>Aktionen</th></tr></thead>
     <tbody>
       <% users.forEach(function(u) { %>
       <tr>
-        <td><strong><%= u.username %></strong></td>
-        <td><%= u.display_name || '' %></td>
-        <td><%= u.role === 'owner' ? '👑 Eigentümer' : '🧑‍🍳 Manager (/admin)' %></td>
-        <td>
+        <td data-label="Benutzername"><strong><%= u.username %></strong></td>
+        <td data-label="Name"><%= u.display_name || '' %></td>
+        <td data-label="Rolle"><%= u.role === 'owner' ? '👑 Eigentümer' : '🧑‍🍳 Manager (/admin)' %></td>
+        <td data-label="Aktionen">
           <% if (u.role !== 'owner') { %>
           <form method="POST" action="/eigentuemer/benutzer/<%= u.id %>/passwort" style="display:inline-flex;gap:6px;align-items:center">
             <input type="hidden" name="_csrf" value="<%= csrfToken %>">
