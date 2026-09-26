@@ -269,7 +269,14 @@ document.querySelectorAll('.size-picker').forEach(function(picker) {
       var nmEl = b.querySelector('span');
       var txt = String((nmEl ? nmEl.textContent : b.textContent) || '').toLowerCase();
       var pid = String(b.getAttribute('data-pid') || '');
-      var hit = txt.indexOf(q) !== -1 || pid === q;
+      var hit;
+      if (/^\d+$/.test(q)) {
+        // Reine Zahl: nur exakte Menü-Nummer (kein 130/131/213 bei "13")
+        var numMatch = txt.match(/^\s*(\d+)/);
+        hit = !!numMatch && numMatch[1] === q;
+      } else {
+        hit = txt.indexOf(q) !== -1 || pid === q;
+      }
       b.style.display = hit ? '' : 'none';
       if (hit) {
         matchCount++;
