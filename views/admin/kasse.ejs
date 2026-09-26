@@ -35,6 +35,17 @@
   .tel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .tel-grid input { min-height: 48px; font-size: 15px; padding: 8px 12px; border: 2px solid #e8e4de; border-radius: 10px; width: 100%; }
   .tel-grid .full { grid-column: 1 / -1; }
+  /* Mobil: alles untereinander, große Touch-Ziele (nur Anzeige, keine Logik) */
+  @media (max-width: 768px) {
+    .kasse-side { flex: 1 1 100%; position: static; }
+    .kasse-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+    .kasse-cat { min-height: 56px; font-size: 15px; flex: 1 1 130px; }
+    .kasse-qty button { width: 44px; height: 44px; }
+    .kasse-actions { flex-direction: column; }
+    .kasse-actions .btn { width: 100%; }
+    .tel-grid { grid-template-columns: 1fr; }
+    .size-option { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; }
+  }
 </style>
 
 <div class="section-header-row">

@@ -184,6 +184,29 @@ a:hover{color:var(--red-dark)}
   .order-detail-grid{grid-template-columns:1fr}
   .modal .form-grid{grid-template-columns:1fr}
   .admin-header{padding:12px 16px}
+  /* Bestelltabellen als Karten (nur mobil, nur .card-mobile) */
+  .admin-table.card-mobile thead{display:none}
+  .admin-table.card-mobile,.admin-table.card-mobile tbody,.admin-table.card-mobile tr,.admin-table.card-mobile td{display:block;width:100%}
+  .admin-table.card-mobile{font-size:14px}
+  .admin-table.card-mobile tr{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px;padding:4px 0;box-shadow:var(--shadow)}
+  .admin-table.card-mobile td{border:none!important;padding:9px 16px;display:flex;gap:10px;align-items:center;justify-content:space-between;text-align:right;overflow-wrap:anywhere}
+  .admin-table.card-mobile td::before{content:attr(data-label);font-weight:700;color:var(--text-muted);font-size:11px;text-transform:uppercase;flex-shrink:0}
+  .admin-table.card-mobile td:not([data-label])::before{display:none}
+  .admin-table.card-mobile td:not([data-label]){justify-content:center;text-align:center}
+  .admin-table.card-mobile td[data-label="Aktion"]{justify-content:flex-end;gap:10px;border-top:1px dashed var(--border)!important;padding-top:12px;margin-top:4px}
+  .admin-table.card-mobile td[data-label="Aktion"]::before{display:none}
+  .admin-table.card-mobile tr.row-deleted{opacity:.75}
+  /* Bequeme Touch-Ziele (nur mobil) */
+  .status-form select{min-height:44px;font-size:14px;max-width:100%}
+  .admin-table .btn{min-height:40px;min-width:40px}
+  .filter-group .btn,.date-filter .btn{min-height:44px}
+  .date-filter{width:100%}
+  .date-filter input{min-height:44px;font-size:15px}
+  .section-header-row{margin-bottom:16px}
+  .settings-card{padding:20px}
+  .settings-card .form-grid{grid-template-columns:1fr}
+  .settings-form .btn-lg{width:100%;min-height:52px}
+  .actions-cell{white-space:normal}
 }
 @media(max-width:480px){
   .dashboard-stats{grid-template-columns:1fr}

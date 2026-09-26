@@ -21,7 +21,7 @@
 <% } %>
 
 <div class="table-container">
-  <table class="admin-table">
+  <table class="admin-table card-mobile">
     <thead>
       <tr>
         <th>Bestellnr.</th>
@@ -37,12 +37,12 @@
     <tbody>
       <% orders.forEach(function(o) { %>
       <tr>
-        <td><a href="/admin/bestellungen/<%= o.id %>"><%= o.order_number %></a><% if (o.order_source === 'telefon') { %><br><span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #92400e">Telefonische Bestellung</span><% } %><% if (o.wish_display) { %><br><span class="badge" style="background:#e8f5e9;color:#15803d;border:1px solid #15803d">Wunsch: <%= o.wish_display %></span><% } %></td>
-        <td><%= o.customer_name %></td>
-        <td><%= o.customer_email %></td>
-        <td><strong><%= parseFloat(o.total).toFixed(2) %> €</strong></td>
-        <td><span class="badge badge-payment"><%= o.payment_method === 'bar' ? 'Bar' : (o.payment_method === 'karte' ? 'Karte' : (o.payment_method === 'telefon' ? 'Telefon' : 'Online')) %></span></td>
-        <td>
+        <td data-label="Bestellung"><a href="/admin/bestellungen/<%= o.id %>"><%= o.order_number %></a><% if (o.order_source === 'telefon') { %><br><span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #92400e">Telefonische Bestellung</span><% } %><% if (o.wish_display) { %><br><span class="badge" style="background:#e8f5e9;color:#15803d;border:1px solid #15803d">Wunsch: <%= o.wish_display %></span><% } %></td>
+        <td data-label="Kunde"><%= o.customer_name %></td>
+        <td data-label="E-Mail"><%= o.customer_email %></td>
+        <td data-label="Betrag"><strong><%= parseFloat(o.total).toFixed(2) %> €</strong></td>
+        <td data-label="Zahlung"><span class="badge badge-payment"><%= o.payment_method === 'bar' ? 'Bar' : (o.payment_method === 'karte' ? 'Karte' : (o.payment_method === 'telefon' ? 'Telefon' : 'Online')) %></span></td>
+        <td data-label="Status">
           <form method="POST" action="/admin/bestellungen/status/<%= o.id %>" class="status-form"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <select name="status" onchange="this.form.submit()">
               <option value="wartet_auf_zahlung" <%= o.order_status === 'wartet_auf_zahlung' ? 'selected' : '' %>>Wartet auf Zahlung</option>
@@ -55,8 +55,8 @@
             </select>
           </form>
         </td>
-        <td><%= new Date(o.created_at).toLocaleDateString('de-DE') + ' ' + new Date(o.created_at).toLocaleTimeString('de-DE', {hour:'2-digit', minute:'2-digit'}) %></td>
-        <td>
+        <td data-label="Datum"><%= new Date(o.created_at).toLocaleDateString('de-DE') + ' ' + new Date(o.created_at).toLocaleTimeString('de-DE', {hour:'2-digit', minute:'2-digit'}) %></td>
+        <td data-label="Aktion">
           <a href="/admin/bestellungen/<%= o.id %>" class="btn btn-sm btn-outline"><i class="fas fa-eye"></i></a>
           <a href="/admin/bestellungen/<%= o.id %>/bon?autoprint=1" target="_blank" class="btn btn-sm btn-outline" title="Bon drucken (TM-T88V)"><i class="fas fa-print"></i></a>
           <% if (['storniert', 'zugestellt', 'geliefert'].indexOf(o.order_status) !== -1) { %>

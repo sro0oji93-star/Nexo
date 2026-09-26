@@ -19,7 +19,7 @@
 </div>
 
 <div class="table-container">
-  <table class="admin-table" id="productsTable">
+  <table class="admin-table card-mobile" id="productsTable">
     <thead>
       <tr>
         <th>Bild</th>
@@ -33,20 +33,20 @@
     <tbody>
       <% products.forEach(function(p) { %>
       <tr>
-        <td>
+        <td data-label="Bild">
           <div class="product-thumb" style="background: linear-gradient(135deg, #1a1a2e, #2a1a3e);">
             <i class="fas fa-utensils"></i>
           </div>
         </td>
-        <td><strong><%= p.name %></strong></td>
-        <td><span class="badge badge-cat"><%= p.category_name || 'Unkategorisiert' %></span></td>
-        <td><%= parseFloat(p.price).toFixed(2) %> €</td>
-        <td>
+        <td data-label="Name"><strong><%= p.name %></strong></td>
+        <td data-label="Kategorie"><span class="badge badge-cat"><%= p.category_name || 'Unkategorisiert' %></span></td>
+        <td data-label="Preis"><%= parseFloat(p.price).toFixed(2) %> €</td>
+        <td data-label="Status">
           <form method="POST" action="/admin/produkte/verfuegbarkeit/<%= p.id %>" style="display:inline" title="Klicken zum Umschalten (Verfügbar ⇄ Ausverkauft)"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <button type="submit" class="status-badge <%= p.is_available ? 'status-verfuegbar' : 'status-ausverkauft' %>" style="cursor:pointer;border:none;font:inherit"><%= p.is_available ? 'Verfügbar' : 'Ausverkauft' %></button>
           </form>
         </td>
-        <td class="actions-cell">
+        <td data-label="Aktionen" class="actions-cell">
           <form method="POST" action="/admin/produkte/verfuegbarkeit/<%= p.id %>" style="display:inline" title="<%= p.is_available ? 'Auf Ausverkauft setzen' : 'Auf Verfügbar setzen' %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <button type="submit" class="btn btn-sm <%= p.is_available ? 'btn-primary' : 'btn-outline' %>" title="<%= p.is_available ? 'Verfügbar – klicken zum Sperren' : 'Ausverkauft – klicken zum Freigeben' %>"><i class="fas <%= p.is_available ? 'fa-toggle-on' : 'fa-toggle-off' %>"></i></button>
           </form>

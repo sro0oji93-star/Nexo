@@ -35,7 +35,7 @@
 </div>
 
 <div class="table-container">
-  <table class="admin-table">
+  <table class="admin-table card-mobile">
     <thead><tr><th>Nr.</th><th>Zeit</th><th>Kunde</th><th>Artikel</th><th>Typ</th><th>Gesamt</th><th>Status</th><th>Aktion</th></tr></thead>
     <tbody>
       <% if (!orders || orders.length === 0) { %>
@@ -43,18 +43,18 @@
       <% } %>
       <% orders.forEach(function(o) { %>
       <tr class="<%= o.is_deleted ? 'row-deleted' : '' %>">
-        <td><strong><%= o.order_number %></strong><% if (o.is_deleted) { %><br><span class="badge-deleted">Gelöscht</span><% } %><% if (o.order_source === 'telefon' || o.payment_method === 'telefon') { %><br><span style="background:#fef3c7;color:#92400e;border:1px solid #92400e;padding:1px 8px;border-radius:8px;font-size:12px;font-weight:700">Telefon</span><% } else if (o.order_source === 'theke' || (o.customer_name === 'Theke' && o.notes === 'Theken-Bestellung')) { %><br><span style="background:#f1f5f9;color:#475569;border:1px solid #94a3b8;padding:1px 8px;border-radius:8px;font-size:12px;font-weight:700">Theke</span><% } %></td>
-        <td><%= new Date(o.created_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) %><% if (o.wish_display) { %><br><small style="color:#15803d;font-weight:700">Wunsch: <%= o.wish_display %></small><% } %></td>
-        <td><%= o.customer_name %><br><small><%= o.customer_phone || '' %></small></td>
-        <td>
+        <td data-label="Nr."><strong><%= o.order_number %></strong><% if (o.is_deleted) { %><br><span class="badge-deleted">Gelöscht</span><% } %><% if (o.order_source === 'telefon' || o.payment_method === 'telefon') { %><br><span style="background:#fef3c7;color:#92400e;border:1px solid #92400e;padding:1px 8px;border-radius:8px;font-size:12px;font-weight:700">Telefon</span><% } else if (o.order_source === 'theke' || (o.customer_name === 'Theke' && o.notes === 'Theken-Bestellung')) { %><br><span style="background:#f1f5f9;color:#475569;border:1px solid #94a3b8;padding:1px 8px;border-radius:8px;font-size:12px;font-weight:700">Theke</span><% } %></td>
+        <td data-label="Zeit"><%= new Date(o.created_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) %><% if (o.wish_display) { %><br><small style="color:#15803d;font-weight:700">Wunsch: <%= o.wish_display %></small><% } %></td>
+        <td data-label="Kunde"><%= o.customer_name %><br><small><%= o.customer_phone || '' %></small></td>
+        <td data-label="Artikel">
           <% (o.itemsParsed || []).forEach(function(it) { %>
           <div><%= it.qty %>× <%= it.name %><% if (it.size && it.size.label) { %> (<%= it.size.label %>)<% } %></div>
           <% }); %>
           <div class="items-mini"><%= parseFloat(o.total).toFixed(2) %> € via <%= o.payment_method === 'bar' ? 'Bar' : (o.payment_method === 'karte' ? 'Karte' : (o.payment_method === 'telefon' ? 'Telefon' : 'Online')) %></div>
         </td>
-        <td><%= o.order_type === 'abholung' ? 'Abholung' : 'Lieferung' %></td>
-        <td><strong><%= parseFloat(o.total).toFixed(2) %> €</strong></td>
-        <td>
+        <td data-label="Typ"><%= o.order_type === 'abholung' ? 'Abholung' : 'Lieferung' %></td>
+        <td data-label="Gesamt"><strong><%= parseFloat(o.total).toFixed(2) %> €</strong></td>
+        <td data-label="Status">
           <form method="POST" action="/eigentuemer/bestellungen/status/<%= o.id %>" class="status-form"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="datum" value="<%= datum %>">
             <select name="status" onchange="this.form.submit()">
               <option value="wartet_auf_zahlung" <%= o.order_status === 'wartet_auf_zahlung' ? 'selected' : '' %>>Wartet auf Zahlung</option>
@@ -67,7 +67,7 @@
             </select>
           </form>
         </td>
-        <td>
+        <td data-label="Aktion">
           <form method="POST" action="/eigentuemer/bestellungen/loeschen/<%= o.id %>" style="display:inline" onsubmit="return confirm('Wirklich löschen?')"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="datum" value="<%= datum %>">
             <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
           </form>
